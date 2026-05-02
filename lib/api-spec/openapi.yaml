@@ -3,20 +3,38 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Dabba Tiffin Service Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: Auth
+    description: Browser and mobile authentication endpoints.
+  - name: vendors
+    description: Vendor management
+  - name: menus
+    description: Menu and meal plan management
+  - name: subscriptions
+    description: Subscription management
+  - name: orders
+    description: Order management
+  - name: customers
+    description: Customer management
+  - name: reviews
+    description: Reviews and feedback
+  - name: analytics
+    description: Analytics and business intelligence
+  - name: deliveries
+    description: Delivery management
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +42,1728 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/user:
+    get:
+      tags: [Auth]
+      operationId: getCurrentAuthUser
+      summary: Get the currently authenticated user
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+        - $ref: '#/components/parameters/SessionCookie'
+      responses:
+        '200':
+          description: Auth status resolved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserEnvelope'
+
+  /login:
+    get:
+      tags: [Auth]
+      operationId: beginBrowserLogin
+      summary: Start the browser OIDC login flow
+      parameters:
+        - name: returnTo
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to the OIDC authorization endpoint.
+
+  /callback:
+    get:
+      tags: [Auth]
+      operationId: handleBrowserLoginCallback
+      summary: Complete the browser OIDC login flow
+      parameters:
+        - name: code
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: iss
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uri
+      responses:
+        '302':
+          description: Redirect to the returnTo path on success.
+
+  /logout:
+    get:
+      tags: [Auth]
+      operationId: logoutBrowserSession
+      summary: Clear the session and begin OIDC logout
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+        - $ref: '#/components/parameters/SessionCookie'
+      responses:
+        '302':
+          description: Redirect to the OIDC provider logout URL.
+
+  /mobile-auth/token-exchange:
+    post:
+      tags: [Auth]
+      operationId: exchangeMobileAuthorizationCode
+      summary: Exchange a mobile OIDC code for a session token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MobileTokenExchangeRequest'
+      responses:
+        '200':
+          description: Session created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MobileTokenExchangeSuccess'
+        '400':
+          description: Missing or invalid required fields.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Token did not contain usable claims.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Token exchange failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /mobile-auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logoutMobileSession
+      summary: Delete a mobile session token
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+      responses:
+        '200':
+          description: Logout processed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutSuccess'
+
+  # ─── VENDORS ───────────────────────────────────────────────────────────────
+  /vendors:
+    get:
+      tags: [vendors]
+      operationId: listVendors
+      summary: List vendors (public – for customer discovery)
+      parameters:
+        - name: city
+          in: query
+          schema:
+            type: string
+        - name: cuisine
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of vendors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorListEnvelope"
+    post:
+      tags: [vendors]
+      operationId: createVendor
+      summary: Register a new vendor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVendorBody"
+      responses:
+        "201":
+          description: Vendor created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorEnvelope"
+
+  /vendors/me:
+    get:
+      tags: [vendors]
+      operationId: getMyVendorProfile
+      summary: Get the authenticated vendor's own profile
+      responses:
+        "200":
+          description: Vendor profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorEnvelope"
+
+  /vendors/{vendorId}:
+    get:
+      tags: [vendors]
+      operationId: getVendor
+      summary: Get a vendor by ID
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+      responses:
+        "200":
+          description: Vendor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorEnvelope"
+    patch:
+      tags: [vendors]
+      operationId: updateVendor
+      summary: Update vendor profile
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVendorBody"
+      responses:
+        "200":
+          description: Updated vendor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorEnvelope"
+
+  /vendors/{vendorId}/stats:
+    get:
+      tags: [vendors]
+      operationId: getVendorStats
+      summary: Get aggregate stats for a vendor (revenue, orders, subscriptions)
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+      responses:
+        "200":
+          description: Vendor stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorStatsEnvelope"
+
+  # ─── MENUS ─────────────────────────────────────────────────────────────────
+  /vendors/{vendorId}/menus:
+    get:
+      tags: [menus]
+      operationId: listMenuItems
+      summary: List menu items for a vendor
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+        - name: mealType
+          in: query
+          schema:
+            type: string
+            enum: [breakfast, lunch, dinner, snacks]
+        - name: dietType
+          in: query
+          schema:
+            type: string
+            enum: [veg, non_veg, jain, diabetic_friendly]
+      responses:
+        "200":
+          description: Menu items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MenuItemListEnvelope"
+    post:
+      tags: [menus]
+      operationId: createMenuItem
+      summary: Create a menu item
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMenuItemBody"
+      responses:
+        "201":
+          description: Created menu item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MenuItemEnvelope"
+
+  /vendors/{vendorId}/menus/{menuItemId}:
+    patch:
+      tags: [menus]
+      operationId: updateMenuItem
+      summary: Update a menu item
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+        - $ref: "#/components/parameters/MenuItemId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMenuItemBody"
+      responses:
+        "200":
+          description: Updated menu item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MenuItemEnvelope"
+    delete:
+      tags: [menus]
+      operationId: deleteMenuItem
+      summary: Delete a menu item
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+        - $ref: "#/components/parameters/MenuItemId"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessEnvelope"
+
+  # ─── SUBSCRIPTION PLANS ────────────────────────────────────────────────────
+  /vendors/{vendorId}/plans:
+    get:
+      tags: [subscriptions]
+      operationId: listSubscriptionPlans
+      summary: List subscription plans for a vendor
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+      responses:
+        "200":
+          description: Subscription plans
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionPlanListEnvelope"
+    post:
+      tags: [subscriptions]
+      operationId: createSubscriptionPlan
+      summary: Create a subscription plan
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubscriptionPlanBody"
+      responses:
+        "201":
+          description: Created plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionPlanEnvelope"
+
+  /vendors/{vendorId}/plans/{planId}:
+    patch:
+      tags: [subscriptions]
+      operationId: updateSubscriptionPlan
+      summary: Update a subscription plan
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+        - $ref: "#/components/parameters/PlanId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSubscriptionPlanBody"
+      responses:
+        "200":
+          description: Updated plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionPlanEnvelope"
+    delete:
+      tags: [subscriptions]
+      operationId: deleteSubscriptionPlan
+      summary: Delete a subscription plan
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+        - $ref: "#/components/parameters/PlanId"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessEnvelope"
+
+  # ─── CUSTOMER SUBSCRIPTIONS ────────────────────────────────────────────────
+  /subscriptions:
+    get:
+      tags: [subscriptions]
+      operationId: listMySubscriptions
+      summary: List current user's active subscriptions
+      responses:
+        "200":
+          description: Subscriptions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerSubscriptionListEnvelope"
+    post:
+      tags: [subscriptions]
+      operationId: createCustomerSubscription
+      summary: Subscribe to a plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCustomerSubscriptionBody"
+      responses:
+        "201":
+          description: Subscription created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerSubscriptionEnvelope"
+
+  /subscriptions/{subscriptionId}:
+    get:
+      tags: [subscriptions]
+      operationId: getCustomerSubscription
+      summary: Get a customer subscription
+      parameters:
+        - $ref: "#/components/parameters/SubscriptionId"
+      responses:
+        "200":
+          description: Subscription
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerSubscriptionEnvelope"
+    patch:
+      tags: [subscriptions]
+      operationId: updateCustomerSubscription
+      summary: Pause, resume, or cancel a subscription
+      parameters:
+        - $ref: "#/components/parameters/SubscriptionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCustomerSubscriptionBody"
+      responses:
+        "200":
+          description: Updated subscription
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerSubscriptionEnvelope"
+
+  /subscriptions/{subscriptionId}/skip:
+    post:
+      tags: [subscriptions]
+      operationId: skipSubscriptionDay
+      summary: Skip a delivery day
+      parameters:
+        - $ref: "#/components/parameters/SubscriptionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SkipDayBody"
+      responses:
+        "200":
+          description: Day skipped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessEnvelope"
+
+  # ─── ORDERS ────────────────────────────────────────────────────────────────
+  /orders:
+    get:
+      tags: [orders]
+      operationId: listOrders
+      summary: List orders (customer sees their own; vendor sees all for their kitchen)
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, accepted, preparing, packed, picked_up, delivered, cancelled]
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: vendorId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Orders
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderListEnvelope"
+
+  /orders/{orderId}:
+    get:
+      tags: [orders]
+      operationId: getOrder
+      summary: Get a single order
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: Order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderEnvelope"
+    patch:
+      tags: [orders]
+      operationId: updateOrderStatus
+      summary: Update order status
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOrderStatusBody"
+      responses:
+        "200":
+          description: Updated order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderEnvelope"
+
+  /orders/today-summary:
+    get:
+      tags: [orders]
+      operationId: getTodayOrderSummary
+      summary: Get today's order summary (counts by status and meal type)
+      parameters:
+        - name: vendorId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Today's summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TodaySummaryEnvelope"
+
+  # ─── CUSTOMERS ─────────────────────────────────────────────────────────────
+  /customers/me:
+    get:
+      tags: [customers]
+      operationId: getMyCustomerProfile
+      summary: Get or create the current user's customer profile
+      responses:
+        "200":
+          description: Customer profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerEnvelope"
+    patch:
+      tags: [customers]
+      operationId: updateMyCustomerProfile
+      summary: Update customer profile / delivery address
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCustomerProfileBody"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerEnvelope"
+
+  /customers/wallet:
+    get:
+      tags: [customers]
+      operationId: getWalletBalance
+      summary: Get current wallet balance and recent transactions
+      responses:
+        "200":
+          description: Wallet info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalletEnvelope"
+
+  /customers/upcoming-deliveries:
+    get:
+      tags: [customers]
+      operationId: getUpcomingDeliveries
+      summary: Get next 7 days of scheduled deliveries for the customer
+      responses:
+        "200":
+          description: Upcoming deliveries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpcomingDeliveriesEnvelope"
+
+  # ─── REVIEWS ───────────────────────────────────────────────────────────────
+  /reviews:
+    get:
+      tags: [reviews]
+      operationId: listReviews
+      summary: List reviews (by vendor or customer)
+      parameters:
+        - name: vendorId
+          in: query
+          schema:
+            type: string
+        - name: customerId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Reviews
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewListEnvelope"
+    post:
+      tags: [reviews]
+      operationId: createReview
+      summary: Submit a review for a meal/order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReviewBody"
+      responses:
+        "201":
+          description: Review created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewEnvelope"
+
+  # ─── ANALYTICS ─────────────────────────────────────────────────────────────
+  /analytics/vendor/{vendorId}/revenue:
+    get:
+      tags: [analytics]
+      operationId: getVendorRevenueTrend
+      summary: Revenue trend for a vendor
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 90d]
+            default: 30d
+      responses:
+        "200":
+          description: Revenue trend
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevenueTrendEnvelope"
+
+  /analytics/vendor/{vendorId}/popular-dishes:
+    get:
+      tags: [analytics]
+      operationId: getPopularDishes
+      summary: Most popular dishes for a vendor
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+      responses:
+        "200":
+          description: Popular dishes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PopularDishesEnvelope"
+
+  /analytics/vendor/{vendorId}/subscription-health:
+    get:
+      tags: [analytics]
+      operationId: getSubscriptionHealth
+      summary: Active vs paused vs cancelled subscriptions breakdown
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+      responses:
+        "200":
+          description: Subscription health
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionHealthEnvelope"
+
+  /analytics/platform/overview:
+    get:
+      tags: [analytics]
+      operationId: getPlatformOverview
+      summary: Super admin platform overview (GMV, vendors, subscriptions)
+      responses:
+        "200":
+          description: Platform overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformOverviewEnvelope"
+
+  # ─── DELIVERIES ────────────────────────────────────────────────────────────
+  /deliveries:
+    get:
+      tags: [deliveries]
+      operationId: listDeliveries
+      summary: List deliveries (for delivery agent or vendor)
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [assigned, in_progress, completed, failed]
+      responses:
+        "200":
+          description: Deliveries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeliveryListEnvelope"
+
+  /deliveries/{deliveryId}/status:
+    patch:
+      tags: [deliveries]
+      operationId: updateDeliveryStatus
+      summary: Update delivery status
+      parameters:
+        - name: deliveryId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDeliveryStatusBody"
+      responses:
+        "200":
+          description: Updated delivery
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessEnvelope"
+
 components:
+  parameters:
+    AuthorizationSessionHeader:
+      name: Authorization
+      in: header
+      required: false
+      description: Opaque session token — Bearer <sid>.
+      schema:
+        type: string
+    SessionCookie:
+      name: sid
+      in: cookie
+      required: false
+      description: Browser session cookie.
+      schema:
+        type: string
+    VendorId:
+      name: vendorId
+      in: path
+      required: true
+      schema:
+        type: string
+    MenuItemId:
+      name: menuItemId
+      in: path
+      required: true
+      schema:
+        type: string
+    PlanId:
+      name: planId
+      in: path
+      required: true
+      schema:
+        type: string
+    SubscriptionId:
+      name: subscriptionId
+      in: path
+      required: true
+      schema:
+        type: string
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema:
+        type: string
+
   schemas:
     HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    SuccessEnvelope:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+
+    LogoutSuccess:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+          const: true
+
+    AuthUser:
+      type: object
+      required: [id, email, firstName, lastName, profileImageUrl]
+      properties:
+        id:
+          type: string
+        email:
+          type: [string, 'null']
+          format: email
+        firstName:
+          type: [string, 'null']
+        lastName:
+          type: [string, 'null']
+        profileImageUrl:
+          type: [string, 'null']
+        role:
+          type: [string, 'null']
+          enum: [super_admin, vendor, customer, delivery_agent, kitchen_staff, null]
+
+    AuthUserEnvelope:
+      type: object
+      required: [user]
+      properties:
+        user:
+          oneOf:
+            - $ref: '#/components/schemas/AuthUser'
+            - type: 'null'
+
+    MobileTokenExchangeRequest:
+      type: object
+      required: [code, code_verifier, redirect_uri, state]
+      properties:
+        code:
+          type: string
+          minLength: 1
+        code_verifier:
+          type: string
+          minLength: 1
+        redirect_uri:
+          type: string
+          minLength: 1
+          format: uri
+        state:
+          type: string
+          minLength: 1
+        nonce:
+          type: string
+          minLength: 1
+
+    MobileTokenExchangeSuccess:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+
+    # ─── VENDOR ──────────────────────────────────────────────────────────────
+    Vendor:
+      type: object
+      required: [id, name, ownerUserId, city, cuisineType, status, subscriptionTier, createdAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        ownerUserId:
+          type: string
+        description:
+          type: [string, 'null']
+        city:
+          type: string
+        address:
+          type: [string, 'null']
+        cuisineType:
+          type: string
+        logoUrl:
+          type: [string, 'null']
+        coverImageUrl:
+          type: [string, 'null']
+        rating:
+          type: [number, 'null']
+        reviewCount:
+          type: integer
+        status:
+          type: string
+          enum: [pending, approved, suspended]
+        subscriptionTier:
+          type: string
+          enum: [basic, pro, enterprise]
+        fssaiLicense:
+          type: [string, 'null']
+        deliveryZones:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    VendorEnvelope:
+      type: object
+      required: [vendor]
+      properties:
+        vendor:
+          $ref: "#/components/schemas/Vendor"
+
+    VendorListEnvelope:
+      type: object
+      required: [vendors]
+      properties:
+        vendors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Vendor"
+
+    CreateVendorBody:
+      type: object
+      required: [name, city, cuisineType]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        city:
+          type: string
+        address:
+          type: string
+        cuisineType:
+          type: string
+        fssaiLicense:
+          type: string
+        subscriptionTier:
+          type: string
+          enum: [basic, pro, enterprise]
+          default: basic
+
+    UpdateVendorBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        city:
+          type: string
+        address:
+          type: string
+        cuisineType:
+          type: string
+        logoUrl:
+          type: string
+        coverImageUrl:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, suspended]
+        subscriptionTier:
+          type: string
+          enum: [basic, pro, enterprise]
+        deliveryZones:
+          type: array
+          items:
+            type: string
+
+    VendorStats:
+      type: object
+      required: [totalRevenue, totalOrders, activeSubscriptions, averageRating, todayOrders, monthlyRevenue]
+      properties:
+        totalRevenue:
+          type: number
+        totalOrders:
+          type: integer
+        activeSubscriptions:
+          type: integer
+        averageRating:
+          type: number
+        todayOrders:
+          type: integer
+        monthlyRevenue:
+          type: number
+        pendingOrders:
+          type: integer
+        completedOrdersToday:
+          type: integer
+
+    VendorStatsEnvelope:
+      type: object
+      required: [stats]
+      properties:
+        stats:
+          $ref: "#/components/schemas/VendorStats"
+
+    # ─── MENU ────────────────────────────────────────────────────────────────
+    MenuItem:
+      type: object
+      required: [id, vendorId, name, mealType, dietType, price, isAvailable, createdAt]
+      properties:
+        id:
+          type: string
+        vendorId:
+          type: string
+        name:
+          type: string
+        description:
+          type: [string, 'null']
+        mealType:
+          type: string
+          enum: [breakfast, lunch, dinner, snacks]
+        dietType:
+          type: string
+          enum: [veg, non_veg, jain, diabetic_friendly]
+        price:
+          type: number
+        imageUrl:
+          type: [string, 'null']
+        calories:
+          type: [integer, 'null']
+        isAvailable:
+          type: boolean
+        isFestivalSpecial:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    MenuItemEnvelope:
+      type: object
+      required: [menuItem]
+      properties:
+        menuItem:
+          $ref: "#/components/schemas/MenuItem"
+
+    MenuItemListEnvelope:
+      type: object
+      required: [menuItems]
+      properties:
+        menuItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/MenuItem"
+
+    CreateMenuItemBody:
+      type: object
+      required: [name, mealType, dietType, price]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        mealType:
+          type: string
+          enum: [breakfast, lunch, dinner, snacks]
+        dietType:
+          type: string
+          enum: [veg, non_veg, jain, diabetic_friendly]
+        price:
+          type: number
+        imageUrl:
+          type: string
+        calories:
+          type: integer
+        isAvailable:
+          type: boolean
+          default: true
+        isFestivalSpecial:
+          type: boolean
+          default: false
+        tags:
+          type: array
+          items:
+            type: string
+
+    UpdateMenuItemBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        imageUrl:
+          type: string
+        calories:
+          type: integer
+        isAvailable:
+          type: boolean
+        isFestivalSpecial:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+
+    # ─── SUBSCRIPTION PLANS ──────────────────────────────────────────────────
+    SubscriptionPlan:
+      type: object
+      required: [id, vendorId, name, planType, price, mealTypes, createdAt]
+      properties:
+        id:
+          type: string
+        vendorId:
+          type: string
+        name:
+          type: string
+        description:
+          type: [string, 'null']
+        planType:
+          type: string
+          enum: [daily, weekly, monthly, weekday, trial_3day, trial_7day, custom]
+        price:
+          type: number
+        mealTypes:
+          type: array
+          items:
+            type: string
+        dietType:
+          type: [string, 'null']
+          enum: [veg, non_veg, jain, diabetic_friendly, null]
+        mealsPerDay:
+          type: integer
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    SubscriptionPlanEnvelope:
+      type: object
+      required: [plan]
+      properties:
+        plan:
+          $ref: "#/components/schemas/SubscriptionPlan"
+
+    SubscriptionPlanListEnvelope:
+      type: object
+      required: [plans]
+      properties:
+        plans:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubscriptionPlan"
+
+    CreateSubscriptionPlanBody:
+      type: object
+      required: [name, planType, price, mealTypes]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        planType:
+          type: string
+          enum: [daily, weekly, monthly, weekday, trial_3day, trial_7day, custom]
+        price:
+          type: number
+        mealTypes:
+          type: array
+          items:
+            type: string
+        dietType:
+          type: string
+          enum: [veg, non_veg, jain, diabetic_friendly]
+        mealsPerDay:
+          type: integer
+          default: 1
+        isActive:
+          type: boolean
+          default: true
+
+    UpdateSubscriptionPlanBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        isActive:
+          type: boolean
+        mealTypes:
+          type: array
+          items:
+            type: string
+
+    # ─── CUSTOMER SUBSCRIPTIONS ──────────────────────────────────────────────
+    CustomerSubscription:
+      type: object
+      required: [id, customerId, planId, vendorId, status, startDate, endDate, deliveryAddress, createdAt]
+      properties:
+        id:
+          type: string
+        customerId:
+          type: string
+        planId:
+          type: string
+        vendorId:
+          type: string
+        vendorName:
+          type: [string, 'null']
+        planName:
+          type: [string, 'null']
+        planType:
+          type: [string, 'null']
+        status:
+          type: string
+          enum: [active, paused, cancelled, expired]
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        deliveryAddress:
+          type: string
+        deliverySlot:
+          type: [string, 'null']
+        walletBalance:
+          type: number
+        skippedDays:
+          type: array
+          items:
+            type: string
+            format: date
+        createdAt:
+          type: string
+          format: date-time
+
+    CustomerSubscriptionEnvelope:
+      type: object
+      required: [subscription]
+      properties:
+        subscription:
+          $ref: "#/components/schemas/CustomerSubscription"
+
+    CustomerSubscriptionListEnvelope:
+      type: object
+      required: [subscriptions]
+      properties:
+        subscriptions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustomerSubscription"
+
+    CreateCustomerSubscriptionBody:
+      type: object
+      required: [planId, vendorId, startDate, deliveryAddress]
+      properties:
+        planId:
+          type: string
+        vendorId:
+          type: string
+        startDate:
+          type: string
+          format: date
+        deliveryAddress:
+          type: string
+        deliverySlot:
+          type: string
+
+    UpdateCustomerSubscriptionBody:
       type: object
       properties:
         status:
           type: string
-      required:
-        - status
+          enum: [active, paused, cancelled]
+        deliveryAddress:
+          type: string
+        deliverySlot:
+          type: string
 
+    SkipDayBody:
+      type: object
+      required: [date]
+      properties:
+        date:
+          type: string
+          format: date
+
+    # ─── ORDERS ──────────────────────────────────────────────────────────────
+    Order:
+      type: object
+      required: [id, customerId, vendorId, subscriptionId, status, scheduledDate, totalAmount, createdAt]
+      properties:
+        id:
+          type: string
+        customerId:
+          type: string
+        vendorId:
+          type: string
+        subscriptionId:
+          type: string
+        customerName:
+          type: [string, 'null']
+        vendorName:
+          type: [string, 'null']
+        status:
+          type: string
+          enum: [pending, accepted, preparing, packed, picked_up, delivered, cancelled]
+        scheduledDate:
+          type: string
+          format: date
+        mealType:
+          type: [string, 'null']
+        totalAmount:
+          type: number
+        deliveryAddress:
+          type: [string, 'null']
+        specialInstructions:
+          type: [string, 'null']
+        createdAt:
+          type: string
+          format: date-time
+
+    OrderEnvelope:
+      type: object
+      required: [order]
+      properties:
+        order:
+          $ref: "#/components/schemas/Order"
+
+    OrderListEnvelope:
+      type: object
+      required: [orders]
+      properties:
+        orders:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+
+    UpdateOrderStatusBody:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [accepted, preparing, packed, picked_up, delivered, cancelled]
+        specialInstructions:
+          type: string
+
+    TodaySummary:
+      type: object
+      required: [totalOrders, byStatus, byMealType, revenue]
+      properties:
+        totalOrders:
+          type: integer
+        byStatus:
+          type: object
+          additionalProperties:
+            type: integer
+        byMealType:
+          type: object
+          additionalProperties:
+            type: integer
+        revenue:
+          type: number
+        pendingCount:
+          type: integer
+        deliveredCount:
+          type: integer
+
+    TodaySummaryEnvelope:
+      type: object
+      required: [summary]
+      properties:
+        summary:
+          $ref: "#/components/schemas/TodaySummary"
+
+    # ─── CUSTOMER ────────────────────────────────────────────────────────────
+    Customer:
+      type: object
+      required: [id, userId, createdAt]
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        name:
+          type: [string, 'null']
+        phone:
+          type: [string, 'null']
+        defaultDeliveryAddress:
+          type: [string, 'null']
+        city:
+          type: [string, 'null']
+        walletBalance:
+          type: number
+        loyaltyPoints:
+          type: integer
+        referralCode:
+          type: [string, 'null']
+        createdAt:
+          type: string
+          format: date-time
+
+    CustomerEnvelope:
+      type: object
+      required: [customer]
+      properties:
+        customer:
+          $ref: "#/components/schemas/Customer"
+
+    UpdateCustomerProfileBody:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        defaultDeliveryAddress:
+          type: string
+        city:
+          type: string
+
+    WalletTransaction:
+      type: object
+      required: [id, type, amount, description, createdAt]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [credit, debit]
+        amount:
+          type: number
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Wallet:
+      type: object
+      required: [balance, transactions]
+      properties:
+        balance:
+          type: number
+        loyaltyPoints:
+          type: integer
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/WalletTransaction"
+
+    WalletEnvelope:
+      type: object
+      required: [wallet]
+      properties:
+        wallet:
+          $ref: "#/components/schemas/Wallet"
+
+    UpcomingDelivery:
+      type: object
+      required: [date, vendorName, planName, mealTypes, status]
+      properties:
+        date:
+          type: string
+          format: date
+        vendorName:
+          type: string
+        planName:
+          type: string
+        mealTypes:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [scheduled, skipped, delivered, cancelled]
+        deliverySlot:
+          type: [string, 'null']
+
+    UpcomingDeliveriesEnvelope:
+      type: object
+      required: [deliveries]
+      properties:
+        deliveries:
+          type: array
+          items:
+            $ref: "#/components/schemas/UpcomingDelivery"
+
+    # ─── REVIEWS ─────────────────────────────────────────────────────────────
+    Review:
+      type: object
+      required: [id, customerId, vendorId, rating, createdAt]
+      properties:
+        id:
+          type: string
+        customerId:
+          type: string
+        vendorId:
+          type: string
+        orderId:
+          type: [string, 'null']
+        customerName:
+          type: [string, 'null']
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: [string, 'null']
+        tags:
+          type: array
+          items:
+            type: string
+        vendorResponse:
+          type: [string, 'null']
+        createdAt:
+          type: string
+          format: date-time
+
+    ReviewEnvelope:
+      type: object
+      required: [review]
+      properties:
+        review:
+          $ref: "#/components/schemas/Review"
+
+    ReviewListEnvelope:
+      type: object
+      required: [reviews]
+      properties:
+        reviews:
+          type: array
+          items:
+            $ref: "#/components/schemas/Review"
+
+    CreateReviewBody:
+      type: object
+      required: [vendorId, rating]
+      properties:
+        vendorId:
+          type: string
+        orderId:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    # ─── ANALYTICS ───────────────────────────────────────────────────────────
+    RevenueTrendPoint:
+      type: object
+      required: [date, revenue, orders]
+      properties:
+        date:
+          type: string
+        revenue:
+          type: number
+        orders:
+          type: integer
+
+    RevenueTrendEnvelope:
+      type: object
+      required: [trend]
+      properties:
+        trend:
+          type: array
+          items:
+            $ref: "#/components/schemas/RevenueTrendPoint"
+
+    PopularDish:
+      type: object
+      required: [name, orderCount, revenue]
+      properties:
+        name:
+          type: string
+        orderCount:
+          type: integer
+        revenue:
+          type: number
+        mealType:
+          type: [string, 'null']
+
+    PopularDishesEnvelope:
+      type: object
+      required: [dishes]
+      properties:
+        dishes:
+          type: array
+          items:
+            $ref: "#/components/schemas/PopularDish"
+
+    SubscriptionHealth:
+      type: object
+      required: [active, paused, cancelled, expired, total]
+      properties:
+        active:
+          type: integer
+        paused:
+          type: integer
+        cancelled:
+          type: integer
+        expired:
+          type: integer
+        total:
+          type: integer
+        retentionRate:
+          type: number
+
+    SubscriptionHealthEnvelope:
+      type: object
+      required: [health]
+      properties:
+        health:
+          $ref: "#/components/schemas/SubscriptionHealth"
+
+    PlatformOverview:
+      type: object
+      required: [totalVendors, totalCustomers, activeSubscriptions, totalOrdersToday, platformGMV]
+      properties:
+        totalVendors:
+          type: integer
+        activeVendors:
+          type: integer
+        totalCustomers:
+          type: integer
+        activeSubscriptions:
+          type: integer
+        totalOrdersToday:
+          type: integer
+        platformGMV:
+          type: number
+        monthlyRevenue:
+          type: number
+        pendingVendorApprovals:
+          type: integer
+
+    PlatformOverviewEnvelope:
+      type: object
+      required: [overview]
+      properties:
+        overview:
+          $ref: "#/components/schemas/PlatformOverview"
+
+    # ─── DELIVERIES ──────────────────────────────────────────────────────────
+    Delivery:
+      type: object
+      required: [id, orderId, agentName, status, scheduledDate]
+      properties:
+        id:
+          type: string
+        orderId:
+          type: string
+        agentName:
+          type: [string, 'null']
+        customerName:
+          type: [string, 'null']
+        deliveryAddress:
+          type: [string, 'null']
+        status:
+          type: string
+          enum: [assigned, in_progress, completed, failed]
+        scheduledDate:
+          type: string
+          format: date
+        deliverySlot:
+          type: [string, 'null']
+
+    DeliveryListEnvelope:
+      type: object
+      required: [deliveries]
+      properties:
+        deliveries:
+          type: array
+          items:
+            $ref: "#/components/schemas/Delivery"
+
+    UpdateDeliveryStatusBody:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [in_progress, completed, failed]
+        notes:
+          type: string

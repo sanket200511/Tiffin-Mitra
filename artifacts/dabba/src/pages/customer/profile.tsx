@@ -109,7 +109,7 @@ export default function Profile() {
                 </div>
                 <div>
                   <p className="font-medium text-sm">{user?.email || "Account Email"}</p>
-                  <p className="text-xs text-muted-foreground">Connected via Replit Auth</p>
+                  <p className="text-xs text-muted-foreground">Your account email</p>
                 </div>
               </div>
 

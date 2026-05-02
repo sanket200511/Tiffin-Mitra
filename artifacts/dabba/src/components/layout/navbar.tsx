@@ -40,12 +40,12 @@ export function Navbar() {
                   Admin
                 </Link>
               )}
-              <Button variant="outline" size="sm" onClick={logout}>
+              <Button variant="outline" size="sm" onClick={() => logout()} data-testid="button-logout">
                 Log out
               </Button>
             </>
           ) : (
-            <Button size="sm" onClick={login}>
+            <Button size="sm" onClick={login} data-testid="button-login">
               Log in
             </Button>
           )}

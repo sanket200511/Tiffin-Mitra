@@ -1,6 +1,5 @@
 import bcrypt from "bcryptjs";
 import { Router, type IRouter, type Request, type Response } from "express";
-import rateLimit from "express-rate-limit";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { GetCurrentAuthUserResponse } from "@workspace/api-zod";
@@ -15,14 +14,6 @@ import {
 
 const router: IRouter = Router();
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many attempts, please try again later." },
-});
-
 router.get("/auth/user", (req: Request, res: Response) => {
   res.json(
     GetCurrentAuthUserResponse.parse({
@@ -31,7 +22,7 @@ router.get("/auth/user", (req: Request, res: Response) => {
   );
 });
 
-router.post("/auth/register", authLimiter, async (req: Request, res: Response) => {
+router.post("/auth/register", async (req: Request, res: Response) => {
   const { email, password, firstName, lastName } = req.body as {
     email?: string;
     password?: string;
@@ -80,7 +71,7 @@ router.post("/auth/register", authLimiter, async (req: Request, res: Response) =
   }
 });
 
-router.post("/auth/login", authLimiter, async (req: Request, res: Response) => {
+router.post("/auth/login", async (req: Request, res: Response) => {
   const { email, password } = req.body as { email?: string; password?: string };
 
   if (!email || !password) {
@@ -152,7 +143,7 @@ router.patch("/auth/role", async (req: Request, res: Response) => {
 });
 
 // POST /auth/make-admin — requires ADMIN_SETUP_KEY env var. No default key.
-router.post("/auth/make-admin", authLimiter, async (req: Request, res: Response) => {
+router.post("/auth/make-admin", async (req: Request, res: Response) => {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "You must be logged in first" });
     return;

@@ -367,8 +367,8 @@ export default function Profile() {
         </DialogContent>
       </Dialog>
 
-      <Card>
-        <CardHeader>
+      <Card className="border-border/60 shadow-sm">
+        <CardHeader className="space-y-1.5">
           <CardTitle>Personal Information</CardTitle>
           <CardDescription>Update your contact and delivery details here.</CardDescription>
         </CardHeader>
@@ -376,8 +376,8 @@ export default function Profile() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 
-              <div className="bg-muted/30 p-4 rounded-lg flex items-center gap-3 border">
-                <div className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center">
+              <div className="bg-card p-4 rounded-xl flex items-center gap-3 border shadow-sm">
+                <div className="w-10 h-10 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
                   <User className="w-5 h-5" />
                 </div>
                 <div>
@@ -396,7 +396,7 @@ export default function Profile() {
                       <FormControl>
                         <div className="relative">
                           <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                          <Input className="pl-9" {...field} />
+                          <Input className="pl-9 h-11 rounded-xl" {...field} />
                         </div>
                       </FormControl>
                       <FormMessage />
@@ -413,7 +413,7 @@ export default function Profile() {
                       <FormControl>
                         <div className="relative">
                           <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                          <Input className="pl-9" placeholder="+91" {...field} />
+                          <Input className="pl-9 h-11 rounded-xl" placeholder="+91" {...field} />
                         </div>
                       </FormControl>
                       <FormMessage />
@@ -429,7 +429,7 @@ export default function Profile() {
                   <FormItem>
                     <FormLabel>City</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. Nagpur" {...field} />
+                      <Input className="h-11 rounded-xl" placeholder="e.g. Nagpur" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -445,7 +445,7 @@ export default function Profile() {
                     size="sm"
                     onClick={handleDetectLocation}
                     disabled={locating}
-                    className="gap-2 text-xs h-8"
+                    className="gap-2 text-xs h-9 rounded-xl"
                   >
                     {locating ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -463,7 +463,7 @@ export default function Profile() {
                     href={`https://www.google.com/maps?q=${lat},${lng}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-xs text-primary hover:underline bg-primary/5 border border-primary/20 rounded-lg px-3 py-2"
+                    className="flex items-center gap-2 text-xs text-primary hover:underline bg-primary/5 border border-primary/20 rounded-xl px-3 py-2.5"
                   >
                     <MapPin className="w-3.5 h-3.5 shrink-0" />
                     <span className="truncate">
@@ -482,7 +482,7 @@ export default function Profile() {
                         <div className="relative">
                           <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                           <Textarea
-                            className="pl-9 min-h-[100px] resize-none"
+                            className="pl-9 min-h-[100px] resize-none rounded-xl"
                             placeholder="House / flat number, street name, area..."
                             {...field}
                           />
@@ -500,7 +500,7 @@ export default function Profile() {
                     <FormItem>
                       <FormLabel>Landmark <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. Near Papadkar Kirana Store, opposite blue gate..." {...field} />
+                      <Input className="h-11 rounded-xl" placeholder="e.g. Near Papadkar Kirana Store, opposite blue gate..." {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -48,7 +48,7 @@ function VendorLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-[100dvh] flex">
       <VendorSidebar />
-      <main className="flex-1 bg-muted/10 overflow-y-auto">{children}</main>
+      <main className="flex-1 bg-muted/10 overflow-y-auto overflow-x-hidden pt-14 lg:pt-0">{children}</main>
     </div>
   );
 }
@@ -57,7 +57,7 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-[100dvh] flex">
       <AdminSidebar />
-      <main className="flex-1 bg-muted/10 overflow-y-auto">{children}</main>
+      <main className="flex-1 bg-muted/10 overflow-y-auto overflow-x-hidden pt-14 lg:pt-0">{children}</main>
     </div>
   );
 }

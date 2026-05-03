@@ -120,8 +120,8 @@ export default function VendorOrders() {
         </div>
       </div>
 
-      <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
-        <Table>
+      <div className="bg-card rounded-xl border shadow-sm overflow-hidden overflow-x-auto">
+        <Table className="min-w-[640px]">
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead className="w-[100px]">Order ID</TableHead>

@@ -25,7 +25,8 @@ const Profile          = lazy(() => import("@/pages/customer/profile"));
 const CustomerWallet   = lazy(() => import("@/pages/customer/wallet"));
 const PeerDelivery     = lazy(() => import("@/pages/peer-delivery/index"));
 
-const VendorOnboarding = lazy(() => import("@/pages/vendor/onboarding"));
+const VendorOnboarding    = lazy(() => import("@/pages/vendor/onboarding"));
+const VendorDeliverySheet = lazy(() => import("@/pages/vendor/delivery-sheet"));
 const VendorDashboard  = lazy(() => import("@/pages/vendor/dashboard"));
 const VendorMenu       = lazy(() => import("@/pages/vendor/menu"));
 const VendorPlans      = lazy(() => import("@/pages/vendor/plans"));
@@ -174,6 +175,9 @@ function Router() {
         {/* Vendor Routes */}
         <Route path="/vendor/dashboard">
           <ProtectedRoute component={VendorDashboard} allowedRole="vendor" layout={VendorLayout} />
+        </Route>
+        <Route path="/vendor/delivery-sheet">
+          <ProtectedRoute component={VendorDeliverySheet} allowedRole="vendor" layout={VendorLayout} />
         </Route>
         <Route path="/vendor/menu">
           <ProtectedRoute component={VendorMenu} allowedRole="vendor" layout={VendorLayout} />

@@ -15,8 +15,19 @@ export const customersTable = pgTable("customers", {
   walletBalance: numeric("wallet_balance", { precision: 10, scale: 2 }).notNull().default("0"),
   loyaltyPoints: integer("loyalty_points").notNull().default(0),
   referralCode: text("referral_code").$defaultFn(() => Math.random().toString(36).substring(2, 8).toUpperCase()),
+  referredByCode: text("referred_by_code"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const referralsTable = pgTable("referrals", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  referrerId: text("referrer_id").notNull(),
+  refereeId: text("referee_id").notNull(),
+  referrerReward: numeric("referrer_reward", { precision: 10, scale: 2 }).notNull().default("50.00"),
+  refereeReward: numeric("referee_reward", { precision: 10, scale: 2 }).notNull().default("25.00"),
+  status: text("status").notNull().default("completed"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const walletTransactionsTable = pgTable("wallet_transactions", {

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, ordersTable, vendorsTable, customersTable, walletTransactionsTable } from "@workspace/db";
+import { db, ordersTable, vendorsTable, customersTable, walletTransactionsTable, customerSubscriptionsTable, subscriptionPlansTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import { notifyUser } from "../lib/notify";
 
@@ -259,6 +259,56 @@ router.patch("/orders/:orderId", async (req, res) => {
     res.json({ order: updated });
   } catch (err) {
     req.log.error({ err }, "Failed to update order");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── Vendor delivery sheet for a given date ───────────────────────────────────
+router.get("/vendors/:vendorId/delivery-sheet", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  try {
+    const { vendorId } = req.params;
+    const isAdmin = req.user.role === "super_admin";
+
+    if (!isAdmin) {
+      const [vendor] = await db.select({ ownerUserId: vendorsTable.ownerUserId })
+        .from(vendorsTable).where(eq(vendorsTable.id, vendorId));
+      if (!vendor || vendor.ownerUserId !== req.user.id) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
+    }
+
+    const targetDate = (req.query as Record<string, string>).date
+      || new Date().toISOString().split("T")[0];
+
+    const rows = await db
+      .select({
+        orderId: ordersTable.id,
+        status: ordersTable.status,
+        scheduledDate: ordersTable.scheduledDate,
+        mealType: ordersTable.mealType,
+        totalAmount: ordersTable.totalAmount,
+        deliveryAddress: ordersTable.deliveryAddress,
+        specialInstructions: ordersTable.specialInstructions,
+        customerName: customersTable.name,
+        customerPhone: customersTable.phone,
+        deliverySlot: customerSubscriptionsTable.deliverySlot,
+        planName: subscriptionPlansTable.name,
+      })
+      .from(ordersTable)
+      .leftJoin(customersTable, eq(ordersTable.customerId, customersTable.id))
+      .leftJoin(customerSubscriptionsTable, eq(ordersTable.subscriptionId, customerSubscriptionsTable.id))
+      .leftJoin(subscriptionPlansTable, eq(customerSubscriptionsTable.planId, subscriptionPlansTable.id))
+      .where(and(eq(ordersTable.vendorId, vendorId), eq(ordersTable.scheduledDate, targetDate)))
+      .orderBy(ordersTable.status);
+
+    res.json({ deliveries: rows, date: targetDate, total: rows.length });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get delivery sheet");
     res.status(500).json({ error: "Internal server error" });
   }
 });

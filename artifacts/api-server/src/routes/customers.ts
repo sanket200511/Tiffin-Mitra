@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, customersTable, walletTransactionsTable, customerSubscriptionsTable, ordersTable, subscriptionPlansTable, vendorsTable } from "@workspace/db";
+import { db, customersTable, walletTransactionsTable, customerSubscriptionsTable, ordersTable, subscriptionPlansTable, vendorsTable, referralsTable } from "@workspace/db";
 import { eq, sql, desc } from "drizzle-orm";
 
 const router = Router();
@@ -372,6 +372,125 @@ router.post("/customers/:customerId/wallet-credit", async (req, res) => {
     res.json({ customer: updated, newBalance: parseFloat(newBalance) });
   } catch (err) {
     req.log.error({ err }, "Failed to adjust customer wallet");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── Referral: get my code + stats ───────────────────────────────────────────
+router.get("/customers/me/referral", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  try {
+    const [customer] = await db.select().from(customersTable)
+      .where(eq(customersTable.userId, req.user.id));
+    if (!customer) {
+      res.json({ referralCode: null, referredByCode: null, referrals: [], totalEarned: 0, count: 0 });
+      return;
+    }
+
+    const referrals = await db
+      .select({
+        id: referralsTable.id,
+        createdAt: referralsTable.createdAt,
+        referrerReward: referralsTable.referrerReward,
+        refereeName: customersTable.name,
+      })
+      .from(referralsTable)
+      .leftJoin(customersTable, eq(referralsTable.refereeId, customersTable.id))
+      .where(eq(referralsTable.referrerId, customer.id))
+      .orderBy(desc(referralsTable.createdAt));
+
+    const totalEarned = referrals.reduce((s, r) => s + parseFloat(String(r.referrerReward ?? 0)), 0);
+
+    res.json({
+      referralCode: customer.referralCode,
+      referredByCode: customer.referredByCode,
+      referrals,
+      totalEarned,
+      count: referrals.length,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get referral stats");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── Referral: apply someone else's code ─────────────────────────────────────
+router.post("/customers/me/referral/apply", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const { code } = req.body as { code?: string };
+  if (!code || typeof code !== "string" || code.trim().length < 4) {
+    res.status(400).json({ error: "Invalid referral code." });
+    return;
+  }
+  const normalizedCode = code.trim().toUpperCase();
+
+  try {
+    let [referee] = await db.select().from(customersTable)
+      .where(eq(customersTable.userId, req.user.id));
+    if (!referee) {
+      [referee] = await db.insert(customersTable).values({ userId: req.user.id }).returning();
+    }
+
+    if (referee.referredByCode) {
+      res.status(400).json({ error: "You have already used a referral code." });
+      return;
+    }
+
+    if (referee.referralCode === normalizedCode) {
+      res.status(400).json({ error: "You cannot use your own referral code." });
+      return;
+    }
+
+    const [referrer] = await db.select().from(customersTable)
+      .where(eq(customersTable.referralCode, normalizedCode));
+    if (!referrer) {
+      res.status(404).json({ error: "Referral code not found." });
+      return;
+    }
+
+    const REFEREE_REWARD = 25;
+    const REFERRER_REWARD = 50;
+    const refereeBalance = parseFloat(String(referee.walletBalance ?? "0"));
+    const referrerBalance = parseFloat(String(referrer.walletBalance ?? "0"));
+
+    await db.transaction(async (tx) => {
+      await tx.update(customersTable)
+        .set({ walletBalance: (refereeBalance + REFEREE_REWARD).toFixed(2), referredByCode: normalizedCode, updatedAt: new Date() })
+        .where(eq(customersTable.id, referee.id));
+
+      await tx.update(customersTable)
+        .set({ walletBalance: (referrerBalance + REFERRER_REWARD).toFixed(2), updatedAt: new Date() })
+        .where(eq(customersTable.id, referrer.id));
+
+      await tx.insert(walletTransactionsTable).values({
+        customerId: referee.id,
+        type: "credit",
+        amount: REFEREE_REWARD.toFixed(2),
+        description: `Referral bonus — you joined using ${referrer.name || "a friend"}'s code`,
+      });
+
+      await tx.insert(walletTransactionsTable).values({
+        customerId: referrer.id,
+        type: "credit",
+        amount: REFERRER_REWARD.toFixed(2),
+        description: `Referral reward — ${referee.name || "someone"} joined with your code`,
+      });
+
+      await tx.insert(referralsTable).values({
+        referrerId: referrer.id,
+        refereeId: referee.id,
+      });
+    });
+
+    res.json({ ok: true, refereeReward: REFEREE_REWARD, referrerReward: REFERRER_REWARD });
+  } catch (err) {
+    req.log.error({ err }, "Failed to apply referral code");
     res.status(500).json({ error: "Internal server error" });
   }
 });

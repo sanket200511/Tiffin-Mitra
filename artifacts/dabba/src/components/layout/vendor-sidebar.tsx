@@ -17,14 +17,16 @@ import {
   Star,
   IndianRupee,
   ChevronLeft,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/layout/notification-bell";
 
 const navItems = [
-  { href: "/vendor/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/vendor/orders",    label: "Orders",    icon: ShoppingBag },
-  { href: "/vendor/menu",      label: "Menu",      icon: UtensilsCrossed },
+  { href: "/vendor/dashboard",      label: "Dashboard",  icon: LayoutDashboard },
+  { href: "/vendor/orders",         label: "Orders",     icon: ShoppingBag },
+  { href: "/vendor/delivery-sheet", label: "Deliveries", icon: ClipboardList },
+  { href: "/vendor/menu",           label: "Menu",       icon: UtensilsCrossed },
   { href: "/vendor/plans",     label: "Plans",     icon: CalendarDays },
   { href: "/vendor/schedule",  label: "Schedule",  icon: CalendarOff },
   { href: "/vendor/earnings",  label: "Earnings",  icon: IndianRupee },

@@ -27,8 +27,9 @@ const formSchema = z.object({
 });
 
 export default function Subscribe() {
-  const [, params] = useRoute("/subscribe/:planId");
+  const [, params] = useRoute("/subscribe/:vendorId/:planId");
   const planId = params?.planId;
+  const vendorId = params?.vendorId;
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -80,12 +81,7 @@ export default function Subscribe() {
     createSubscription.mutate({
       data: {
         planId: planId,
-        // The API spec requires vendorId in the body.
-        // This is a design flaw in the mock API if we don't know the vendorId from the URL.
-        // We will pass a dummy vendorId or we'd have to pass it via URL state.
-        // Let's assume the user navigated here from VendorDetail and we have it in state?
-        // Let's just pass a generic ID, or extract from URL query params.
-        vendorId: "vendor_id_placeholder", 
+        vendorId: vendorId!,
         startDate: format(values.startDate, "yyyy-MM-dd"),
         deliveryAddress: values.deliveryAddress,
         deliverySlot: values.deliverySlot,

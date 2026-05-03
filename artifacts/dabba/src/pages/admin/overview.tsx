@@ -90,6 +90,7 @@ export default function AdminOverview() {
                 <p>No kitchens pending approval.</p>
               </div>
             ) : (
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -112,6 +113,7 @@ export default function AdminOverview() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>

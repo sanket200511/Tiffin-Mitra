@@ -109,7 +109,7 @@ function Router() {
       <Route path="/vendors/:vendorId">
         <CustomerLayout><VendorDetail /></CustomerLayout>
       </Route>
-      <Route path="/subscribe/:planId">
+      <Route path="/subscribe/:vendorId/:planId">
         <ProtectedRoute component={Subscribe} allowedRole="customer" layout={CustomerLayout} />
       </Route>
       <Route path="/my-subscriptions">

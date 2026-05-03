@@ -58,7 +58,7 @@ export default function Orders() {
         </div>
       </div>
 
-      <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+      <div className="bg-card rounded-xl border shadow-sm overflow-hidden overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">

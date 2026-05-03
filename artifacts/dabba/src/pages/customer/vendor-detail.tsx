@@ -163,7 +163,7 @@ export default function VendorDetail() {
                     </CardContent>
                     <CardFooter>
                       <Button className="w-full" size="lg" asChild>
-                        <Link href={`/subscribe/${plan.id}`}>Subscribe Now</Link>
+                        <Link href={`/subscribe/${vendorId}/${plan.id}`}>Subscribe Now</Link>
                       </Button>
                     </CardFooter>
                   </Card>

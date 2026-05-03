@@ -1,15 +1,19 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Star, Clock, ChefHat, CheckCircle2, CalendarDays } from "lucide-react";
 import { useListVendors } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { HeroIntro } from "@/components/hero-intro";
 
 export default function Home() {
+  const [introComplete, setIntroComplete] = useState(false);
   const { data: vendorsData, isLoading } = useListVendors();
   const vendors = vendorsData?.vendors || [];
 
   return (
     <div className="flex flex-col min-h-screen">
+      <HeroIntro onComplete={() => setIntroComplete(true)} />
       {/* Hero Section */}
       <section className="relative bg-primary/5 py-20 md:py-32 overflow-hidden">
         <div className="container relative z-10">

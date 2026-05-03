@@ -10,13 +10,15 @@ import {
   Users,
   ShoppingBag,
   TrendingUp,
+  Store,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/admin/overview", label: "Overview", icon: BarChart3 },
+  { href: "/admin/overview",  label: "Overview",  icon: BarChart3 },
+  { href: "/admin/vendors",   label: "Vendors",   icon: Store },
   { href: "/admin/customers", label: "Customers", icon: Users },
-  { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/admin/orders",    label: "Orders",    icon: ShoppingBag },
   { href: "/admin/analytics", label: "Analytics", icon: TrendingUp },
 ];
 

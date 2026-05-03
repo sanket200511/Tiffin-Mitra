@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { vendorsTable, reviewsTable } from "@workspace/db";
-import { eq, like, and, desc } from "drizzle-orm";
+import { eq, like, and, desc, count } from "drizzle-orm";
 
 const router = Router();
 
@@ -121,7 +121,7 @@ router.get("/vendors/:vendorId/stats", async (req, res) => {
     const { ordersTable, customerSubscriptionsTable } = await import("@workspace/db");
 
     const [subCount] = await db
-      .select({ count: db.$count(customerSubscriptionsTable.id) })
+      .select({ count: count() })
       .from(customerSubscriptionsTable)
       .where(and(
         eq(customerSubscriptionsTable.vendorId, vendorId),
@@ -162,6 +162,35 @@ router.get("/vendors/:vendorId/stats", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get vendor stats");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Admin: update vendor status (approve / reject / suspend)
+router.patch("/vendors/:vendorId/status", async (req, res) => {
+  if (!req.user || req.user.role !== "super_admin") {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  const { status } = req.body as { status: string };
+  const allowed = ["approved", "rejected", "suspended", "pending"];
+  if (!allowed.includes(status)) {
+    res.status(400).json({ error: "Invalid status" });
+    return;
+  }
+  try {
+    const [vendor] = await db
+      .update(vendorsTable)
+      .set({ status: status as "approved" | "rejected" | "suspended" | "pending", updatedAt: new Date() })
+      .where(eq(vendorsTable.id, req.params.vendorId))
+      .returning();
+    if (!vendor) {
+      res.status(404).json({ error: "Vendor not found" });
+      return;
+    }
+    res.json({ vendor });
+  } catch (err) {
+    req.log.error({ err }, "Failed to update vendor status");
     res.status(500).json({ error: "Internal server error" });
   }
 });

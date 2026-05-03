@@ -133,7 +133,7 @@ router.patch("/vendors/:vendorId", async (req, res) => {
       name, description, address, cuisineType, city,
       logoUrl, coverImageUrl, fssaiLicense,
       deliveryRadius, minimumOrderAmount,
-      featured, commissionRate,
+      featured, commissionRate, subscriptionTier,
     } = req.body;
 
     const updates: Record<string, unknown> = {};
@@ -157,6 +157,14 @@ router.patch("/vendors/:vendorId", async (req, res) => {
           return;
         }
         updates.commissionRate = rate.toFixed(2);
+      }
+      if (subscriptionTier !== undefined) {
+        const allowedTiers = ["basic", "pro", "enterprise"];
+        if (!allowedTiers.includes(String(subscriptionTier))) {
+          res.status(400).json({ error: "subscriptionTier must be one of: basic, pro, enterprise" });
+          return;
+        }
+        updates.subscriptionTier = subscriptionTier;
       }
     }
 

@@ -1,10 +1,13 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { useListSubscriptionPlans, useCreateSubscriptionPlan, useUpdateSubscriptionPlan, useDeleteSubscriptionPlan, useGetMyVendorProfile } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Plus, Edit, Trash2, CalendarDays, Check } from "lucide-react";
+import { Plus, Edit, Trash2, CalendarDays, Check, ArrowUpRight } from "lucide-react";
+import { TierBadge } from "@/components/ui/tier-badge";
+import { FEATURES } from "@/lib/features";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -135,17 +138,49 @@ export default function VendorPlans() {
     }
   };
 
+  const vendorTier = profileData?.vendor?.subscriptionTier ?? "basic";
+  const activePlansCount = plans.filter(p => p.isActive).length;
+
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-serif font-bold text-foreground">Subscription Plans</h1>
-          <p className="text-muted-foreground mt-1">Create and manage your tiffin service packages.</p>
+          <div className="flex items-center gap-2.5 mb-1">
+            <h1 className="text-3xl font-serif font-bold text-foreground">Subscription Plans</h1>
+            <TierBadge tier={vendorTier} />
+          </div>
+          <p className="text-muted-foreground">Create and manage your tiffin service packages.</p>
         </div>
-        <Button onClick={handleOpenNew}>
-          <Plus className="w-4 h-4 mr-2" /> Create Plan
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          {FEATURES.VENDOR_PRO_TIERS && vendorTier === "basic" && (
+            <Link href="/vendor/upgrade">
+              <Button variant="outline" size="sm" className="gap-1.5 text-amber-600 border-amber-200 hover:bg-amber-50">
+                <ArrowUpRight className="w-3.5 h-3.5" />
+                Upgrade
+              </Button>
+            </Link>
+          )}
+          <Button onClick={handleOpenNew}>
+            <Plus className="w-4 h-4 mr-2" /> Create Plan
+          </Button>
+        </div>
       </div>
+
+      {/* Tier info strip — only shown when pro tiers are enabled and vendor is on basic */}
+      {FEATURES.VENDOR_PRO_TIERS && vendorTier === "basic" && activePlansCount >= 3 && (
+        <div className="flex items-center justify-between gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
+          <p className="text-amber-800">
+            You have {activePlansCount} active plans. Basic kitchens can create up to 3.{" "}
+            <strong>Upgrade to Pro for unlimited plans.</strong>
+          </p>
+          <Link href="/vendor/upgrade">
+            <Button size="sm" variant="outline" className="shrink-0 border-amber-300 text-amber-700 hover:bg-amber-100">
+              View Plans
+            </Button>
+          </Link>
+        </div>
+      )}
+
 
       {isLoading ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

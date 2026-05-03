@@ -9,6 +9,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { VendorSidebar } from "@/components/layout/vendor-sidebar";
 import { AdminSidebar } from "@/components/layout/admin-sidebar";
+import { ErrorBoundary } from "@/components/error-boundary";
 import RoleSelect from "@/pages/role-select";
 
 // ─── Lazy-loaded pages ────────────────────────────────────────────────────────
@@ -36,6 +37,7 @@ const VendorProfile    = lazy(() => import("@/pages/vendor/profile"));
 const VendorReviews    = lazy(() => import("@/pages/vendor/reviews"));
 const VendorEarnings   = lazy(() => import("@/pages/vendor/earnings"));
 const VendorSchedule   = lazy(() => import("@/pages/vendor/schedule"));
+const VendorUpgrade    = lazy(() => import("@/pages/vendor/upgrade"));
 
 const AdminOverview       = lazy(() => import("@/pages/admin/overview"));
 const AdminSettings       = lazy(() => import("@/pages/admin/settings"));
@@ -186,6 +188,9 @@ function Router() {
         <Route path="/vendor/plans">
           <ProtectedRoute component={VendorPlans} allowedRole="vendor" layout={VendorLayout} />
         </Route>
+        <Route path="/vendor/upgrade">
+          <ProtectedRoute component={VendorUpgrade} allowedRole="vendor" layout={VendorLayout} />
+        </Route>
         <Route path="/vendor/orders">
           <ProtectedRoute component={VendorOrders} allowedRole="vendor" layout={VendorLayout} />
         </Route>
@@ -260,14 +265,16 @@ function Router() {
 // ─── App root ─────────────────────────────────────────────────────────────────
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

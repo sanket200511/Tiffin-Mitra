@@ -4,8 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, formatDistanceToNow } from "date-fns";
 import {
   ArrowLeft, Store, MapPin, ChefHat, Star, TrendingUp, ShoppingBag,
-  Users, DollarSign, CheckCircle2, XCircle, Clock, Calendar, Receipt,
-  MessageSquare, IndianRupee, Percent, Pencil,
+  Users, CheckCircle2, XCircle, Clock, Calendar, Receipt,
+  MessageSquare, IndianRupee, Percent, Pencil, Crown,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TierBadge } from "@/components/ui/tier-badge";
 import { useToast } from "@/hooks/use-toast";
 
 type Vendor = {
@@ -93,6 +94,8 @@ export default function AdminVendorDetail() {
   const [orderStatusFilter, setOrderStatusFilter] = useState("all");
   const [commissionDialog, setCommissionDialog] = useState(false);
   const [commissionInput, setCommissionInput] = useState("");
+  const [tierDialog, setTierDialog] = useState(false);
+  const [tierInput, setTierInput] = useState<string>("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -187,6 +190,27 @@ export default function AdminVendorDetail() {
     onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
+  const updateTier = useMutation({
+    mutationFn: async (tier: string) => {
+      const res = await fetch(`/api/vendors/${vendorId}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscriptionTier: tier }),
+      });
+      if (!res.ok) throw new Error("Failed to update vendor tier");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors", vendorId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors", "admin-all"] });
+      toast({ title: "Vendor tier updated", description: "Tier changed successfully." });
+      setTierDialog(false);
+      setTierInput("");
+    },
+    onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
   const vendor = vendorData?.vendor;
   const stats = statsData?.stats;
   const orders = ordersData?.orders ?? [];
@@ -238,9 +262,7 @@ export default function AdminVendorDetail() {
             <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-2xl font-serif font-bold tracking-tight">{vendor.name}</h1>
               <Badge variant={sc.variant}>{sc.label}</Badge>
-              {vendor.subscriptionTier && (
-                <Badge variant="outline" className="text-xs capitalize">{vendor.subscriptionTier}</Badge>
-              )}
+              <TierBadge tier={vendor.subscriptionTier} />
             </div>
             <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground flex-wrap">
               {vendor.cuisineType && (
@@ -260,6 +282,15 @@ export default function AdminVendorDetail() {
                 <Percent className="w-3 h-3" />
                 {commissionRate.toFixed(1)}% commission
                 <Pencil className="w-3 h-3 opacity-0 group-hover/commission:opacity-60 transition-opacity" />
+              </button>
+              <button
+                className="flex items-center gap-1 hover:text-primary transition-colors group/tier"
+                onClick={() => { setTierInput(vendor.subscriptionTier ?? "basic"); setTierDialog(true); }}
+                title="Change vendor tier"
+              >
+                <Crown className="w-3 h-3" />
+                Change tier
+                <Pencil className="w-3 h-3 opacity-0 group-hover/tier:opacity-60 transition-opacity" />
               </button>
               <span className="text-xs">Joined {format(new Date(vendor.createdAt), "dd MMM yyyy")}</span>
             </div>
@@ -590,6 +621,48 @@ export default function AdminVendorDetail() {
               }}
             >
               {updateCommission.isPending ? "Saving..." : "Save Rate"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Tier change dialog */}
+      <Dialog open={tierDialog} onOpenChange={(open) => { if (!open) { setTierDialog(false); setTierInput(""); } }}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Crown className="w-4 h-4 text-amber-500" />
+              Change Vendor Tier
+            </DialogTitle>
+            <DialogDescription>
+              Update the subscription tier for <strong>{vendor?.name}</strong>.
+              This controls plan limits and feature access.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-3 space-y-3">
+            <div className="space-y-1.5">
+              <Label>Subscription Tier</Label>
+              <Select value={tierInput} onValueChange={setTierInput}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select tier" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="basic">Basic — free tier</SelectItem>
+                  <SelectItem value="pro">Pro — paid tier</SelectItem>
+                  <SelectItem value="enterprise">Enterprise — custom</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setTierDialog(false); setTierInput(""); }}>
+              Cancel
+            </Button>
+            <Button
+              disabled={updateTier.isPending || !tierInput || tierInput === vendor?.subscriptionTier}
+              onClick={() => updateTier.mutate(tierInput)}
+            >
+              {updateTier.isPending ? "Saving..." : "Update Tier"}
             </Button>
           </DialogFooter>
         </DialogContent>

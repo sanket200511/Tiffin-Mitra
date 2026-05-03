@@ -4,7 +4,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format, addDays } from "date-fns";
-import { CalendarIcon, MapPin, Clock, IndianRupee, ArrowLeft, CheckCircle2, ChefHat } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  CalendarIcon, MapPin, Clock, IndianRupee, ArrowLeft,
+  CheckCircle2, ChefHat, Wallet, AlertTriangle, Plus,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useCreateCustomerSubscription, useListSubscriptionPlans, useGetMyCustomerProfile } from "@workspace/api-client-react";
@@ -58,6 +62,20 @@ export default function Subscribe() {
   });
   const plan = plansData?.plans?.find(p => p.id === planId);
 
+  const { data: walletData, isLoading: walletLoading } = useQuery({
+    queryKey: ["/api/customers/wallet"],
+    queryFn: async () => {
+      const res = await fetch("/api/customers/wallet", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed");
+      return res.json() as Promise<{ wallet: { balance: number } }>;
+    },
+  });
+
+  const walletBalance = walletData?.wallet?.balance ?? 0;
+  const planPrice = plan ? Number(plan.price) : 0;
+  const hasEnoughBalance = walletBalance >= planPrice;
+  const shortfall = planPrice - walletBalance;
+
   const createSubscription = useCreateCustomerSubscription({
     mutation: {
       onSuccess: () => {
@@ -82,7 +100,6 @@ export default function Subscribe() {
     },
   });
 
-  // Pre-fill delivery address when customer profile loads
   useEffect(() => {
     if (customer?.defaultDeliveryAddress) {
       form.setValue("deliveryAddress", customer.defaultDeliveryAddress, { shouldValidate: false });
@@ -193,8 +210,37 @@ export default function Subscribe() {
                     </FormItem>
                   )} />
 
-                  <Button type="submit" size="lg" className="w-full" disabled={createSubscription.isPending || plansLoading}>
-                    {createSubscription.isPending ? "Processing..." : "Confirm Subscription"}
+                  {/* Insufficient balance warning */}
+                  {!walletLoading && plan && !hasEnoughBalance && (
+                    <div className="flex items-start gap-3 p-4 bg-destructive/5 border border-destructive/20 rounded-lg">
+                      <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-destructive">Insufficient wallet balance</p>
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          You need ₹{planPrice.toFixed(0)} but your wallet has ₹{walletBalance.toFixed(0)}.
+                          Top up ₹{shortfall.toFixed(0)} more to proceed.
+                        </p>
+                        <Button size="sm" variant="outline" asChild className="mt-2 h-7 text-xs gap-1.5 border-primary text-primary hover:bg-primary/5">
+                          <Link href="/wallet">
+                            <Plus className="w-3 h-3" /> Add ₹{Math.ceil(shortfall)} to Wallet
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full"
+                    disabled={createSubscription.isPending || plansLoading || walletLoading || (!!plan && !hasEnoughBalance)}
+                  >
+                    {createSubscription.isPending
+                      ? "Processing..."
+                      : !hasEnoughBalance && plan
+                      ? "Add Wallet Balance to Continue"
+                      : `Confirm & Pay ₹${planPrice > 0 ? planPrice.toFixed(0) : "..."}`
+                    }
                   </Button>
                 </form>
               </Form>
@@ -203,7 +249,46 @@ export default function Subscribe() {
         </div>
 
         {/* Order Summary */}
-        <div className="md:col-span-1">
+        <div className="md:col-span-1 space-y-4">
+          {/* Wallet balance card */}
+          <Card className={cn(
+            "shadow-sm border",
+            !walletLoading && plan
+              ? hasEnoughBalance
+                ? "border-green-200 bg-green-50"
+                : "border-destructive/30 bg-destructive/5"
+              : "border-border"
+          )}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Wallet className={cn("w-4 h-4", hasEnoughBalance ? "text-green-600" : "text-destructive")} />
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Wallet Balance</p>
+              </div>
+              {walletLoading ? (
+                <Skeleton className="h-7 w-24" />
+              ) : (
+                <div className="flex items-center justify-between">
+                  <p className={cn("text-xl font-bold font-serif", hasEnoughBalance ? "text-green-700" : "text-destructive")}>
+                    ₹{walletBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </p>
+                  {hasEnoughBalance
+                    ? <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    : <AlertTriangle className="w-4 h-4 text-destructive" />
+                  }
+                </div>
+              )}
+              {!walletLoading && plan && (
+                <p className={cn("text-xs mt-1", hasEnoughBalance ? "text-green-600" : "text-destructive")}>
+                  {hasEnoughBalance
+                    ? `Sufficient for this plan`
+                    : `Need ₹${shortfall.toFixed(0)} more`
+                  }
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Plan summary */}
           <Card className="bg-primary/5 border-primary/20 sticky top-24 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">Order Summary</CardTitle>
@@ -244,15 +329,15 @@ export default function Subscribe() {
               <div className="space-y-3 text-sm">
                 <div className="flex items-start gap-2 text-muted-foreground">
                   <IndianRupee className="w-4 h-4 mt-0.5 text-primary shrink-0" />
-                  <p>Payment is deducted from your Dabba Wallet automatically each day.</p>
+                  <p>Full plan amount is charged upfront from your Dabba Wallet.</p>
                 </div>
                 <div className="flex items-start gap-2 text-muted-foreground">
                   <Clock className="w-4 h-4 mt-0.5 text-primary shrink-0" />
-                  <p>Skip any delivery at least 12 hours in advance — no charge for skipped days.</p>
+                  <p>Skip any delivery at least 12 hours in advance — refunded to wallet.</p>
                 </div>
                 <div className="flex items-start gap-2 text-muted-foreground">
                   <CheckCircle2 className="w-4 h-4 mt-0.5 text-primary shrink-0" />
-                  <p>All communication with your kitchen goes through the Dabba platform.</p>
+                  <p>Cancel anytime — undelivered days are refunded automatically.</p>
                 </div>
               </div>
 

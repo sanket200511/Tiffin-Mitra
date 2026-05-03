@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, ordersTable, vendorsTable, customersTable } from "@workspace/db";
+import { db, ordersTable, vendorsTable, customersTable, walletTransactionsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 
 const router = Router();
@@ -161,6 +161,29 @@ router.patch("/orders/:orderId", async (req, res) => {
         return;
       }
     }
+
+    // ── Vendor-cancelled order: refund to customer wallet ─────────────────────
+    if (newStatus === "cancelled") {
+      const [customerRow] = await db.select()
+        .from(customersTable)
+        .where(eq(customersTable.id, order.customerId));
+
+      if (customerRow) {
+        const refundAmount = parseFloat(order.totalAmount as string);
+        const currentBalance = parseFloat(customerRow.walletBalance as string ?? "0");
+        await db.update(customersTable)
+          .set({ walletBalance: (currentBalance + refundAmount).toFixed(2), updatedAt: new Date() })
+          .where(eq(customersTable.id, customerRow.id));
+
+        await db.insert(walletTransactionsTable).values({
+          customerId: customerRow.id,
+          type: "credit",
+          amount: refundAmount.toFixed(2),
+          description: `Refund: order cancelled by kitchen (scheduled ${order.scheduledDate})`,
+        });
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     const [updated] = await db.update(ordersTable)
       .set({

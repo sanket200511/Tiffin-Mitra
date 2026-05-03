@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, subscriptionPlansTable, customerSubscriptionsTable, vendorsTable, ordersTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { db, subscriptionPlansTable, customerSubscriptionsTable, vendorsTable, ordersTable, walletTransactionsTable, customersTable } from "@workspace/db";
+import { eq, and, inArray, notInArray } from "drizzle-orm";
 
 const router = Router();
 
@@ -102,7 +102,6 @@ router.post("/subscriptions", async (req, res) => {
     return;
   }
   try {
-    const { customersTable } = await import("@workspace/db");
     let [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user.id));
     if (!customer) {
       [customer] = await db.insert(customersTable).values({ userId: req.user.id }).returning();
@@ -129,18 +128,32 @@ router.post("/subscriptions", async (req, res) => {
     }
 
     // Validate vendor is approved
-    const [vendor] = await db.select({ status: vendorsTable.status }).from(vendorsTable).where(eq(vendorsTable.id, vendorId));
+    const [vendor] = await db.select({ status: vendorsTable.status, name: vendorsTable.name })
+      .from(vendorsTable).where(eq(vendorsTable.id, vendorId));
     if (!vendor || vendor.status !== "approved") {
       res.status(400).json({ error: "This kitchen is not currently accepting subscriptions." });
       return;
     }
+
+    // ── Wallet payment check ──────────────────────────────────────────────────
+    const planPrice = parseFloat(plan.price as string);
+    const walletBalance = parseFloat(customer.walletBalance as string ?? "0");
+    if (walletBalance < planPrice) {
+      res.status(402).json({
+        error: `Insufficient wallet balance. This plan costs ₹${planPrice.toFixed(0)} but your wallet has ₹${walletBalance.toFixed(0)}. Please top up your wallet first.`,
+        required: planPrice,
+        available: walletBalance,
+      });
+      return;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     // Calculate subscription period
     const PERIOD_DAYS: Record<string, number> = {
       daily: 1,
       weekly: 7,
       monthly: 30,
-      weekday: 30,  // generates only Mon-Fri orders within 30 calendar days
+      weekday: 30,
       trial_3day: 3,
       trial_7day: 7,
       custom: 30,
@@ -149,6 +162,20 @@ router.post("/subscriptions", async (req, res) => {
     const start = new Date(startDate);
     const endDate = new Date(start);
     endDate.setDate(endDate.getDate() + periodDays);
+
+    // ── Deduct wallet balance ─────────────────────────────────────────────────
+    const newBalance = (walletBalance - planPrice).toFixed(2);
+    await db.update(customersTable)
+      .set({ walletBalance: newBalance, updatedAt: new Date() })
+      .where(eq(customersTable.id, customer.id));
+
+    await db.insert(walletTransactionsTable).values({
+      customerId: customer.id,
+      type: "debit",
+      amount: planPrice.toFixed(2),
+      description: `Subscription: ${plan.name} from ${vendor.name}`,
+    });
+    // ─────────────────────────────────────────────────────────────────────────
 
     const [subscription] = await db.insert(customerSubscriptionsTable).values({
       customerId: customer.id,
@@ -166,7 +193,7 @@ router.post("/subscriptions", async (req, res) => {
     const deliveryDates: string[] = [];
     const cursor = new Date(start);
     while (cursor < endDate) {
-      const day = cursor.getDay(); // 0=Sun, 6=Sat
+      const day = cursor.getDay();
       if (!isWeekdayPlan || (day !== 0 && day !== 6)) {
         deliveryDates.push(cursor.toISOString().split("T")[0]);
       }
@@ -174,7 +201,7 @@ router.post("/subscriptions", async (req, res) => {
     }
 
     if (deliveryDates.length > 0) {
-      const pricePerOrder = parseFloat(plan.price as string) / deliveryDates.length;
+      const pricePerOrder = planPrice / deliveryDates.length;
       const primaryMealType = plan.mealTypes?.[0] || null;
 
       const ordersToInsert = deliveryDates.map(date => ({
@@ -224,7 +251,6 @@ router.patch("/subscriptions/:subscriptionId", async (req, res) => {
     return;
   }
   try {
-    const { customersTable } = await import("@workspace/db");
     const [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user.id));
     if (!customer) {
       res.status(403).json({ error: "Forbidden" });
@@ -253,6 +279,44 @@ router.patch("/subscriptions/:subscriptionId", async (req, res) => {
       return;
     }
 
+    // ── Cancellation refund: return all pending orders' amounts to wallet ─────
+    if (status === "cancelled") {
+      const refundableStatuses = ["pending", "accepted"] as const;
+      const pendingOrders = await db.select().from(ordersTable)
+        .where(and(
+          eq(ordersTable.subscriptionId, existing.id),
+          inArray(ordersTable.status, [...refundableStatuses])
+        ));
+
+      if (pendingOrders.length > 0) {
+        const refundTotal = pendingOrders.reduce(
+          (sum, o) => sum + parseFloat(o.totalAmount as string), 0
+        );
+
+        // Cancel all refundable orders
+        await db.update(ordersTable)
+          .set({ status: "cancelled", updatedAt: new Date() })
+          .where(and(
+            eq(ordersTable.subscriptionId, existing.id),
+            inArray(ordersTable.status, [...refundableStatuses])
+          ));
+
+        // Credit wallet
+        const currentBalance = parseFloat(customer.walletBalance as string ?? "0");
+        await db.update(customersTable)
+          .set({ walletBalance: (currentBalance + refundTotal).toFixed(2), updatedAt: new Date() })
+          .where(eq(customersTable.id, customer.id));
+
+        await db.insert(walletTransactionsTable).values({
+          customerId: customer.id,
+          type: "credit",
+          amount: refundTotal.toFixed(2),
+          description: `Refund for cancelled subscription (${pendingOrders.length} undelivered ${pendingOrders.length === 1 ? "day" : "days"})`,
+        });
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     const [subscription] = await db.update(customerSubscriptionsTable)
       .set({ ...req.body, updatedAt: new Date() })
       .where(eq(customerSubscriptionsTable.id, req.params.subscriptionId))
@@ -270,7 +334,6 @@ router.post("/subscriptions/:subscriptionId/skip", async (req, res) => {
     return;
   }
   try {
-    const { customersTable } = await import("@workspace/db");
     const [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user.id));
     if (!customer) {
       res.status(403).json({ error: "Forbidden" });
@@ -305,15 +368,35 @@ router.post("/subscriptions/:subscriptionId/skip", async (req, res) => {
       .set({ skippedDays, updatedAt: new Date() })
       .where(eq(customerSubscriptionsTable.id, req.params.subscriptionId));
 
-    // Also cancel the pending order for that day
-    await db.update(ordersTable)
-      .set({ status: "cancelled", updatedAt: new Date() })
+    // Cancel the pending order for that day and refund to wallet
+    const [skippedOrder] = await db.select().from(ordersTable)
       .where(and(
         eq(ordersTable.subscriptionId, sub.id),
-        eq(ordersTable.scheduledDate, skipDate)
+        eq(ordersTable.scheduledDate, skipDate),
+        eq(ordersTable.status, "pending")
       ));
 
-    res.json({ success: true });
+    if (skippedOrder) {
+      await db.update(ordersTable)
+        .set({ status: "cancelled", updatedAt: new Date() })
+        .where(eq(ordersTable.id, skippedOrder.id));
+
+      // Refund that day's amount
+      const refundAmount = parseFloat(skippedOrder.totalAmount as string);
+      const currentBalance = parseFloat(customer.walletBalance as string ?? "0");
+      await db.update(customersTable)
+        .set({ walletBalance: (currentBalance + refundAmount).toFixed(2), updatedAt: new Date() })
+        .where(eq(customersTable.id, customer.id));
+
+      await db.insert(walletTransactionsTable).values({
+        customerId: customer.id,
+        type: "credit",
+        amount: refundAmount.toFixed(2),
+        description: `Skip refund for delivery on ${skipDate}`,
+      });
+    }
+
+    res.json({ success: true, refunded: !!skippedOrder });
   } catch (err) {
     req.log.error({ err }, "Failed to skip day");
     res.status(500).json({ error: "Internal server error" });

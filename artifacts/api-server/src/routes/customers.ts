@@ -5,13 +5,16 @@ import { eq } from "drizzle-orm";
 const router = Router();
 
 router.get("/customers/me", async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   try {
-    let [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user!.id));
+    let [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user.id));
     if (!customer) {
       [customer] = await db.insert(customersTable).values({
-        userId: req.user!.id,
-        name: `${req.user!.firstName ?? ""} ${req.user!.lastName ?? ""}`.trim() || null,
+        userId: req.user.id,
+        name: `${req.user.firstName ?? ""} ${req.user.lastName ?? ""}`.trim() || null,
       }).returning();
     }
     res.json({ customer });
@@ -22,15 +25,18 @@ router.get("/customers/me", async (req, res) => {
 });
 
 router.patch("/customers/me", async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   try {
-    let [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user!.id));
+    let [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user.id));
     if (!customer) {
-      [customer] = await db.insert(customersTable).values({ userId: req.user!.id, ...req.body }).returning();
+      [customer] = await db.insert(customersTable).values({ userId: req.user.id, ...req.body }).returning();
     } else {
       [customer] = await db.update(customersTable)
         .set({ ...req.body, updatedAt: new Date() })
-        .where(eq(customersTable.userId, req.user!.id))
+        .where(eq(customersTable.userId, req.user.id))
         .returning();
     }
     res.json({ customer });
@@ -41,10 +47,16 @@ router.patch("/customers/me", async (req, res) => {
 });
 
 router.get("/customers/wallet", async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   try {
-    const [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user!.id));
-    if (!customer) return res.json({ wallet: { balance: 0, loyaltyPoints: 0, transactions: [] } });
+    const [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user.id));
+    if (!customer) {
+      res.json({ wallet: { balance: 0, loyaltyPoints: 0, transactions: [] } });
+      return;
+    }
 
     const transactions = await db.select().from(walletTransactionsTable)
       .where(eq(walletTransactionsTable.customerId, customer.id));
@@ -63,10 +75,16 @@ router.get("/customers/wallet", async (req, res) => {
 });
 
 router.get("/customers/upcoming-deliveries", async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   try {
-    const [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user!.id));
-    if (!customer) return res.json({ deliveries: [] });
+    const [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user.id));
+    if (!customer) {
+      res.json({ deliveries: [] });
+      return;
+    }
 
     const { customerSubscriptionsTable, subscriptionPlansTable, vendorsTable } = await import("@workspace/db");
     const subs = await db.select().from(customerSubscriptionsTable)

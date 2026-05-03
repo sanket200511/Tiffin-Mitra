@@ -1,29 +1,46 @@
-import { useRoute, useLocation } from "wouter";
+import { useEffect } from "react";
+import { useRoute, useLocation, Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format, addDays } from "date-fns";
-import { CalendarIcon, MapPin, Clock, CreditCard, ArrowLeft } from "lucide-react";
+import { CalendarIcon, MapPin, Clock, IndianRupee, ArrowLeft, CheckCircle2, ChefHat } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useCreateCustomerSubscription, useListSubscriptionPlans, useGetMyCustomerProfile } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 
+const DELIVERY_SLOTS = [
+  "12:00 PM – 1:00 PM",
+  "1:00 PM – 2:00 PM",
+  "7:30 PM – 8:30 PM",
+  "8:30 PM – 9:30 PM",
+];
+
+const PLAN_TYPE_LABELS: Record<string, string> = {
+  daily: "day",
+  weekly: "week",
+  monthly: "month",
+  weekday: "month (weekdays only)",
+  trial_3day: "3-day trial",
+  trial_7day: "7-day trial",
+  custom: "period",
+};
+
 const formSchema = z.object({
-  startDate: z.date({
-    required_error: "A start date is required.",
-  }),
-  deliveryAddress: z.string().min(10, "Please provide a complete address."),
-  deliverySlot: z.string().min(1, "Please select a delivery slot."),
+  startDate: z.date({ required_error: "Please select a start date." }),
+  deliveryAddress: z.string().min(10, "Please provide a complete address (min 10 characters)."),
+  deliverySlot: z.string().min(1, "Please select a delivery time slot."),
 });
 
 export default function Subscribe() {
@@ -36,31 +53,23 @@ export default function Subscribe() {
   const { data: profileData } = useGetMyCustomerProfile();
   const customer = profileData?.customer;
 
-  // We need to fetch the plan details. Since we don't have a getPlan hook, 
-  // we'll fetch all plans (or we could rely on passing state, but fetching is safer)
-  // In a real app we might want a specific useGetSubscriptionPlan hook, but we'll adapt.
-  // Actually, we need the vendorId to list plans. Since we only have planId in URL,
-  // this is tricky with the current API design. 
-  // Let's assume we can fetch plans if we somehow know the vendor, 
-  // OR we can just use a dummy query since the API might not support getPlan by ID directly.
-  // Wait, let's look at the generated API. No useGetSubscriptionPlan.
-  // We will have to show a simplified form and rely on the mutation.
-  
+  const { data: plansData, isLoading: plansLoading } = useListSubscriptionPlans(vendorId ?? "", {
+    query: { enabled: !!vendorId, queryKey: ["/api/vendors", vendorId, "plans"] }
+  });
+  const plan = plansData?.plans?.find(p => p.id === planId);
+
   const createSubscription = useCreateCustomerSubscription({
     mutation: {
       onSuccess: () => {
         toast({
-          title: "Subscription Created",
-          description: "Your tiffin subscription has been started successfully.",
+          title: "Subscription started",
+          description: "Your daily tiffin deliveries have been scheduled. Check 'My Subscriptions' to manage them.",
         });
         setLocation("/my-subscriptions");
       },
-      onError: (error) => {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to create subscription.",
-        });
+      onError: (error: any) => {
+        const msg = error?.response?.data?.error || "Failed to create subscription. Please try again.";
+        toast({ variant: "destructive", title: "Error", description: msg });
       }
     }
   });
@@ -68,20 +77,24 @@ export default function Subscribe() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      deliveryAddress: customer?.defaultDeliveryAddress || "",
+      deliveryAddress: "",
+      deliverySlot: "",
     },
   });
 
-  // When customer data loads, update default address
-  // useEffect would go here, but we can just let React hook form handle it or set it via reset()
+  // Pre-fill delivery address when customer profile loads
+  useEffect(() => {
+    if (customer?.defaultDeliveryAddress) {
+      form.setValue("deliveryAddress", customer.defaultDeliveryAddress, { shouldValidate: false });
+    }
+  }, [customer, form]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    if (!planId) return;
-    
+    if (!planId || !vendorId) return;
     createSubscription.mutate({
       data: {
-        planId: planId,
-        vendorId: vendorId!,
+        planId,
+        vendorId,
         startDate: format(values.startDate, "yyyy-MM-dd"),
         deliveryAddress: values.deliveryAddress,
         deliverySlot: values.deliverySlot,
@@ -94,111 +107,93 @@ export default function Subscribe() {
       <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="mb-6 -ml-3">
         <ArrowLeft className="w-4 h-4 mr-2" /> Back
       </Button>
-      
+
       <div className="mb-8">
         <h1 className="text-3xl font-serif font-bold text-foreground">Complete Subscription</h1>
-        <p className="text-muted-foreground mt-2">Provide delivery details to start your tiffin service.</p>
+        <p className="text-muted-foreground mt-1">Provide delivery details to start your tiffin service.</p>
       </div>
 
       <div className="grid md:grid-cols-3 gap-8">
         <div className="md:col-span-2">
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
               <CardTitle>Delivery Details</CardTitle>
-              <CardDescription>When and where should we deliver your food?</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  
-                  <FormField
-                    control={form.control}
-                    name="startDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Start Date</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-[240px] pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "PPP")
-                                ) : (
-                                  <span>Pick a date</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) =>
-                                date < new Date() || date > addDays(new Date(), 30)
-                              }
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormDescription>
-                          When should your first tiffin arrive?
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
 
-                  <FormField
-                    control={form.control}
-                    name="deliverySlot"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Preferred Delivery Slot</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormField control={form.control} name="startDate" render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Start Date</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a time slot" />
-                            </SelectTrigger>
+                            <Button
+                              variant="outline"
+                              className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {field.value ? format(field.value, "PPP") : "Pick your first delivery date"}
+                            </Button>
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="12:00 PM - 1:00 PM">Lunch (12:00 PM - 1:00 PM)</SelectItem>
-                            <SelectItem value="1:00 PM - 2:00 PM">Lunch (1:00 PM - 2:00 PM)</SelectItem>
-                            <SelectItem value="7:30 PM - 8:30 PM">Dinner (7:30 PM - 8:30 PM)</SelectItem>
-                            <SelectItem value="8:30 PM - 9:30 PM">Dinner (8:30 PM - 9:30 PM)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="deliveryAddress"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Delivery Address</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Flat/House No., Building, Street, Landmark..." 
-                            className="resize-none h-24"
-                            {...field} 
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) => date < addDays(new Date(), 1) || date > addDays(new Date(), 30)}
+                            initialFocus
                           />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                        </PopoverContent>
+                      </Popover>
+                      <FormDescription>First delivery must be at least 1 day from today.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
 
-                  <Button type="submit" size="lg" className="w-full" disabled={createSubscription.isPending}>
+                  <FormField control={form.control} name="deliverySlot" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Preferred Delivery Time</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-muted-foreground" />
+                              <SelectValue placeholder="Select a time slot" />
+                            </div>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {DELIVERY_SLOTS.map(slot => (
+                            <SelectItem key={slot} value={slot}>{slot}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name="deliveryAddress" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Delivery Address</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                          <Textarea
+                            placeholder="Flat/House No., Building, Street, Landmark, Area, City — PIN code"
+                            className="resize-none h-24 pl-9"
+                            {...field}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormDescription>This address will be shared with the kitchen for delivery only.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <Button type="submit" size="lg" className="w-full" disabled={createSubscription.isPending || plansLoading}>
                     {createSubscription.isPending ? "Processing..." : "Confirm Subscription"}
                   </Button>
                 </form>
@@ -207,25 +202,68 @@ export default function Subscribe() {
           </Card>
         </div>
 
+        {/* Order Summary */}
         <div className="md:col-span-1">
-          <Card className="bg-primary/5 border-primary/20 sticky top-24">
-            <CardHeader>
+          <Card className="bg-primary/5 border-primary/20 sticky top-24 shadow-sm">
+            <CardHeader className="pb-3">
               <CardTitle className="text-lg">Order Summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Plan ID</span>
-                <span className="font-mono">{planId?.substring(0, 8)}...</span>
+              {plansLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-6 w-full" />
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-5 w-1/2" />
+                </div>
+              ) : plan ? (
+                <>
+                  <div>
+                    <p className="font-bold text-xl font-serif">{plan.name}</p>
+                    {plan.description && (
+                      <p className="text-xs text-muted-foreground mt-1">{plan.description}</p>
+                    )}
+                  </div>
+                  <div className="flex items-baseline gap-1 text-primary">
+                    <IndianRupee className="w-4 h-4" />
+                    <span className="text-2xl font-bold">{plan.price}</span>
+                    <span className="text-muted-foreground text-sm">/ {PLAN_TYPE_LABELS[plan.planType] ?? plan.planType}</span>
+                  </div>
+                  {plan.mealTypes?.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {plan.mealTypes.map(mt => (
+                        <Badge key={mt} variant="secondary" className="capitalize text-xs">{mt}</Badge>
+                      ))}
+                    </div>
+                  )}
+                  <Separator />
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">Plan details unavailable.</p>
+              )}
+
+              <div className="space-y-3 text-sm">
+                <div className="flex items-start gap-2 text-muted-foreground">
+                  <IndianRupee className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+                  <p>Payment is deducted from your Dabba Wallet automatically each day.</p>
+                </div>
+                <div className="flex items-start gap-2 text-muted-foreground">
+                  <Clock className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+                  <p>Skip any delivery at least 12 hours in advance — no charge for skipped days.</p>
+                </div>
+                <div className="flex items-start gap-2 text-muted-foreground">
+                  <CheckCircle2 className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+                  <p>All communication with your kitchen goes through the Dabba platform.</p>
+                </div>
               </div>
-              <div className="border-t border-primary/10 pt-4 space-y-3">
-                <div className="flex items-start gap-2">
-                  <CreditCard className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                  <p className="text-sm">Payment will be deducted from your Dabba Wallet automatically.</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Clock className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                  <p className="text-sm">You can pause or skip deliveries before 9 PM the previous day.</p>
-                </div>
+
+              <div className="pt-2 border-t">
+                <Link
+                  href={`/vendors/${vendorId}`}
+                  className="flex items-center gap-1.5 text-sm text-primary hover:underline"
+                >
+                  <ChefHat className="w-3.5 h-3.5" />
+                  View kitchen details
+                </Link>
               </div>
             </CardContent>
           </Card>

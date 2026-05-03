@@ -22,7 +22,10 @@ router.get("/vendors/:vendorId/menus", async (req, res) => {
 });
 
 router.post("/vendors/:vendorId/menus", async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   try {
     const { vendorId } = req.params;
     const [menuItem] = await db.insert(menuItemsTable).values({ ...req.body, vendorId }).returning();
@@ -34,7 +37,10 @@ router.post("/vendors/:vendorId/menus", async (req, res) => {
 });
 
 router.patch("/vendors/:vendorId/menus/:menuItemId", async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   try {
     const [menuItem] = await db.update(menuItemsTable)
       .set({ ...req.body, updatedAt: new Date() })
@@ -48,7 +54,10 @@ router.patch("/vendors/:vendorId/menus/:menuItemId", async (req, res) => {
 });
 
 router.delete("/vendors/:vendorId/menus/:menuItemId", async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   try {
     await db.delete(menuItemsTable).where(eq(menuItemsTable.id, req.params.menuItemId));
     res.json({ success: true });

@@ -39,7 +39,10 @@ router.get("/deliveries", async (req, res) => {
 });
 
 router.patch("/deliveries/:deliveryId/status", async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   try {
     const statusMap: Record<string, "delivered" | "picked_up" | "cancelled"> = {
       completed: "delivered",

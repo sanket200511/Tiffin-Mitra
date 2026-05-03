@@ -40,15 +40,40 @@ router.get("/analytics/vendor/:vendorId/revenue", async (req, res) => {
 
 router.get("/analytics/vendor/:vendorId/popular-dishes", async (req, res) => {
   try {
+    const { vendorId } = req.params;
     const { menuItemsTable } = await import("@workspace/db");
-    const menuItems = await db.select().from(menuItemsTable).where(eq(menuItemsTable.vendorId, req.params.vendorId));
 
-    const dishes = menuItems.slice(0, 10).map((item, i) => ({
-      name: item.name,
-      orderCount: Math.max(5, 50 - i * 4),
-      revenue: parseFloat(item.price as string) * Math.max(5, 50 - i * 4),
-      mealType: item.mealType,
-    }));
+    const deliveredOrders = await db.select().from(ordersTable)
+      .where(and(eq(ordersTable.vendorId, vendorId), eq(ordersTable.status, "delivered")));
+
+    const mealTypeCounts: Record<string, { count: number; revenue: number }> = {};
+    for (const order of deliveredOrders) {
+      const key = order.mealType || "standard";
+      if (!mealTypeCounts[key]) mealTypeCounts[key] = { count: 0, revenue: 0 };
+      mealTypeCounts[key].count += 1;
+      mealTypeCounts[key].revenue += parseFloat(order.totalAmount as string);
+    }
+
+    const menuItems = await db.select().from(menuItemsTable).where(eq(menuItemsTable.vendorId, vendorId));
+
+    const dishes = menuItems.map(item => {
+      const orderStats = mealTypeCounts[item.mealType || "standard"] || { count: 0, revenue: 0 };
+      return {
+        name: item.name,
+        orderCount: orderStats.count,
+        revenue: orderStats.revenue,
+        mealType: item.mealType,
+      };
+    }).sort((a, b) => b.orderCount - a.orderCount).slice(0, 10);
+
+    if (dishes.length === 0) {
+      const fallback = Object.entries(mealTypeCounts)
+        .map(([mealType, stats]) => ({ name: mealType, orderCount: stats.count, revenue: stats.revenue, mealType }))
+        .sort((a, b) => b.orderCount - a.orderCount)
+        .slice(0, 10);
+      res.json({ dishes: fallback });
+      return;
+    }
 
     res.json({ dishes });
   } catch (err) {
@@ -60,11 +85,13 @@ router.get("/analytics/vendor/:vendorId/popular-dishes", async (req, res) => {
 router.get("/analytics/vendor/:vendorId/subscription-health", async (req, res) => {
   try {
     const { vendorId } = req.params;
-    const subs = await db.select().from(customerSubscriptionsTable).where(eq(customerSubscriptionsTable.vendorId, vendorId));
+    const subs = await db.select().from(customerSubscriptionsTable)
+      .where(eq(customerSubscriptionsTable.vendorId, vendorId));
 
     const counts = { active: 0, paused: 0, cancelled: 0, expired: 0 };
     for (const sub of subs) {
-      counts[sub.status] = (counts[sub.status] ?? 0) + 1;
+      const status = sub.status as keyof typeof counts;
+      if (status in counts) counts[status] += 1;
     }
 
     const total = subs.length;
@@ -92,7 +119,7 @@ router.get("/analytics/platform/overview", async (req, res) => {
     const activeSubs = allSubs.filter(s => s.status === "active").length;
     const gmv = allOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount as string), 0);
 
-    // Commission = per-vendor weighted average of their commissionRate × their revenue
+    // Commission uses each vendor's actual stored rate (not a hardcoded percentage)
     const commissionRevenue = allVendors.reduce((total, vendor) => {
       const vendorOrders = allOrders.filter(o => o.vendorId === vendor.id);
       const vendorGMV = vendorOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount as string), 0);
@@ -110,7 +137,6 @@ router.get("/analytics/platform/overview", async (req, res) => {
         totalOrdersToday: todayOrders.length,
         platformGMV: gmv,
         commissionRevenue,
-        monthlyRevenue: gmv * 0.12,
         pendingVendorApprovals: pendingApprovals,
       }
     });

@@ -4,16 +4,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { IndianRupee, TrendingUp, Percent, Wallet, ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { IndianRupee, TrendingUp, Percent, Wallet, ArrowDownRight, ArrowUpRight, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from "recharts";
 import { format, parseISO } from "date-fns";
 
-const COMMISSION_BY_TIER: Record<string, number> = {
-  basic: 10,
-  pro: 8,
-  enterprise: 5,
+const TIER_COLORS: Record<string, string> = {
+  basic: "bg-slate-100 text-slate-700 border-slate-200",
+  pro: "bg-blue-100 text-blue-700 border-blue-200",
+  enterprise: "bg-purple-100 text-purple-700 border-purple-200",
+};
+
+const TIER_NEXT_RATE: Record<string, { tier: string; rate: number } | null> = {
+  basic: { tier: "Pro", rate: 8 },
+  pro: { tier: "Enterprise", rate: 5 },
+  enterprise: null,
 };
 
 export default function VendorEarnings() {
@@ -23,7 +30,11 @@ export default function VendorEarnings() {
   const vendor = profileData?.vendor;
   const vendorId = vendor?.id;
   const tier = vendor?.subscriptionTier || "basic";
-  const commissionRate = COMMISSION_BY_TIER[tier] ?? 10;
+
+  // Commission rate comes from the database — not hardcoded
+  const commissionRate = vendor?.commissionRate
+    ? parseFloat(String(vendor.commissionRate))
+    : 10;
 
   const { data: statsData, isLoading: statsLoading } = useGetVendorStats(vendorId ?? "", {
     query: { enabled: !!vendorId, queryKey: ["/api/vendors/stats", vendorId] }
@@ -45,32 +56,32 @@ export default function VendorEarnings() {
 
   const chartData = trend.map(point => ({
     displayDate: format(parseISO(point.date), "MMM d"),
-    gross: point.revenue,
-    net: point.revenue * (1 - commissionRate / 100),
-    commission: point.revenue * (commissionRate / 100),
+    Gross: parseFloat(point.revenue.toFixed(2)),
+    Net: parseFloat((point.revenue * (1 - commissionRate / 100)).toFixed(2)),
   }));
 
-  const TIER_COLORS: Record<string, string> = {
-    basic: "bg-slate-100 text-slate-700 border-slate-200",
-    pro: "bg-blue-100 text-blue-700 border-blue-200",
-    enterprise: "bg-purple-100 text-purple-700 border-purple-200",
-  };
+  const nextTierInfo = TIER_NEXT_RATE[tier];
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-serif font-bold text-foreground">Earnings</h1>
-          <p className="text-muted-foreground mt-1">Your revenue, commission deductions, and net payouts.</p>
+      <div className="flex items-start gap-3">
+        <Button variant="ghost" size="icon" asChild className="lg:hidden shrink-0">
+          <a href="/vendor/dashboard"><ArrowLeft className="w-5 h-5" /></a>
+        </Button>
+        <div className="flex-1 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-serif font-bold text-foreground">Earnings</h1>
+            <p className="text-muted-foreground mt-1">Your revenue, commission deductions, and net payouts.</p>
+          </div>
+          {vendor && (
+            <Badge variant="outline" className={`shrink-0 text-sm px-3 py-1.5 ${TIER_COLORS[tier]}`}>
+              {tier.charAt(0).toUpperCase() + tier.slice(1)} — {commissionRate}% commission
+            </Badge>
+          )}
         </div>
-        {vendor && (
-          <Badge variant="outline" className={`text-sm px-3 py-1 ${TIER_COLORS[tier]}`}>
-            {tier.charAt(0).toUpperCase() + tier.slice(1)} — {commissionRate}% commission
-          </Badge>
-        )}
       </div>
 
-      {/* KPI Summary */}
+      {/* KPI Cards */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="shadow-sm border-l-4 border-l-green-500">
           <CardContent className="p-6">
@@ -81,7 +92,7 @@ export default function VendorEarnings() {
             {isLoading ? <Skeleton className="h-8 w-28" /> : (
               <>
                 <div className="text-3xl font-bold">₹{grossRevenue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</div>
-                <p className="text-xs text-muted-foreground mt-1">All time orders</p>
+                <p className="text-xs text-muted-foreground mt-1">All time (all orders)</p>
               </>
             )}
           </CardContent>
@@ -116,7 +127,7 @@ export default function VendorEarnings() {
                 <div className="text-3xl font-bold text-primary">₹{netEarnings.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</div>
                 <div className="flex items-center gap-1 mt-1">
                   <ArrowUpRight className="w-3 h-3 text-green-500" />
-                  <p className="text-xs text-muted-foreground">{(100 - commissionRate)}% of gross</p>
+                  <p className="text-xs text-muted-foreground">{(100 - commissionRate)}% retained</p>
                 </div>
               </>
             )}
@@ -144,7 +155,7 @@ export default function VendorEarnings() {
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div>
             <CardTitle>Gross vs Net Revenue</CardTitle>
-            <CardDescription>Daily comparison of what you earn vs what you keep</CardDescription>
+            <CardDescription>Daily comparison of what you earn vs what you keep after platform commission</CardDescription>
           </div>
           <div className="w-36">
             <Select value={period} onValueChange={(v: any) => setPeriod(v)}>
@@ -160,19 +171,23 @@ export default function VendorEarnings() {
         <CardContent>
           {trendLoading ? (
             <Skeleton className="h-[300px] w-full" />
-          ) : chartData.length === 0 ? (
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">No revenue data yet</div>
+          ) : chartData.length === 0 || chartData.every(d => d.Gross === 0) ? (
+            <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground gap-2">
+              <TrendingUp className="w-10 h-10 opacity-20" />
+              <p>No revenue data yet for this period.</p>
+              <p className="text-sm">Revenue will appear here once orders are delivered.</p>
+            </div>
           ) : (
             <div className="h-[300px] w-full mt-4">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                   <defs>
                     <linearGradient id="grossGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#94a3b8" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="netGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
                       <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                     </linearGradient>
                   </defs>
@@ -181,10 +196,11 @@ export default function VendorEarnings() {
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} tickFormatter={(v) => `₹${v}`} />
                   <Tooltip
                     contentStyle={{ backgroundColor: "hsl(var(--card))", borderColor: "hsl(var(--border))", borderRadius: "8px" }}
-                    formatter={(value: number, name: string) => [`₹${value.toFixed(0)}`, name === "gross" ? "Gross Revenue" : "Net Earnings"]}
+                    formatter={(value: number, name: string) => [`₹${value.toFixed(0)}`, name]}
                   />
-                  <Area type="monotone" dataKey="gross" stroke="hsl(var(--chart-2))" strokeWidth={2} fill="url(#grossGrad)" name="gross" />
-                  <Area type="monotone" dataKey="net" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#netGrad)" name="net" />
+                  <Legend />
+                  <Area type="monotone" dataKey="Gross" stroke="#94a3b8" strokeWidth={2} fill="url(#grossGrad)" />
+                  <Area type="monotone" dataKey="Net" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#netGrad)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -192,8 +208,8 @@ export default function VendorEarnings() {
         </CardContent>
       </Card>
 
-      {/* Tier Upgrade Notice */}
-      {tier !== "enterprise" && (
+      {/* Tier Upgrade Nudge — only shown if not on highest tier */}
+      {nextTierInfo && (
         <Card className="shadow-sm border-primary/20 bg-primary/5">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
@@ -203,27 +219,13 @@ export default function VendorEarnings() {
               <div>
                 <h3 className="font-bold text-base mb-1">Lower your commission rate</h3>
                 <p className="text-sm text-muted-foreground mb-2">
-                  You're currently on the <strong>{tier}</strong> tier at <strong>{commissionRate}%</strong> commission.
-                  {tier === "basic" && " Upgrade to Pro to reduce it to 8%, or Enterprise for just 5%."}
-                  {tier === "pro" && " Upgrade to Enterprise to reduce it to just 5%."}
+                  You're on the <strong>{tier.charAt(0).toUpperCase() + tier.slice(1)}</strong> tier at <strong>{commissionRate}%</strong> commission.
+                  Upgrade to <strong>{nextTierInfo.tier}</strong> to reduce it to <strong>{nextTierInfo.rate}%</strong> and keep more of your earnings.
                 </p>
-                <div className="flex flex-wrap gap-3 text-sm">
-                  {tier === "basic" && (
-                    <>
-                      <div className="flex items-center gap-1 text-blue-600 font-medium">
-                        Pro Plan → 8% commission (save {commissionRate - 8}%)
-                      </div>
-                      <div className="flex items-center gap-1 text-purple-600 font-medium">
-                        Enterprise → 5% commission (save {commissionRate - 5}%)
-                      </div>
-                    </>
-                  )}
-                  {tier === "pro" && (
-                    <div className="flex items-center gap-1 text-purple-600 font-medium">
-                      Enterprise → 5% commission (save {commissionRate - 5}%)
-                    </div>
-                  )}
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  On your current monthly revenue of ₹{monthlyGross.toLocaleString("en-IN", { maximumFractionDigits: 0 })},
+                  that's an extra ₹{(monthlyGross * (commissionRate - nextTierInfo.rate) / 100).toLocaleString("en-IN", { maximumFractionDigits: 0 })} per month in your pocket.
+                </p>
               </div>
             </div>
           </CardContent>

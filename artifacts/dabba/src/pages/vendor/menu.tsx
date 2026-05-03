@@ -4,12 +4,23 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Plus, Edit, Trash2, MoreVertical, UtensilsCrossed, Image as ImageIcon } from "lucide-react";
+import { Plus, Edit, Trash2, MoreVertical, UtensilsCrossed, Image as ImageIcon, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +35,6 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -54,6 +64,9 @@ export default function VendorMenu() {
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [deletingItem, setDeletingItem] = useState<{ id: string; name: string } | null>(null);
+  const [search, setSearch] = useState("");
+  const [mealFilter, setMealFilter] = useState<string>("all");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -127,6 +140,14 @@ export default function VendorMenu() {
     }
   };
 
+  const MEAL_TYPES = ["all", "breakfast", "lunch", "dinner", "snacks"] as const;
+
+  const visibleItems = menuItems.filter(item => {
+    const matchMeal = mealFilter === "all" || item.mealType === mealFilter;
+    const matchSearch = !search.trim() || item.name.toLowerCase().includes(search.toLowerCase());
+    return matchMeal && matchSearch;
+  });
+
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
@@ -138,6 +159,34 @@ export default function VendorMenu() {
           <Plus className="w-4 h-4 mr-2" /> Add New Dish
         </Button>
       </div>
+
+      {/* Search + meal-type filter */}
+      {!isLoading && menuItems.length > 0 && (
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search dishes..."
+              className="pl-9"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-1.5 flex-wrap">
+            {MEAL_TYPES.map(mt => (
+              <Button
+                key={mt}
+                size="sm"
+                variant={mealFilter === mt ? "default" : "outline"}
+                className="capitalize h-9"
+                onClick={() => setMealFilter(mt)}
+              >
+                {mt === "all" ? "All" : mt}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -152,9 +201,14 @@ export default function VendorMenu() {
           <p className="text-muted-foreground mb-6">Add dishes to start building your subscription plans.</p>
           <Button onClick={handleOpenNew} variant="outline">Create First Dish</Button>
         </div>
+      ) : visibleItems.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <UtensilsCrossed className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p>No dishes match your filters.</p>
+        </div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {menuItems.map(item => (
+          {visibleItems.map(item => (
             <Card key={item.id} className={`shadow-sm transition-all ${!item.isAvailable ? 'opacity-60 grayscale-[0.3]' : ''}`}>
               <CardContent className="p-5 flex gap-4 h-full relative group">
                 <div className="absolute top-4 right-4">
@@ -168,7 +222,7 @@ export default function VendorMenu() {
                       <DropdownMenuItem onClick={() => handleOpenEdit(item)}>
                         <Edit className="w-4 h-4 mr-2" /> Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onClick={() => deleteItem.mutate({ vendorId: vendorId!, menuItemId: item.id })}>
+                      <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onClick={() => setDeletingItem({ id: item.id, name: item.name })}>
                         <Trash2 className="w-4 h-4 mr-2" /> Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -198,6 +252,33 @@ export default function VendorMenu() {
           ))}
         </div>
       )}
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deletingItem} onOpenChange={(open) => { if (!open) setDeletingItem(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Dish?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove <strong>{deletingItem?.name}</strong> from your menu.
+              Existing orders are not affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Dish</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={() => {
+                if (deletingItem) {
+                  deleteItem.mutate({ vendorId: vendorId!, menuItemId: deletingItem.id });
+                  setDeletingItem(null);
+                }
+              }}
+            >
+              Yes, Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent className="overflow-y-auto sm:max-w-md">

@@ -5,7 +5,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import {
   ArrowLeft, Store, MapPin, ChefHat, Star, TrendingUp, ShoppingBag,
   Users, DollarSign, CheckCircle2, XCircle, Clock, Calendar, Receipt,
-  MessageSquare, IndianRupee, Percent,
+  MessageSquare, IndianRupee, Percent, Pencil,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
 type Vendor = {
@@ -88,6 +91,8 @@ function StarRating({ rating }: { rating: number }) {
 export default function AdminVendorDetail() {
   const { vendorId } = useParams<{ vendorId: string }>();
   const [orderStatusFilter, setOrderStatusFilter] = useState("all");
+  const [commissionDialog, setCommissionDialog] = useState(false);
+  const [commissionInput, setCommissionInput] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -162,6 +167,26 @@ export default function AdminVendorDetail() {
     onError: () => toast({ title: "Error", description: "Could not update status.", variant: "destructive" }),
   });
 
+  const updateCommission = useMutation({
+    mutationFn: async (rate: number) => {
+      const res = await fetch(`/api/vendors/${vendorId}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commissionRate: rate.toString() }),
+      });
+      if (!res.ok) throw new Error("Failed to update commission rate");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors", vendorId] });
+      toast({ title: "Commission rate updated" });
+      setCommissionDialog(false);
+      setCommissionInput("");
+    },
+    onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
   const vendor = vendorData?.vendor;
   const stats = statsData?.stats;
   const orders = ordersData?.orders ?? [];
@@ -227,9 +252,15 @@ export default function AdminVendorDetail() {
               {vendor.fssaiLicense && (
                 <span className="flex items-center gap-1 font-mono text-xs">FSSAI: {vendor.fssaiLicense}</span>
               )}
-              <span className="flex items-center gap-1">
-                <Percent className="w-3 h-3" />{commissionRate.toFixed(1)}% commission
-              </span>
+              <button
+                className="flex items-center gap-1 hover:text-primary transition-colors group/commission"
+                onClick={() => { setCommissionInput(commissionRate.toFixed(1)); setCommissionDialog(true); }}
+                title="Edit commission rate"
+              >
+                <Percent className="w-3 h-3" />
+                {commissionRate.toFixed(1)}% commission
+                <Pencil className="w-3 h-3 opacity-0 group-hover/commission:opacity-60 transition-opacity" />
+              </button>
               <span className="text-xs">Joined {format(new Date(vendor.createdAt), "dd MMM yyyy")}</span>
             </div>
           </div>
@@ -514,6 +545,55 @@ export default function AdminVendorDetail() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Commission rate edit dialog */}
+      <Dialog open={commissionDialog} onOpenChange={(open) => { if (!open) { setCommissionDialog(false); setCommissionInput(""); } }}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Edit Commission Rate</DialogTitle>
+            <DialogDescription>
+              Set the platform commission percentage for <strong>{vendor?.name}</strong>.
+              This applies to all future earnings.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-3 space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="commission-rate">Commission Rate (%)</Label>
+              <div className="relative">
+                <Input
+                  id="commission-rate"
+                  type="number"
+                  min="0"
+                  max="50"
+                  step="0.5"
+                  value={commissionInput}
+                  onChange={e => setCommissionInput(e.target.value)}
+                  className="pr-8"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setCommissionDialog(false); setCommissionInput(""); }}>
+              Cancel
+            </Button>
+            <Button
+              disabled={updateCommission.isPending || !commissionInput}
+              onClick={() => {
+                const rate = parseFloat(commissionInput);
+                if (isNaN(rate) || rate < 0 || rate > 50) {
+                  toast({ variant: "destructive", title: "Invalid rate", description: "Enter a value between 0 and 50." });
+                  return;
+                }
+                updateCommission.mutate(rate);
+              }}
+            >
+              {updateCommission.isPending ? "Saving..." : "Save Rate"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

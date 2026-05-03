@@ -45,7 +45,8 @@ export default function MySubscriptions() {
   const { toast } = useToast();
 
   const { data: subsData, isLoading: subsLoading } = useListMySubscriptions();
-  const subscriptions = subsData?.subscriptions || [];
+  type SubItem = NonNullable<typeof subsData>["subscriptions"][number] & { totalAmount?: string | null };
+  const subscriptions = (subsData?.subscriptions ?? []) as SubItem[];
 
   const { data: walletData, isLoading: walletLoading } = useGetWalletBalance();
   const wallet = walletData?.wallet;

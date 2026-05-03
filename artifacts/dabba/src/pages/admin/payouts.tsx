@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
-  Wallet, Search, CheckCircle2, XCircle, Clock, Loader2, IndianRupee, MessageSquare,
+  Wallet, Search, CheckCircle2, XCircle, Clock, Loader2, IndianRupee, MessageSquare, Download,
 } from "lucide-react";
+import { Link } from "wouter";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -90,6 +91,32 @@ export default function AdminPayouts() {
     !search || p.vendorName?.toLowerCase().includes(search.toLowerCase())
   );
 
+  function exportCSV(list: PayoutRequest[]) {
+    const headers = ["Kitchen", "Amount (₹)", "UPI ID", "Bank Account", "IFSC", "Account Name", "Notes", "Status", "Requested", "Processed"];
+    const rows = list.map(p => [
+      p.vendorName ?? "",
+      parseFloat(p.amount).toFixed(2),
+      p.upiId ?? "",
+      p.bankAccount ?? "",
+      p.ifscCode ?? "",
+      p.accountName ?? "",
+      p.notes ?? "",
+      p.status,
+      format(new Date(p.createdAt), "dd MMM yyyy"),
+      p.processedAt ? format(new Date(p.processedAt), "dd MMM yyyy") : "",
+    ]);
+    const csv = [headers, ...rows]
+      .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `payouts-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   const allPayouts = data?.payouts ?? [];
   const totalPending    = allPayouts.filter(p => p.status === "pending").length;
   const totalProcessing = allPayouts.filter(p => p.status === "processing").length;
@@ -157,6 +184,16 @@ export default function AdminPayouts() {
             <SelectItem value="rejected">Rejected</SelectItem>
           </SelectContent>
         </Select>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-10 shrink-0"
+          disabled={payouts.length === 0}
+          onClick={() => exportCSV(payouts)}
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Export CSV
+        </Button>
       </div>
 
       {/* Table */}
@@ -194,7 +231,11 @@ export default function AdminPayouts() {
 
                 return (
                   <TableRow key={p.id} className="hover:bg-muted/20">
-                    <TableCell className="font-medium">{p.vendorName || "—"}</TableCell>
+                    <TableCell className="font-medium">
+                      <Link href={`/admin/vendors/${p.vendorId}`} className="hover:text-primary hover:underline transition-colors">
+                        {p.vendorName || "—"}
+                      </Link>
+                    </TableCell>
                     <TableCell className="font-bold text-primary">
                       ₹{parseFloat(p.amount).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                     </TableCell>

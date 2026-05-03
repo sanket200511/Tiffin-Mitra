@@ -1,5 +1,6 @@
 import express, { type Express } from "express";
 import cors from "cors";
+import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import { authMiddleware } from "./middlewares/authMiddleware";
@@ -7,6 +8,8 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
+
+app.set("trust proxy", 1);
 
 app.use(
   pinoHttp({
@@ -27,10 +30,43 @@ app.use(
     },
   }),
 );
-app.use(cors({ credentials: true, origin: true }));
+
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "same-site" },
+    contentSecurityPolicy: false,
+  }),
+);
+
+const allowedOrigins = process.env.REPLIT_DOMAINS
+  ? process.env.REPLIT_DOMAINS.split(",").map(d => `https://${d.trim()}`)
+  : [];
+
+app.use(
+  cors({
+    credentials: true,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const isReplit =
+        origin.includes(".replit.dev") ||
+        origin.includes(".repl.co") ||
+        origin.includes(".replit.app");
+      const isLocalhost =
+        origin.startsWith("http://localhost") ||
+        origin.startsWith("http://127.0.0.1");
+      const isAllowed = allowedOrigins.includes(origin);
+      if (isReplit || isLocalhost || isAllowed) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+  }),
+);
+
 app.use(cookieParser());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "100kb" }));
+app.use(express.urlencoded({ extended: true, limit: "100kb" }));
 app.use(authMiddleware);
 
 app.use("/api", router);

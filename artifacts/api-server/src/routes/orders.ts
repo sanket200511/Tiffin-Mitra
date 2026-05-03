@@ -4,31 +4,40 @@ import { eq, and } from "drizzle-orm";
 
 const router = Router();
 
-// ─── Valid status transitions ──────────────────────────────────────────────────
-// Enforces a strict forward-only state machine. No going back.
 const VALID_TRANSITIONS: Record<string, string[]> = {
   pending: ["accepted", "cancelled"],
   accepted: ["preparing", "cancelled"],
   preparing: ["packed", "cancelled"],
   packed: ["picked_up", "cancelled"],
   picked_up: ["delivered"],
-  delivered: [],   // terminal
-  cancelled: [],   // terminal
+  delivered: [],
+  cancelled: [],
 };
 
 router.get("/orders", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   try {
     const { status, date, vendorId } = req.query as Record<string, string>;
+    const isAdmin = req.user.role === "super_admin";
 
     const conditions: ReturnType<typeof eq>[] = [];
     if (status) conditions.push(eq(ordersTable.status, status as "pending" | "accepted" | "preparing" | "packed" | "picked_up" | "delivered" | "cancelled"));
     if (date) conditions.push(eq(ordersTable.scheduledDate, date));
 
     if (vendorId) {
+      if (!isAdmin) {
+        const [vendorRow] = await db.select({ ownerUserId: vendorsTable.ownerUserId })
+          .from(vendorsTable).where(eq(vendorsTable.id, vendorId));
+        if (!vendorRow || vendorRow.ownerUserId !== req.user.id) {
+          res.status(403).json({ error: "Forbidden" });
+          return;
+        }
+      }
       conditions.push(eq(ordersTable.vendorId, vendorId));
-    } else if (req.isAuthenticated() && req.user.role === "super_admin") {
-      // Admin sees all orders — no additional filter
-    } else if (req.isAuthenticated()) {
+    } else if (!isAdmin) {
       const [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user.id));
       if (customer) {
         conditions.push(eq(ordersTable.customerId, customer.id));
@@ -56,9 +65,23 @@ router.get("/orders", async (req, res) => {
 });
 
 router.get("/orders/today-summary", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   try {
     const { vendorId } = req.query as Record<string, string>;
+    const isAdmin = req.user.role === "super_admin";
     const today = new Date().toISOString().split("T")[0];
+
+    if (vendorId && !isAdmin) {
+      const [vendorRow] = await db.select({ ownerUserId: vendorsTable.ownerUserId })
+        .from(vendorsTable).where(eq(vendorsTable.id, vendorId));
+      if (!vendorRow || vendorRow.ownerUserId !== req.user.id) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
+    }
 
     const conditions: ReturnType<typeof eq>[] = [eq(ordersTable.scheduledDate, today)];
     if (vendorId) conditions.push(eq(ordersTable.vendorId, vendorId));
@@ -103,7 +126,6 @@ router.get("/orders/:orderId", async (req, res) => {
       return;
     }
 
-    // Authorization: only the customer or the vendor (owner) can view this order
     const [vendorRow] = await db.select({ ownerUserId: vendorsTable.ownerUserId })
       .from(vendorsTable).where(eq(vendorsTable.id, order.vendorId));
     const [customerRow] = await db.select({ userId: customersTable.userId })
@@ -142,7 +164,6 @@ router.patch("/orders/:orderId", async (req, res) => {
     const newStatus = req.body.status as string | undefined;
 
     if (newStatus) {
-      // Enforce forward-only state machine
       const allowed = VALID_TRANSITIONS[order.status] ?? [];
       if (!allowed.includes(newStatus)) {
         res.status(400).json({
@@ -151,7 +172,6 @@ router.patch("/orders/:orderId", async (req, res) => {
         return;
       }
 
-      // Only the vendor who owns this order can advance its status
       const [vendor] = await db.select({ ownerUserId: vendorsTable.ownerUserId })
         .from(vendorsTable).where(eq(vendorsTable.id, order.vendorId));
       const isAdmin = req.user.role === "super_admin";
@@ -162,7 +182,6 @@ router.patch("/orders/:orderId", async (req, res) => {
       }
     }
 
-    // ── Vendor-cancelled order: refund to customer wallet ─────────────────────
     if (newStatus === "cancelled") {
       const [customerRow] = await db.select()
         .from(customersTable)
@@ -183,7 +202,6 @@ router.patch("/orders/:orderId", async (req, res) => {
         });
       }
     }
-    // ─────────────────────────────────────────────────────────────────────────
 
     const [updated] = await db.update(ordersTable)
       .set({

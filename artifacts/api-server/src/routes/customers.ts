@@ -59,12 +59,29 @@ router.patch("/customers/me", async (req, res) => {
     return;
   }
   try {
+    const { name, phone, deliveryAddress, avatarUrl, dietaryPreferences } = req.body as {
+      name?: string;
+      phone?: string;
+      deliveryAddress?: string;
+      avatarUrl?: string;
+      dietaryPreferences?: string[];
+    };
+
+    const updates: Record<string, unknown> = {};
+    if (name !== undefined) updates.name = String(name).trim().slice(0, 100);
+    if (phone !== undefined) updates.phone = String(phone).trim().slice(0, 20);
+    if (deliveryAddress !== undefined) updates.deliveryAddress = String(deliveryAddress).trim().slice(0, 500);
+    if (avatarUrl !== undefined) updates.avatarUrl = String(avatarUrl).trim().slice(0, 500);
+    if (dietaryPreferences !== undefined && Array.isArray(dietaryPreferences)) {
+      updates.dietaryPreferences = dietaryPreferences;
+    }
+
     let [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user.id));
     if (!customer) {
-      [customer] = await db.insert(customersTable).values({ userId: req.user.id, ...req.body }).returning();
+      [customer] = await db.insert(customersTable).values({ userId: req.user.id, ...updates }).returning();
     } else {
       [customer] = await db.update(customersTable)
-        .set({ ...req.body, updatedAt: new Date() })
+        .set({ ...updates, updatedAt: new Date() })
         .where(eq(customersTable.userId, req.user.id))
         .returning();
     }

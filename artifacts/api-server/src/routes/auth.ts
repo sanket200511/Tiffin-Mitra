@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { Router, type IRouter, type Request, type Response } from "express";
+import rateLimit from "express-rate-limit";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { GetCurrentAuthUserResponse } from "@workspace/api-zod";
@@ -14,6 +15,14 @@ import {
 
 const router: IRouter = Router();
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many attempts, please try again later." },
+});
+
 router.get("/auth/user", (req: Request, res: Response) => {
   res.json(
     GetCurrentAuthUserResponse.parse({
@@ -22,7 +31,7 @@ router.get("/auth/user", (req: Request, res: Response) => {
   );
 });
 
-router.post("/auth/register", async (req: Request, res: Response) => {
+router.post("/auth/register", authLimiter, async (req: Request, res: Response) => {
   const { email, password, firstName, lastName } = req.body as {
     email?: string;
     password?: string;
@@ -37,6 +46,12 @@ router.post("/auth/register", async (req: Request, res: Response) => {
 
   if (password.length < 8) {
     res.status(400).json({ error: "Password must be at least 8 characters" });
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    res.status(400).json({ error: "Invalid email address" });
     return;
   }
 
@@ -65,7 +80,7 @@ router.post("/auth/register", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/auth/login", async (req: Request, res: Response) => {
+router.post("/auth/login", authLimiter, async (req: Request, res: Response) => {
   const { email, password } = req.body as { email?: string; password?: string };
 
   if (!email || !password) {
@@ -117,7 +132,7 @@ router.patch("/auth/role", async (req: Request, res: Response) => {
   try {
     const [user] = await db.update(usersTable)
       .set({ role: role as "customer" | "vendor", updatedAt: new Date() })
-      .where(eq(usersTable.id, req.user!.id))
+      .where(eq(usersTable.id, req.user.id))
       .returning();
 
     const sid = getSessionId(req);
@@ -136,18 +151,20 @@ router.patch("/auth/role", async (req: Request, res: Response) => {
   }
 });
 
-// ─── Admin Setup ──────────────────────────────────────────────────────────────
-// POST /auth/make-admin — elevates the current logged-in user to super_admin.
-// Requires a setup key. Default key: "dabba-admin-2024" (override with ADMIN_SETUP_KEY env var).
-router.post("/auth/make-admin", async (req: Request, res: Response) => {
+// POST /auth/make-admin — requires ADMIN_SETUP_KEY env var. No default key.
+router.post("/auth/make-admin", authLimiter, async (req: Request, res: Response) => {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "You must be logged in first" });
     return;
   }
 
-  const { setupKey } = req.body as { setupKey?: string };
-  const expectedKey = process.env.ADMIN_SETUP_KEY || "dabba-admin-2024";
+  const expectedKey = process.env.ADMIN_SETUP_KEY;
+  if (!expectedKey) {
+    res.status(403).json({ error: "Admin setup is not enabled on this server" });
+    return;
+  }
 
+  const { setupKey } = req.body as { setupKey?: string };
   if (!setupKey || setupKey !== expectedKey) {
     res.status(403).json({ error: "Invalid setup key" });
     return;
@@ -156,7 +173,7 @@ router.post("/auth/make-admin", async (req: Request, res: Response) => {
   try {
     const [user] = await db.update(usersTable)
       .set({ role: "super_admin", updatedAt: new Date() })
-      .where(eq(usersTable.id, req.user!.id))
+      .where(eq(usersTable.id, req.user.id))
       .returning();
 
     const sid = getSessionId(req);

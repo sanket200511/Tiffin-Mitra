@@ -4,11 +4,32 @@ import { eq, and } from "drizzle-orm";
 
 const router = Router();
 
-router.get("/analytics/vendor/:vendorId/revenue", async (req, res) => {
-  try {
-    const { vendorId } = req.params;
-    const { period = "30d" } = req.query as Record<string, string>;
+async function assertVendorAccess(
+  vendorId: string,
+  userId: string,
+  role: string | null | undefined,
+): Promise<{ ok: boolean; status: number; error: string }> {
+  if (role === "super_admin") return { ok: true, status: 200, error: "" };
+  const [vendor] = await db.select({ ownerUserId: vendorsTable.ownerUserId })
+    .from(vendorsTable).where(eq(vendorsTable.id, vendorId));
+  if (!vendor) return { ok: false, status: 404, error: "Vendor not found" };
+  if (vendor.ownerUserId !== userId) return { ok: false, status: 403, error: "Forbidden" };
+  return { ok: true, status: 200, error: "" };
+}
 
+router.get("/analytics/vendor/:vendorId/revenue", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const { vendorId } = req.params;
+  const access = await assertVendorAccess(vendorId, req.user.id, req.user.role);
+  if (!access.ok) {
+    res.status(access.status).json({ error: access.error });
+    return;
+  }
+  try {
+    const { period = "30d" } = req.query as Record<string, string>;
     const days = period === "7d" ? 7 : period === "90d" ? 90 : 30;
     const orders = await db.select().from(ordersTable)
       .where(and(eq(ordersTable.vendorId, vendorId), eq(ordersTable.status, "delivered")));
@@ -39,8 +60,17 @@ router.get("/analytics/vendor/:vendorId/revenue", async (req, res) => {
 });
 
 router.get("/analytics/vendor/:vendorId/popular-dishes", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const { vendorId } = req.params;
+  const access = await assertVendorAccess(vendorId, req.user.id, req.user.role);
+  if (!access.ok) {
+    res.status(access.status).json({ error: access.error });
+    return;
+  }
   try {
-    const { vendorId } = req.params;
     const { menuItemsTable } = await import("@workspace/db");
 
     const deliveredOrders = await db.select().from(ordersTable)
@@ -83,8 +113,17 @@ router.get("/analytics/vendor/:vendorId/popular-dishes", async (req, res) => {
 });
 
 router.get("/analytics/vendor/:vendorId/subscription-health", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const { vendorId } = req.params;
+  const access = await assertVendorAccess(vendorId, req.user.id, req.user.role);
+  if (!access.ok) {
+    res.status(access.status).json({ error: access.error });
+    return;
+  }
   try {
-    const { vendorId } = req.params;
     const subs = await db.select().from(customerSubscriptionsTable)
       .where(eq(customerSubscriptionsTable.vendorId, vendorId));
 
@@ -149,6 +188,10 @@ router.get("/analytics/platform/revenue", async (req, res) => {
 });
 
 router.get("/analytics/platform/overview", async (req, res) => {
+  if (!req.isAuthenticated() || req.user.role !== "super_admin") {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
   try {
     const allVendors = await db.select().from(vendorsTable);
     const allCustomers = await db.select().from(customersTable);
@@ -163,7 +206,6 @@ router.get("/analytics/platform/overview", async (req, res) => {
     const activeSubs = allSubs.filter(s => s.status === "active").length;
     const gmv = allOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount as string), 0);
 
-    // Commission uses each vendor's actual stored rate (not a hardcoded percentage)
     const commissionRevenue = allVendors.reduce((total, vendor) => {
       const vendorOrders = allOrders.filter(o => o.vendorId === vendor.id);
       const vendorGMV = vendorOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount as string), 0);

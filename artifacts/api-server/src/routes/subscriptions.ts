@@ -1,10 +1,18 @@
 import { Router } from "express";
 import { db, subscriptionPlansTable, customerSubscriptionsTable, vendorsTable, ordersTable, walletTransactionsTable, customersTable } from "@workspace/db";
-import { eq, and, inArray, notInArray } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 
 const router = Router();
 
+async function assertVendorOwnership(vendorId: string, userId: string, role: string | null | undefined): Promise<boolean> {
+  if (role === "super_admin") return true;
+  const [vendor] = await db.select({ ownerUserId: vendorsTable.ownerUserId })
+    .from(vendorsTable).where(eq(vendorsTable.id, vendorId));
+  return vendor?.ownerUserId === userId;
+}
+
 // ─── Subscription Plans ───────────────────────────────────────────────────────
+
 router.get("/vendors/:vendorId/plans", async (req, res) => {
   try {
     const plans = await db.select().from(subscriptionPlansTable)
@@ -21,9 +29,15 @@ router.post("/vendors/:vendorId/plans", async (req, res) => {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
+  const isOwner = await assertVendorOwnership(req.params.vendorId, req.user.id, req.user.role);
+  if (!isOwner) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
   try {
+    const { name, description, planType, price, mealTypes, isActive } = req.body;
     const [plan] = await db.insert(subscriptionPlansTable)
-      .values({ ...req.body, vendorId: req.params.vendorId })
+      .values({ name, description, planType, price, mealTypes, isActive, vendorId: req.params.vendorId })
       .returning();
     res.status(201).json({ plan });
   } catch (err) {
@@ -37,10 +51,27 @@ router.patch("/vendors/:vendorId/plans/:planId", async (req, res) => {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
+  const isOwner = await assertVendorOwnership(req.params.vendorId, req.user.id, req.user.role);
+  if (!isOwner) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
   try {
+    const { name, description, planType, price, mealTypes, isActive } = req.body;
+    const updates: Record<string, unknown> = {};
+    if (name !== undefined) updates.name = name;
+    if (description !== undefined) updates.description = description;
+    if (planType !== undefined) updates.planType = planType;
+    if (price !== undefined) updates.price = price;
+    if (mealTypes !== undefined) updates.mealTypes = mealTypes;
+    if (isActive !== undefined) updates.isActive = isActive;
+
     const [plan] = await db.update(subscriptionPlansTable)
-      .set({ ...req.body, updatedAt: new Date() })
-      .where(eq(subscriptionPlansTable.id, req.params.planId))
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(
+        eq(subscriptionPlansTable.id, req.params.planId),
+        eq(subscriptionPlansTable.vendorId, req.params.vendorId)
+      ))
       .returning();
     res.json({ plan });
   } catch (err) {
@@ -54,10 +85,18 @@ router.delete("/vendors/:vendorId/plans/:planId", async (req, res) => {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
+  const isOwner = await assertVendorOwnership(req.params.vendorId, req.user.id, req.user.role);
+  if (!isOwner) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
   try {
     await db.update(subscriptionPlansTable)
       .set({ isActive: false, updatedAt: new Date() })
-      .where(eq(subscriptionPlansTable.id, req.params.planId));
+      .where(and(
+        eq(subscriptionPlansTable.id, req.params.planId),
+        eq(subscriptionPlansTable.vendorId, req.params.vendorId)
+      ));
     res.json({ success: true });
   } catch (err) {
     req.log.error({ err }, "Failed to delete plan");
@@ -66,6 +105,7 @@ router.delete("/vendors/:vendorId/plans/:planId", async (req, res) => {
 });
 
 // ─── Customer Subscriptions ───────────────────────────────────────────────────
+
 router.get("/subscriptions", async (req, res) => {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "Unauthorized" });
@@ -115,7 +155,6 @@ router.post("/subscriptions", async (req, res) => {
       deliverySlot?: string;
     };
 
-    // Validate the plan belongs to this vendor and is active
     const [plan] = await db.select().from(subscriptionPlansTable)
       .where(and(
         eq(subscriptionPlansTable.id, planId),
@@ -127,7 +166,6 @@ router.post("/subscriptions", async (req, res) => {
       return;
     }
 
-    // Validate vendor is approved
     const [vendor] = await db.select({ status: vendorsTable.status, name: vendorsTable.name })
       .from(vendorsTable).where(eq(vendorsTable.id, vendorId));
     if (!vendor || vendor.status !== "approved") {
@@ -135,7 +173,6 @@ router.post("/subscriptions", async (req, res) => {
       return;
     }
 
-    // ── Wallet payment check ──────────────────────────────────────────────────
     const planPrice = parseFloat(plan.price as string);
     const walletBalance = parseFloat(customer.walletBalance as string ?? "0");
     if (walletBalance < planPrice) {
@@ -146,24 +183,15 @@ router.post("/subscriptions", async (req, res) => {
       });
       return;
     }
-    // ─────────────────────────────────────────────────────────────────────────
 
-    // Calculate subscription period
     const PERIOD_DAYS: Record<string, number> = {
-      daily: 1,
-      weekly: 7,
-      monthly: 30,
-      weekday: 30,
-      trial_3day: 3,
-      trial_7day: 7,
-      custom: 30,
+      daily: 1, weekly: 7, monthly: 30, weekday: 30, trial_3day: 3, trial_7day: 7, custom: 30,
     };
     const periodDays = PERIOD_DAYS[plan.planType] ?? 30;
     const start = new Date(startDate);
     const endDate = new Date(start);
     endDate.setDate(endDate.getDate() + periodDays);
 
-    // ── Deduct wallet balance ─────────────────────────────────────────────────
     const newBalance = (walletBalance - planPrice).toFixed(2);
     await db.update(customersTable)
       .set({ walletBalance: newBalance, updatedAt: new Date() })
@@ -175,7 +203,6 @@ router.post("/subscriptions", async (req, res) => {
       amount: planPrice.toFixed(2),
       description: `Subscription: ${plan.name} from ${vendor.name}`,
     });
-    // ─────────────────────────────────────────────────────────────────────────
 
     const [subscription] = await db.insert(customerSubscriptionsTable).values({
       customerId: customer.id,
@@ -188,7 +215,6 @@ router.post("/subscriptions", async (req, res) => {
       status: "active",
     }).returning();
 
-    // ── Auto-generate daily orders for each day in the subscription period ──
     const isWeekdayPlan = plan.planType === "weekday";
     const deliveryDates: string[] = [];
     const cursor = new Date(start);
@@ -217,7 +243,6 @@ router.post("/subscriptions", async (req, res) => {
 
       await db.insert(ordersTable).values(ordersToInsert);
     }
-    // ─────────────────────────────────────────────────────────────────────────
 
     res.status(201).json({ subscription });
   } catch (err) {
@@ -232,10 +257,17 @@ router.get("/subscriptions/:subscriptionId", async (req, res) => {
     return;
   }
   try {
+    const [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user.id));
+    const isAdmin = req.user.role === "super_admin";
+
     const [subscription] = await db.select().from(customerSubscriptionsTable)
       .where(eq(customerSubscriptionsTable.id, req.params.subscriptionId));
     if (!subscription) {
       res.status(404).json({ error: "Subscription not found" });
+      return;
+    }
+    if (!isAdmin && subscription.customerId !== customer?.id) {
+      res.status(403).json({ error: "Forbidden" });
       return;
     }
     res.json({ subscription });
@@ -279,7 +311,6 @@ router.patch("/subscriptions/:subscriptionId", async (req, res) => {
       return;
     }
 
-    // ── Cancellation refund: return all pending orders' amounts to wallet ─────
     if (status === "cancelled") {
       const refundableStatuses = ["pending", "accepted"] as const;
       const pendingOrders = await db.select().from(ordersTable)
@@ -293,7 +324,6 @@ router.patch("/subscriptions/:subscriptionId", async (req, res) => {
           (sum, o) => sum + parseFloat(o.totalAmount as string), 0
         );
 
-        // Cancel all refundable orders
         await db.update(ordersTable)
           .set({ status: "cancelled", updatedAt: new Date() })
           .where(and(
@@ -301,7 +331,6 @@ router.patch("/subscriptions/:subscriptionId", async (req, res) => {
             inArray(ordersTable.status, [...refundableStatuses])
           ));
 
-        // Credit wallet
         const currentBalance = parseFloat(customer.walletBalance as string ?? "0");
         await db.update(customersTable)
           .set({ walletBalance: (currentBalance + refundTotal).toFixed(2), updatedAt: new Date() })
@@ -315,10 +344,12 @@ router.patch("/subscriptions/:subscriptionId", async (req, res) => {
         });
       }
     }
-    // ─────────────────────────────────────────────────────────────────────────
+
+    const updates: Record<string, unknown> = {};
+    if (status !== undefined) updates.status = status;
 
     const [subscription] = await db.update(customerSubscriptionsTable)
-      .set({ ...req.body, updatedAt: new Date() })
+      .set({ ...updates, updatedAt: new Date() })
       .where(eq(customerSubscriptionsTable.id, req.params.subscriptionId))
       .returning();
     res.json({ subscription });
@@ -368,7 +399,6 @@ router.post("/subscriptions/:subscriptionId/skip", async (req, res) => {
       .set({ skippedDays, updatedAt: new Date() })
       .where(eq(customerSubscriptionsTable.id, req.params.subscriptionId));
 
-    // Cancel the pending order for that day and refund to wallet
     const [skippedOrder] = await db.select().from(ordersTable)
       .where(and(
         eq(ordersTable.subscriptionId, sub.id),
@@ -381,7 +411,6 @@ router.post("/subscriptions/:subscriptionId/skip", async (req, res) => {
         .set({ status: "cancelled", updatedAt: new Date() })
         .where(eq(ordersTable.id, skippedOrder.id));
 
-      // Refund that day's amount
       const refundAmount = parseFloat(skippedOrder.totalAmount as string);
       const currentBalance = parseFloat(customer.walletBalance as string ?? "0");
       await db.update(customersTable)

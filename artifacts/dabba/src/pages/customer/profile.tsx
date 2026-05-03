@@ -58,6 +58,15 @@ export default function Profile() {
     },
   });
 
+  const { data: walletData } = useQuery({
+    queryKey: ["/api/customers/wallet"],
+    queryFn: async () => {
+      const res = await fetch("/api/customers/wallet", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed");
+      return res.json() as Promise<{ wallet: { balance: number; loyaltyPoints: number } }>;
+    },
+  });
+
   useEffect(() => {
     if (customer) {
       form.reset({
@@ -88,15 +97,6 @@ export default function Profile() {
       </div>
     );
   }
-
-  const { data: walletData } = useQuery({
-    queryKey: ["/api/customers/wallet"],
-    queryFn: async () => {
-      const res = await fetch("/api/customers/wallet", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed");
-      return res.json() as Promise<{ wallet: { balance: number; loyaltyPoints: number } }>;
-    },
-  });
 
   return (
     <div className="container max-w-2xl py-8 min-h-screen space-y-6">

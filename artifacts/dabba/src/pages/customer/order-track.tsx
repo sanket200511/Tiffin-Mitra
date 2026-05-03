@@ -82,7 +82,7 @@ export default function OrderTrack() {
   const { data, isLoading, isError, dataUpdatedAt, refetch } = useQuery({
     queryKey: ["/api/orders", orderId],
     queryFn: async () => {
-      const res = await fetch(`/api/orders/${orderId}`);
+      const res = await fetch(`/api/orders/${orderId}`, { credentials: "include" });
       if (!res.ok) throw new Error("Order not found");
       return res.json() as Promise<{ order: Order }>;
     },

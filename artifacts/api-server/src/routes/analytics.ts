@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, ordersTable, vendorsTable, customersTable, customerSubscriptionsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gte, lte, sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -17,6 +17,14 @@ async function assertVendorAccess(
   return { ok: true, status: 200, error: "" };
 }
 
+function dateRangeStrings(days: number): { startDate: string; endDate: string } {
+  const today = new Date();
+  const end = today.toISOString().split("T")[0];
+  const start = new Date(today);
+  start.setDate(today.getDate() - (days - 1));
+  return { startDate: start.toISOString().split("T")[0], endDate: end };
+}
+
 router.get("/analytics/vendor/:vendorId/revenue", async (req, res) => {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "Unauthorized" });
@@ -31,17 +39,28 @@ router.get("/analytics/vendor/:vendorId/revenue", async (req, res) => {
   try {
     const { period = "30d" } = req.query as Record<string, string>;
     const days = period === "7d" ? 7 : period === "90d" ? 90 : 30;
-    const orders = await db.select().from(ordersTable)
-      .where(and(eq(ordersTable.vendorId, vendorId), eq(ordersTable.status, "delivered")));
+    const { startDate, endDate } = dateRangeStrings(days);
+
+    const orders = await db
+      .select({
+        scheduledDate: ordersTable.scheduledDate,
+        totalAmount: ordersTable.totalAmount,
+      })
+      .from(ordersTable)
+      .where(
+        and(
+          eq(ordersTable.vendorId, vendorId),
+          eq(ordersTable.status, "delivered"),
+          gte(ordersTable.scheduledDate, startDate),
+          lte(ordersTable.scheduledDate, endDate),
+        )
+      );
 
     const trendMap: Record<string, { revenue: number; orders: number }> = {};
-    const today = new Date();
-
     for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i);
-      const dateStr = d.toISOString().split("T")[0];
-      trendMap[dateStr] = { revenue: 0, orders: 0 };
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      trendMap[d.toISOString().split("T")[0]] = { revenue: 0, orders: 0 };
     }
 
     for (const order of orders) {
@@ -72,9 +91,18 @@ router.get("/analytics/vendor/:vendorId/popular-dishes", async (req, res) => {
   }
   try {
     const { menuItemsTable } = await import("@workspace/db");
+    const { startDate } = dateRangeStrings(90);
 
-    const deliveredOrders = await db.select().from(ordersTable)
-      .where(and(eq(ordersTable.vendorId, vendorId), eq(ordersTable.status, "delivered")));
+    const deliveredOrders = await db
+      .select({ mealType: ordersTable.mealType, totalAmount: ordersTable.totalAmount })
+      .from(ordersTable)
+      .where(
+        and(
+          eq(ordersTable.vendorId, vendorId),
+          eq(ordersTable.status, "delivered"),
+          gte(ordersTable.scheduledDate, startDate),
+        )
+      );
 
     const mealTypeCounts: Record<string, { count: number; revenue: number }> = {};
     for (const order of deliveredOrders) {
@@ -124,18 +152,24 @@ router.get("/analytics/vendor/:vendorId/subscription-health", async (req, res) =
     return;
   }
   try {
-    const subs = await db.select().from(customerSubscriptionsTable)
-      .where(eq(customerSubscriptionsTable.vendorId, vendorId));
+    const rows = await db
+      .select({
+        status: customerSubscriptionsTable.status,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(customerSubscriptionsTable)
+      .where(eq(customerSubscriptionsTable.vendorId, vendorId))
+      .groupBy(customerSubscriptionsTable.status);
 
     const counts = { active: 0, paused: 0, cancelled: 0, expired: 0 };
-    for (const sub of subs) {
-      const status = sub.status as keyof typeof counts;
-      if (status in counts) counts[status] += 1;
+    let total = 0;
+    for (const row of rows) {
+      const status = row.status as keyof typeof counts;
+      if (status in counts) counts[status] = row.count;
+      total += row.count;
     }
 
-    const total = subs.length;
     const retentionRate = total > 0 ? Math.round((counts.active / total) * 100) : 0;
-
     res.json({ health: { ...counts, total, retentionRate } });
   } catch (err) {
     req.log.error({ err }, "Failed to get subscription health");
@@ -151,25 +185,38 @@ router.get("/analytics/platform/revenue", async (req, res) => {
   try {
     const { period = "30d" } = req.query as Record<string, string>;
     const days = period === "7d" ? 7 : period === "90d" ? 90 : 30;
+    const { startDate, endDate } = dateRangeStrings(days);
 
-    const allOrders = await db.select().from(ordersTable).where(eq(ordersTable.status, "delivered"));
-    const allVendors = await db.select().from(vendorsTable);
+    const [orders, allVendors] = await Promise.all([
+      db
+        .select({
+          scheduledDate: ordersTable.scheduledDate,
+          totalAmount: ordersTable.totalAmount,
+          vendorId: ordersTable.vendorId,
+        })
+        .from(ordersTable)
+        .where(
+          and(
+            eq(ordersTable.status, "delivered"),
+            gte(ordersTable.scheduledDate, startDate),
+            lte(ordersTable.scheduledDate, endDate),
+          )
+        ),
+      db.select({ id: vendorsTable.id, commissionRate: vendorsTable.commissionRate }).from(vendorsTable),
+    ]);
 
     const vendorRateMap = Object.fromEntries(
       allVendors.map(v => [v.id, parseFloat(v.commissionRate as string ?? "10") / 100])
     );
 
     const trendMap: Record<string, { revenue: number; orders: number; commission: number }> = {};
-    const today = new Date();
-
     for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i);
-      const dateStr = d.toISOString().split("T")[0];
-      trendMap[dateStr] = { revenue: 0, orders: 0, commission: 0 };
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      trendMap[d.toISOString().split("T")[0]] = { revenue: 0, orders: 0, commission: 0 };
     }
 
-    for (const order of allOrders) {
+    for (const order of orders) {
       if (trendMap[order.scheduledDate]) {
         const amount = parseFloat(order.totalAmount as string);
         const commission = amount * (vendorRateMap[order.vendorId] ?? 0.10);
@@ -193,34 +240,81 @@ router.get("/analytics/platform/overview", async (req, res) => {
     return;
   }
   try {
-    const allVendors = await db.select().from(vendorsTable);
-    const allCustomers = await db.select().from(customersTable);
-    const allSubs = await db.select().from(customerSubscriptionsTable);
     const today = new Date().toISOString().split("T")[0];
-    const todayOrders = await db.select().from(ordersTable).where(eq(ordersTable.scheduledDate, today));
-    const allOrders = await db.select().from(ordersTable);
+
+    const [vendorStats, customerCount, subStats, orderStats] = await Promise.all([
+      db
+        .select({
+          status: vendorsTable.status,
+          featured: vendorsTable.featured,
+          count: sql<number>`count(*)::int`,
+          commissionRate: vendorsTable.commissionRate,
+        })
+        .from(vendorsTable)
+        .groupBy(vendorsTable.status, vendorsTable.featured, vendorsTable.commissionRate),
+      db.select({ count: sql<number>`count(*)::int` }).from(customersTable),
+      db
+        .select({
+          status: customerSubscriptionsTable.status,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(customerSubscriptionsTable)
+        .groupBy(customerSubscriptionsTable.status),
+      db
+        .select({
+          scheduledDate: ordersTable.scheduledDate,
+          totalAmount: ordersTable.totalAmount,
+          vendorId: ordersTable.vendorId,
+          count: sql<number>`count(*)::int`,
+          gmv: sql<number>`sum(${ordersTable.totalAmount}::numeric)`,
+        })
+        .from(ordersTable)
+        .groupBy(ordersTable.scheduledDate, ordersTable.totalAmount, ordersTable.vendorId),
+    ]);
+
+    // Recompute per-vendor commission requires joining — do it simply
+    const allOrders = await db
+      .select({ vendorId: ordersTable.vendorId, totalAmount: ordersTable.totalAmount })
+      .from(ordersTable);
+    const allVendors = await db
+      .select({ id: vendorsTable.id, status: vendorsTable.status, featured: vendorsTable.featured, commissionRate: vendorsTable.commissionRate })
+      .from(vendorsTable);
 
     const activeVendors = allVendors.filter(v => v.status === "approved").length;
     const pendingApprovals = allVendors.filter(v => v.status === "pending").length;
     const featuredVendors = allVendors.filter(v => v.featured).length;
-    const activeSubs = allSubs.filter(s => s.status === "active").length;
-    const gmv = allOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount as string), 0);
+    const totalVendors = allVendors.length;
+    const totalCustomers = customerCount[0]?.count ?? 0;
 
-    const commissionRevenue = allVendors.reduce((total, vendor) => {
-      const vendorOrders = allOrders.filter(o => o.vendorId === vendor.id);
-      const vendorGMV = vendorOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount as string), 0);
-      const rate = parseFloat(vendor.commissionRate as string) / 100;
-      return total + vendorGMV * rate;
-    }, 0);
+    const activeSubs = subStats.find(s => s.status === "active")?.count ?? 0;
+
+    const vendorRateMap = Object.fromEntries(
+      allVendors.map(v => [v.id, parseFloat(v.commissionRate as string ?? "10") / 100])
+    );
+
+    let gmv = 0;
+    let commissionRevenue = 0;
+    let totalOrdersToday = 0;
+    for (const order of allOrders) {
+      const amount = parseFloat(order.totalAmount as string);
+      gmv += amount;
+      commissionRevenue += amount * (vendorRateMap[order.vendorId] ?? 0.10);
+    }
+
+    const todayOrdersResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(ordersTable)
+      .where(eq(ordersTable.scheduledDate, today));
+    totalOrdersToday = todayOrdersResult[0]?.count ?? 0;
 
     res.json({
       overview: {
-        totalVendors: allVendors.length,
+        totalVendors,
         activeVendors,
         featuredVendors,
-        totalCustomers: allCustomers.length,
+        totalCustomers,
         activeSubscriptions: activeSubs,
-        totalOrdersToday: todayOrders.length,
+        totalOrdersToday,
         platformGMV: gmv,
         commissionRevenue,
         pendingVendorApprovals: pendingApprovals,

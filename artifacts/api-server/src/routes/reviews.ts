@@ -37,17 +37,24 @@ router.get("/reviews", async (req, res) => {
     if (vendorId) conditions.push(eq(reviewsTable.vendorId, vendorId));
     if (customerId) conditions.push(eq(reviewsTable.customerId, customerId));
 
-    const rawReviews = conditions.length > 0
-      ? await db.select().from(reviewsTable).where(and(...conditions))
-      : await db.select().from(reviewsTable);
+    const rows = await db
+      .select({
+        id: reviewsTable.id,
+        customerId: reviewsTable.customerId,
+        vendorId: reviewsTable.vendorId,
+        orderId: reviewsTable.orderId,
+        rating: reviewsTable.rating,
+        comment: reviewsTable.comment,
+        tags: reviewsTable.tags,
+        vendorResponse: reviewsTable.vendorResponse,
+        createdAt: reviewsTable.createdAt,
+        customerName: customersTable.name,
+      })
+      .from(reviewsTable)
+      .leftJoin(customersTable, eq(reviewsTable.customerId, customersTable.id))
+      .where(conditions.length > 0 ? and(...conditions) : undefined);
 
-    const reviews = await Promise.all(rawReviews.map(async (review) => {
-      const [customer] = await db.select({ name: customersTable.name }).from(customersTable)
-        .where(eq(customersTable.id, review.customerId));
-      return { ...review, customerName: customer?.name };
-    }));
-
-    res.json({ reviews });
+    res.json({ reviews: rows });
   } catch (err) {
     req.log.error({ err }, "Failed to list reviews");
     res.status(500).json({ error: "Internal server error" });

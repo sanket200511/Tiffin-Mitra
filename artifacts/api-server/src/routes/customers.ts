@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, customersTable, walletTransactionsTable, customerSubscriptionsTable, ordersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -10,21 +10,36 @@ router.get("/customers", async (req, res) => {
     return;
   }
   try {
-    const customers = await db.select().from(customersTable);
-    const allSubs = await db.select().from(customerSubscriptionsTable);
-    const allOrders = await db.select().from(ordersTable);
+    const [customers, subStats, orderStats] = await Promise.all([
+      db.select().from(customersTable),
+      db
+        .select({
+          customerId: customerSubscriptionsTable.customerId,
+          total: sql<number>`count(*)::int`,
+          active: sql<number>`count(*) filter (where ${customerSubscriptionsTable.status} = 'active')::int`,
+        })
+        .from(customerSubscriptionsTable)
+        .groupBy(customerSubscriptionsTable.customerId),
+      db
+        .select({
+          customerId: ordersTable.customerId,
+          total: sql<number>`count(*)::int`,
+          totalSpend: sql<number>`coalesce(sum(${ordersTable.totalAmount}::numeric), 0)`,
+        })
+        .from(ordersTable)
+        .groupBy(ordersTable.customerId),
+    ]);
 
-    const enriched = customers.map(c => {
-      const cSubs = allSubs.filter(s => s.customerId === c.id);
-      const cOrders = allOrders.filter(o => o.customerId === c.id);
-      return {
-        ...c,
-        totalSubscriptions: cSubs.length,
-        activeSubscriptions: cSubs.filter(s => s.status === "active").length,
-        totalOrders: cOrders.length,
-        totalSpend: cOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount as string), 0),
-      };
-    });
+    const subMap = Object.fromEntries(subStats.map(s => [s.customerId, s]));
+    const orderMap = Object.fromEntries(orderStats.map(o => [o.customerId, o]));
+
+    const enriched = customers.map(c => ({
+      ...c,
+      totalSubscriptions: subMap[c.id]?.total ?? 0,
+      activeSubscriptions: subMap[c.id]?.active ?? 0,
+      totalOrders: orderMap[c.id]?.total ?? 0,
+      totalSpend: Number(orderMap[c.id]?.totalSpend ?? 0),
+    }));
 
     res.json({ customers: enriched });
   } catch (err) {
@@ -174,17 +189,47 @@ router.get("/customers/upcoming-deliveries", async (req, res) => {
     }
 
     const { customerSubscriptionsTable, subscriptionPlansTable, vendorsTable } = await import("@workspace/db");
+
     const subs = await db.select().from(customerSubscriptionsTable)
       .where(eq(customerSubscriptionsTable.customerId, customer.id));
 
-    const deliveries = [];
-    const today = new Date();
+    const activeSubs = subs.filter(s => s.status === "active");
+    if (activeSubs.length === 0) {
+      res.json({ deliveries: [] });
+      return;
+    }
 
-    for (const sub of subs) {
-      if (sub.status !== "active") continue;
-      const [vendor] = await db.select({ name: vendorsTable.name }).from(vendorsTable).where(eq(vendorsTable.id, sub.vendorId));
-      const [plan] = await db.select({ name: subscriptionPlansTable.name, mealTypes: subscriptionPlansTable.mealTypes })
-        .from(subscriptionPlansTable).where(eq(subscriptionPlansTable.id, sub.planId));
+    // Batch-fetch all vendors and plans needed in two queries
+    const vendorIds = [...new Set(activeSubs.map(s => s.vendorId))];
+    const planIds = [...new Set(activeSubs.map(s => s.planId))];
+
+    const [vendorRows, planRows] = await Promise.all([
+      db
+        .select({ id: vendorsTable.id, name: vendorsTable.name })
+        .from(vendorsTable)
+        .where(sql`${vendorsTable.id} = any(${vendorIds})`),
+      db
+        .select({ id: subscriptionPlansTable.id, name: subscriptionPlansTable.name, mealTypes: subscriptionPlansTable.mealTypes })
+        .from(subscriptionPlansTable)
+        .where(sql`${subscriptionPlansTable.id} = any(${planIds})`),
+    ]);
+
+    const vendorMap = Object.fromEntries(vendorRows.map(v => [v.id, v]));
+    const planMap = Object.fromEntries(planRows.map(p => [p.id, p]));
+
+    const today = new Date();
+    const deliveries: {
+      date: string;
+      vendorName: string;
+      planName: string;
+      mealTypes: string[];
+      status: string;
+      deliverySlot: string | null;
+    }[] = [];
+
+    for (const sub of activeSubs) {
+      const vendor = vendorMap[sub.vendorId];
+      const plan = planMap[sub.planId];
 
       for (let i = 0; i < 7; i++) {
         const date = new Date(today);

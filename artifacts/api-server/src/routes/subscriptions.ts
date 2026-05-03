@@ -15,8 +15,27 @@ async function assertVendorOwnership(vendorId: string, userId: string, role: str
 
 router.get("/vendors/:vendorId/plans", async (req, res) => {
   try {
-    const plans = await db.select().from(subscriptionPlansTable)
-      .where(and(eq(subscriptionPlansTable.vendorId, req.params.vendorId), eq(subscriptionPlansTable.isActive, true)));
+    const { vendorId } = req.params;
+
+    // The vendor owner and super_admin may see all plans including inactive ones.
+    // All other callers (customers, public) only see active plans.
+    let showAll = false;
+    if (req.isAuthenticated()) {
+      if (req.user.role === "super_admin") {
+        showAll = true;
+      } else {
+        const [vendor] = await db
+          .select({ ownerUserId: vendorsTable.ownerUserId })
+          .from(vendorsTable)
+          .where(eq(vendorsTable.id, vendorId));
+        if (vendor?.ownerUserId === req.user.id) showAll = true;
+      }
+    }
+
+    const plans = showAll
+      ? await db.select().from(subscriptionPlansTable).where(eq(subscriptionPlansTable.vendorId, vendorId))
+      : await db.select().from(subscriptionPlansTable).where(and(eq(subscriptionPlansTable.vendorId, vendorId), eq(subscriptionPlansTable.isActive, true)));
+
     res.json({ plans });
   } catch (err) {
     req.log.error({ err }, "Failed to list plans");

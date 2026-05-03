@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useListVendors } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
@@ -7,15 +7,26 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, MapPin, ChefHat, Star, Filter, Sparkles } from "lucide-react";
 
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
+
 export default function Explore() {
   const [search, setSearch] = useState("");
   const [city, setCity] = useState("all");
   const [cuisine, setCuisine] = useState("all");
 
-  const { data: vendorsData, isLoading } = useListVendors({ 
-    search: search || undefined,
+  const debouncedSearch = useDebounce(search, 300);
+
+  const { data: vendorsData, isLoading } = useListVendors({
+    search: debouncedSearch || undefined,
     city: city !== "all" ? city : undefined,
-    cuisine: cuisine !== "all" ? cuisine : undefined
+    cuisine: cuisine !== "all" ? cuisine : undefined,
   });
 
   const vendors = vendorsData?.vendors || [];
@@ -56,6 +67,11 @@ export default function Explore() {
                   <SelectItem value="Bangalore">Bangalore</SelectItem>
                   <SelectItem value="Pune">Pune</SelectItem>
                   <SelectItem value="Ahmedabad">Ahmedabad</SelectItem>
+                  <SelectItem value="Nagpur">Nagpur</SelectItem>
+                  <SelectItem value="Hyderabad">Hyderabad</SelectItem>
+                  <SelectItem value="Chennai">Chennai</SelectItem>
+                  <SelectItem value="Kolkata">Kolkata</SelectItem>
+                  <SelectItem value="Surat">Surat</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -74,6 +90,9 @@ export default function Explore() {
                   <SelectItem value="Gujarati">Gujarati</SelectItem>
                   <SelectItem value="Maharashtrian">Maharashtrian</SelectItem>
                   <SelectItem value="Bengali">Bengali</SelectItem>
+                  <SelectItem value="Rajasthani">Rajasthani</SelectItem>
+                  <SelectItem value="Punjabi">Punjabi</SelectItem>
+                  <SelectItem value="Jain">Jain</SelectItem>
                 </SelectContent>
               </Select>
             </div>

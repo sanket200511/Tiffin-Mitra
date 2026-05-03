@@ -103,6 +103,43 @@ router.get("/customers/wallet", async (req, res) => {
   }
 });
 
+router.post("/customers/wallet/topup", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const { amount } = req.body as { amount: number };
+  if (!amount || typeof amount !== "number" || amount <= 0 || amount > 50000) {
+    res.status(400).json({ error: "Invalid amount. Must be between ₹1 and ₹50,000." });
+    return;
+  }
+  try {
+    let [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user.id));
+    if (!customer) {
+      [customer] = await db.insert(customersTable).values({ userId: req.user.id }).returning();
+    }
+    const currentBalance = parseFloat(customer.walletBalance as string ?? "0");
+    const newBalance = (currentBalance + amount).toFixed(2);
+
+    const [updated] = await db.update(customersTable)
+      .set({ walletBalance: newBalance, updatedAt: new Date() })
+      .where(eq(customersTable.userId, req.user.id))
+      .returning();
+
+    await db.insert(walletTransactionsTable).values({
+      customerId: customer.id,
+      type: "credit",
+      amount: amount.toFixed(2),
+      description: `Wallet top-up of ₹${amount}`,
+    });
+
+    res.json({ wallet: { balance: parseFloat(newBalance), loyaltyPoints: updated.loyaltyPoints } });
+  } catch (err) {
+    req.log.error({ err }, "Failed to top up wallet");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/customers/upcoming-deliveries", async (req, res) => {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "Unauthorized" });

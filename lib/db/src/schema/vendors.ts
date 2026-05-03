@@ -2,7 +2,7 @@ import { pgTable, text, timestamp, numeric, integer, boolean, pgEnum } from "dri
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const vendorStatusEnum = pgEnum("vendor_status", ["pending", "approved", "suspended"]);
+export const vendorStatusEnum = pgEnum("vendor_status", ["pending", "approved", "suspended", "rejected"]);
 export const vendorTierEnum = pgEnum("vendor_tier", ["basic", "pro", "enterprise"]);
 
 export const vendorsTable = pgTable("vendors", {

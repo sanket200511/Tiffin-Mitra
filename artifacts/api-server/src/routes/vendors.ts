@@ -181,7 +181,7 @@ router.patch("/vendors/:vendorId/status", async (req, res) => {
   try {
     const [vendor] = await db
       .update(vendorsTable)
-      .set({ status: status as "approved" | "rejected" | "suspended" | "pending", updatedAt: new Date() })
+      .set({ status: status as "pending" | "approved" | "suspended" | "rejected", updatedAt: new Date() })
       .where(eq(vendorsTable.id, req.params.vendorId))
       .returning();
     if (!vendor) {

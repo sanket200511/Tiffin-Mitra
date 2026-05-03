@@ -2,10 +2,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useEffect } from "react";
-import { User, Phone, MapPin, Mail } from "lucide-react";
+import { User, Phone, MapPin, Wallet, Gift, ChevronRight } from "lucide-react";
 
 import { useGetMyCustomerProfile, useUpdateMyCustomerProfile } from "@workspace/api-client-react";
 import { useAuth } from "@workspace/replit-auth-web";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -87,12 +89,45 @@ export default function Profile() {
     );
   }
 
+  const { data: walletData } = useQuery({
+    queryKey: ["/api/customers/wallet"],
+    queryFn: async () => {
+      const res = await fetch("/api/customers/wallet", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed");
+      return res.json() as Promise<{ wallet: { balance: number; loyaltyPoints: number } }>;
+    },
+  });
+
   return (
     <div className="container max-w-2xl py-8 min-h-screen space-y-6">
       <div>
         <h1 className="text-3xl font-serif font-bold text-foreground">My Profile</h1>
         <p className="text-muted-foreground mt-1">Manage your personal information and default address</p>
       </div>
+
+      {/* Wallet summary card */}
+      <Link href="/wallet">
+        <Card className="cursor-pointer hover:shadow-md transition-shadow border-primary/20 bg-primary/5">
+          <CardContent className="p-5 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+              <Wallet className="w-6 h-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dabba Wallet</p>
+              <p className="text-2xl font-bold font-serif text-foreground">
+                ₹{(walletData?.wallet?.balance ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              </p>
+              <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
+                <Gift className="w-3 h-3 text-amber-500" />
+                {walletData?.wallet?.loyaltyPoints ?? 0} loyalty points
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-sm text-primary font-medium shrink-0">
+              Add Money <ChevronRight className="w-4 h-4" />
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
 
       <Card>
         <CardHeader>

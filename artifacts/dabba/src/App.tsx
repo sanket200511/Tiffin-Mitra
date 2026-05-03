@@ -21,6 +21,7 @@ import MySubscriptions from "@/pages/customer/subscriptions";
 import Orders from "@/pages/customer/orders";
 import OrderTrack from "@/pages/customer/order-track";
 import Profile from "@/pages/customer/profile";
+import CustomerWallet from "@/pages/customer/wallet";
 import PeerDelivery from "@/pages/peer-delivery/index";
 
 import VendorOnboarding from "@/pages/vendor/onboarding";
@@ -133,6 +134,9 @@ function Router() {
       </Route>
       <Route path="/orders">
         <ProtectedRoute component={Orders} allowedRole="customer" layout={CustomerLayout} />
+      </Route>
+      <Route path="/wallet">
+        <ProtectedRoute component={CustomerWallet} allowedRole="customer" layout={CustomerLayout} />
       </Route>
       <Route path="/profile">
         <ProtectedRoute component={Profile} allowedRole="customer" layout={CustomerLayout} />

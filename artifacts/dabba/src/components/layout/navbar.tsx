@@ -16,6 +16,7 @@ export function Navbar() {
     { href: "/peer-delivery", label: "Carry & Earn" },
     { href: "/my-subscriptions", label: "Subscriptions" },
     { href: "/orders", label: "Orders" },
+    { href: "/wallet", label: "Wallet" },
     { href: "/profile", label: "Profile" },
   ];
 

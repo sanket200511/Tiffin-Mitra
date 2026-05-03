@@ -3,7 +3,7 @@ import { useAuth } from "@workspace/replit-auth-web";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, X, ChefHat } from "lucide-react";
+import { Menu, X, Bike } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
@@ -13,6 +13,7 @@ export function Navbar() {
 
   const customerLinks = [
     { href: "/explore", label: "Explore Menus" },
+    { href: "/peer-delivery", label: "Carry & Earn" },
     { href: "/my-subscriptions", label: "Subscriptions" },
     { href: "/orders", label: "Orders" },
     { href: "/profile", label: "Profile" },

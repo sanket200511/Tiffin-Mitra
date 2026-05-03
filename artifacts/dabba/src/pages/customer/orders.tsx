@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useListOrders, useCreateReview } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Search, Filter, ShoppingBag, Clock, CheckCircle2, AlertCircle, Star, ArrowLeft } from "lucide-react";
+import { Search, Filter, ShoppingBag, Clock, CheckCircle2, AlertCircle, Star, ArrowLeft, MapPin } from "lucide-react";
 import { Link } from "wouter";
 
 import { Input } from "@/components/ui/input";
@@ -180,7 +180,7 @@ export default function Orders() {
               <TableHead>Meal</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead></TableHead>
+              <TableHead className="text-right"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -234,21 +234,36 @@ export default function Orders() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      {canReview && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs border-yellow-300 text-yellow-700 hover:bg-yellow-50"
-                          onClick={() => openReviewDialog(order)}
-                        >
-                          <Star className="w-3 h-3 mr-1" /> Rate
-                        </Button>
-                      )}
-                      {order.status === "delivered" && reviewed.has(order.id) && (
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3 text-green-500" /> Reviewed
-                        </span>
-                      )}
+                      <div className="flex items-center justify-end gap-2">
+                        {/* Track link for active orders */}
+                        {!["delivered", "cancelled"].includes(order.status) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            asChild
+                          >
+                            <Link href={`/orders/${order.id}/track`}>
+                              <MapPin className="w-3 h-3 mr-1" /> Track
+                            </Link>
+                          </Button>
+                        )}
+                        {canReview && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs border-yellow-300 text-yellow-700 hover:bg-yellow-50"
+                            onClick={() => openReviewDialog(order)}
+                          >
+                            <Star className="w-3 h-3 mr-1" /> Rate
+                          </Button>
+                        )}
+                        {order.status === "delivered" && reviewed.has(order.id) && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-green-500" /> Reviewed
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

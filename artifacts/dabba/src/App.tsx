@@ -19,7 +19,9 @@ import VendorDetail from "@/pages/customer/vendor-detail";
 import Subscribe from "@/pages/customer/subscribe";
 import MySubscriptions from "@/pages/customer/subscriptions";
 import Orders from "@/pages/customer/orders";
+import OrderTrack from "@/pages/customer/order-track";
 import Profile from "@/pages/customer/profile";
+import PeerDelivery from "@/pages/peer-delivery/index";
 
 import VendorOnboarding from "@/pages/vendor/onboarding";
 import VendorDashboard from "@/pages/vendor/dashboard";
@@ -122,11 +124,19 @@ function Router() {
       <Route path="/my-subscriptions">
         <ProtectedRoute component={MySubscriptions} allowedRole="customer" layout={CustomerLayout} />
       </Route>
+      <Route path="/orders/:orderId/track">
+        <ProtectedRoute component={OrderTrack} allowedRole="customer" layout={CustomerLayout} />
+      </Route>
       <Route path="/orders">
         <ProtectedRoute component={Orders} allowedRole="customer" layout={CustomerLayout} />
       </Route>
       <Route path="/profile">
         <ProtectedRoute component={Profile} allowedRole="customer" layout={CustomerLayout} />
+      </Route>
+
+      {/* Peer-to-Peer Delivery — accessible to all authenticated users */}
+      <Route path="/peer-delivery">
+        <CustomerLayout><PeerDelivery /></CustomerLayout>
       </Route>
 
       {/* Vendor Onboarding (no sidebar) */}

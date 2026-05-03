@@ -28,53 +28,62 @@ export default function Explore() {
       </div>
 
       <div className="bg-card border rounded-xl p-4 mb-8 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-          <div className="md:col-span-5 relative">
+        <div className="flex flex-col gap-3">
+          {/* Search row — full width */}
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search by kitchen name..." 
+            <Input
+              placeholder="Search by kitchen name..."
               className="pl-9"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="md:col-span-3">
-            <Select value={city} onValueChange={setCity}>
-              <SelectTrigger>
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <SelectValue placeholder="City" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Cities</SelectItem>
-                <SelectItem value="Mumbai">Mumbai</SelectItem>
-                <SelectItem value="Delhi">Delhi</SelectItem>
-                <SelectItem value="Bangalore">Bangalore</SelectItem>
-                <SelectItem value="Pune">Pune</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="md:col-span-3">
-            <Select value={cuisine} onValueChange={setCuisine}>
-              <SelectTrigger>
-                <div className="flex items-center gap-2">
-                  <ChefHat className="w-4 h-4 text-muted-foreground" />
-                  <SelectValue placeholder="Cuisine" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Cuisines</SelectItem>
-                <SelectItem value="North Indian">North Indian</SelectItem>
-                <SelectItem value="South Indian">South Indian</SelectItem>
-                <SelectItem value="Gujarati">Gujarati</SelectItem>
-                <SelectItem value="Maharashtrian">Maharashtrian</SelectItem>
-                <SelectItem value="Bengali">Bengali</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="md:col-span-1">
-            <Button variant="secondary" className="w-full" size="icon">
+          {/* Filters row — 2-up on mobile, inline on larger screens */}
+          <div className="flex flex-wrap gap-3">
+            <div className="flex-1 min-w-[130px]">
+              <Select value={city} onValueChange={setCity}>
+                <SelectTrigger>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <SelectValue placeholder="City" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Cities</SelectItem>
+                  <SelectItem value="Mumbai">Mumbai</SelectItem>
+                  <SelectItem value="Delhi">Delhi</SelectItem>
+                  <SelectItem value="Bangalore">Bangalore</SelectItem>
+                  <SelectItem value="Pune">Pune</SelectItem>
+                  <SelectItem value="Ahmedabad">Ahmedabad</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1 min-w-[130px]">
+              <Select value={cuisine} onValueChange={setCuisine}>
+                <SelectTrigger>
+                  <div className="flex items-center gap-2">
+                    <ChefHat className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <SelectValue placeholder="Cuisine" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Cuisines</SelectItem>
+                  <SelectItem value="North Indian">North Indian</SelectItem>
+                  <SelectItem value="South Indian">South Indian</SelectItem>
+                  <SelectItem value="Gujarati">Gujarati</SelectItem>
+                  <SelectItem value="Maharashtrian">Maharashtrian</SelectItem>
+                  <SelectItem value="Bengali">Bengali</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              variant="secondary"
+              size="icon"
+              className="shrink-0"
+              onClick={() => { setSearch(""); setCity("all"); setCuisine("all"); }}
+              title="Clear filters"
+            >
               <Filter className="w-4 h-4" />
             </Button>
           </div>

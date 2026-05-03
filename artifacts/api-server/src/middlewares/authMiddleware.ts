@@ -1,6 +1,14 @@
 import { type Request, type Response, type NextFunction } from "express";
-import type { AuthUser } from "@workspace/api-zod";
 import { clearSession, getSession, getSessionId } from "../lib/auth";
+
+export interface AuthUser {
+  id: string;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  profileImageUrl: string | null;
+  role: string | null;
+}
 
 declare global {
   namespace Express {

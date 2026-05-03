@@ -59,22 +59,26 @@ router.patch("/customers/me", async (req, res) => {
     return;
   }
   try {
-    const { name, phone, deliveryAddress, avatarUrl, dietaryPreferences } = req.body as {
+    const { name, phone, defaultDeliveryAddress, landmark, city, latitude, longitude, avatarUrl } = req.body as {
       name?: string;
       phone?: string;
-      deliveryAddress?: string;
+      defaultDeliveryAddress?: string;
+      landmark?: string;
+      city?: string;
+      latitude?: number;
+      longitude?: number;
       avatarUrl?: string;
-      dietaryPreferences?: string[];
     };
 
     const updates: Record<string, unknown> = {};
     if (name !== undefined) updates.name = String(name).trim().slice(0, 100);
     if (phone !== undefined) updates.phone = String(phone).trim().slice(0, 20);
-    if (deliveryAddress !== undefined) updates.deliveryAddress = String(deliveryAddress).trim().slice(0, 500);
+    if (defaultDeliveryAddress !== undefined) updates.defaultDeliveryAddress = String(defaultDeliveryAddress).trim().slice(0, 500);
+    if (landmark !== undefined) updates.landmark = String(landmark).trim().slice(0, 200);
+    if (city !== undefined) updates.city = String(city).trim().slice(0, 100);
+    if (latitude !== undefined && typeof latitude === "number") updates.latitude = latitude.toFixed(7);
+    if (longitude !== undefined && typeof longitude === "number") updates.longitude = longitude.toFixed(7);
     if (avatarUrl !== undefined) updates.avatarUrl = String(avatarUrl).trim().slice(0, 500);
-    if (dietaryPreferences !== undefined && Array.isArray(dietaryPreferences)) {
-      updates.dietaryPreferences = dietaryPreferences;
-    }
 
     let [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user.id));
     if (!customer) {

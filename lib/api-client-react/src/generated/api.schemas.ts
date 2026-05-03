@@ -525,7 +525,13 @@ export interface Customer {
   /** @nullable */
   defaultDeliveryAddress?: string | null;
   /** @nullable */
+  landmark?: string | null;
+  /** @nullable */
   city?: string | null;
+  /** @nullable */
+  latitude?: number | null;
+  /** @nullable */
+  longitude?: number | null;
   walletBalance?: number;
   loyaltyPoints?: number;
   /** @nullable */
@@ -541,7 +547,10 @@ export interface UpdateCustomerProfileBody {
   name?: string;
   phone?: string;
   defaultDeliveryAddress?: string;
+  landmark?: string;
   city?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export type WalletTransactionType =

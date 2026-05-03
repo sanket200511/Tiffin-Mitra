@@ -46,7 +46,7 @@ All third parties are contractually bound to protect your data and use it only f
 — Opt out of marketing communications at any time
 — Raise a concern with the relevant data protection authority
 
-To exercise any of these rights, email us at privacy@dabba.in.`,
+To exercise any of these rights, email us at sanketkurve.2005@gmail.com.`,
     },
     {
       title: "7. Data security",
@@ -66,8 +66,8 @@ No method of transmission over the internet is 100% secure. While we strive to u
       title: "10. Contact",
       body: `If you have questions or concerns about this Privacy Policy, please contact our Data Protection Officer at:
 
-Email: privacy@dabba.in
-Address: Dabba Technologies Pvt Ltd, WeWork BKC, Mumbai 400051`,
+Email: sanketkurve.2005@gmail.com
+Address: Plot No. 31, Near Papadkar Kirana Store, Sheshnagar, Kharbi Road, Nagpur - 440024`,
     },
   ];
 
@@ -102,8 +102,8 @@ Address: Dabba Technologies Pvt Ltd, WeWork BKC, Mumbai 400051`,
           <div className="mt-16 pt-8 border-t text-center">
             <p className="text-muted-foreground text-sm">
               Questions? Email us at{" "}
-              <a href="mailto:privacy@dabba.in" className="text-primary hover:underline">
-                privacy@dabba.in
+              <a href="mailto:sanketkurve.2005@gmail.com" className="text-primary hover:underline">
+                sanketkurve.2005@gmail.com
               </a>
             </p>
           </div>

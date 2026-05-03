@@ -1470,8 +1470,14 @@ components:
           type: [string, 'null']
         defaultDeliveryAddress:
           type: [string, 'null']
+        landmark:
+          type: [string, 'null']
         city:
           type: [string, 'null']
+        latitude:
+          type: [number, 'null']
+        longitude:
+          type: [number, 'null']
         walletBalance:
           type: number
         loyaltyPoints:
@@ -1498,8 +1504,14 @@ components:
           type: string
         defaultDeliveryAddress:
           type: string
+        landmark:
+          type: string
         city:
           type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
 
     WalletTransaction:
       type: object

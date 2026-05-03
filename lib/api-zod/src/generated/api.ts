@@ -779,7 +779,10 @@ export const GetMyCustomerProfileResponse = zod.object({
     name: zod.string().nullish(),
     phone: zod.string().nullish(),
     defaultDeliveryAddress: zod.string().nullish(),
+    landmark: zod.string().nullish(),
     city: zod.string().nullish(),
+    latitude: zod.number().nullish(),
+    longitude: zod.number().nullish(),
     walletBalance: zod.number().optional(),
     loyaltyPoints: zod.number().optional(),
     referralCode: zod.string().nullish(),
@@ -794,7 +797,10 @@ export const UpdateMyCustomerProfileBody = zod.object({
   name: zod.string().optional(),
   phone: zod.string().optional(),
   defaultDeliveryAddress: zod.string().optional(),
+  landmark: zod.string().optional(),
   city: zod.string().optional(),
+  latitude: zod.number().optional(),
+  longitude: zod.number().optional(),
 });
 
 export const UpdateMyCustomerProfileResponse = zod.object({
@@ -804,7 +810,10 @@ export const UpdateMyCustomerProfileResponse = zod.object({
     name: zod.string().nullish(),
     phone: zod.string().nullish(),
     defaultDeliveryAddress: zod.string().nullish(),
+    landmark: zod.string().nullish(),
     city: zod.string().nullish(),
+    latitude: zod.number().nullish(),
+    longitude: zod.number().nullish(),
     walletBalance: zod.number().optional(),
     loyaltyPoints: zod.number().optional(),
     referralCode: zod.string().nullish(),

@@ -150,8 +150,8 @@ export default function Contact() {
                     <p className="font-semibold text-sm mb-1">Registered Office</p>
                     <p className="text-muted-foreground text-sm leading-relaxed">
                       Dabba Technologies Pvt Ltd<br />
-                      WeWork Bandra Kurla Complex<br />
-                      Mumbai, Maharashtra 400051
+                      Plot No. 31, Near Papadkar Kirana Store<br />
+                      Sheshnagar, Kharbi Road, Nagpur - 440024
                     </p>
                   </div>
                 </div>

@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, customersTable, walletTransactionsTable, customerSubscriptionsTable, ordersTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { db, customersTable, walletTransactionsTable, customerSubscriptionsTable, ordersTable, subscriptionPlansTable, vendorsTable } from "@workspace/db";
+import { eq, sql, desc } from "drizzle-orm";
 
 const router = Router();
 
@@ -251,6 +251,77 @@ router.get("/customers/upcoming-deliveries", async (req, res) => {
     res.json({ deliveries });
   } catch (err) {
     req.log.error({ err }, "Failed to get upcoming deliveries");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /customers/:customerId — admin fetches a single customer's full profile
+router.get("/customers/:customerId", async (req, res) => {
+  if (!req.isAuthenticated() || req.user.role !== "super_admin") {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  try {
+    const { customerId } = req.params;
+    const [customer] = await db.select().from(customersTable).where(eq(customersTable.id, customerId));
+    if (!customer) {
+      res.status(404).json({ error: "Customer not found" });
+      return;
+    }
+
+    const [subscriptions, orders, transactions] = await Promise.all([
+      db
+        .select({
+          id: customerSubscriptionsTable.id,
+          status: customerSubscriptionsTable.status,
+          startDate: customerSubscriptionsTable.startDate,
+          endDate: customerSubscriptionsTable.endDate,
+          deliverySlot: customerSubscriptionsTable.deliverySlot,
+          deliveryAddress: customerSubscriptionsTable.deliveryAddress,
+          walletBalance: customerSubscriptionsTable.walletBalance,
+          createdAt: customerSubscriptionsTable.createdAt,
+          planId: customerSubscriptionsTable.planId,
+          vendorId: customerSubscriptionsTable.vendorId,
+          planName: subscriptionPlansTable.name,
+          planType: subscriptionPlansTable.planType,
+          planPrice: subscriptionPlansTable.price,
+          vendorName: vendorsTable.name,
+          vendorCity: vendorsTable.city,
+        })
+        .from(customerSubscriptionsTable)
+        .leftJoin(subscriptionPlansTable, eq(customerSubscriptionsTable.planId, subscriptionPlansTable.id))
+        .leftJoin(vendorsTable, eq(customerSubscriptionsTable.vendorId, vendorsTable.id))
+        .where(eq(customerSubscriptionsTable.customerId, customerId))
+        .orderBy(desc(customerSubscriptionsTable.createdAt))
+        .limit(20),
+
+      db
+        .select({
+          id: ordersTable.id,
+          status: ordersTable.status,
+          scheduledDate: ordersTable.scheduledDate,
+          totalAmount: ordersTable.totalAmount,
+          mealType: ordersTable.mealType,
+          vendorId: ordersTable.vendorId,
+        })
+        .from(ordersTable)
+        .where(eq(ordersTable.customerId, customerId))
+        .orderBy(desc(ordersTable.scheduledDate))
+        .limit(20),
+
+      db
+        .select()
+        .from(walletTransactionsTable)
+        .where(eq(walletTransactionsTable.customerId, customerId))
+        .orderBy(desc(walletTransactionsTable.createdAt))
+        .limit(30),
+    ]);
+
+    const totalSpend = orders.reduce((s, o) => s + parseFloat(String(o.totalAmount ?? 0)), 0);
+
+    res.json({ customer, subscriptions, orders, transactions, totalSpend });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get customer detail");
     res.status(500).json({ error: "Internal server error" });
   }
 });

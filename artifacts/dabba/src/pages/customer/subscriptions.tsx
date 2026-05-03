@@ -338,11 +338,27 @@ export default function MySubscriptions() {
                     </div>
                   </CardContent>
 
+                  {isCancelled && (
+                    <CardFooter className="bg-muted/30 border-t gap-3 justify-end py-4">
+                      <p className="text-xs text-muted-foreground mr-auto">
+                        {sub.status === "expired" ? "This subscription has ended." : "This subscription was cancelled."}
+                      </p>
+                      {sub.vendorId && sub.planId && (
+                        <Button size="sm" variant="outline" asChild>
+                          <Link href={`/subscribe/${sub.vendorId}/${sub.planId}`}>
+                            Subscribe Again
+                          </Link>
+                        </Button>
+                      )}
+                    </CardFooter>
+                  )}
                   {!isCancelled && (
                     <CardFooter className="bg-muted/30 border-t gap-3 justify-end py-4">
                       {isExpiring && (
                         <Button variant="outline" size="sm" className="border-amber-300 text-amber-700 hover:bg-amber-50 mr-auto" asChild>
-                          <Link href="/explore">Renew</Link>
+                          <Link href={sub.vendorId && sub.planId ? `/subscribe/${sub.vendorId}/${sub.planId}` : "/explore"}>
+                            Renew Now
+                          </Link>
                         </Button>
                       )}
                       {isActive && (

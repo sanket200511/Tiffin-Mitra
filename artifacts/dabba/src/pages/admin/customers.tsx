@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Users, Search, Wallet, CalendarDays, ShoppingBag, TrendingUp, Plus, Minus } from "lucide-react";
+import { Users, Search, Wallet, CalendarDays, ShoppingBag, TrendingUp, Plus, Minus, Eye } from "lucide-react";
+import { Link } from "wouter";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -247,19 +248,26 @@ export default function AdminCustomers() {
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs"
-                      onClick={() => {
-                        setWalletDialog(customer);
-                        setWalletType("credit");
-                        setWalletAmount("");
-                        setWalletDesc("");
-                      }}
-                    >
-                      <Wallet className="w-3 h-3 mr-1" /> Wallet
-                    </Button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button size="sm" variant="ghost" className="h-7 text-xs" asChild>
+                        <Link href={`/admin/customers/${customer.id}`}>
+                          <Eye className="w-3 h-3 mr-1" /> View
+                        </Link>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={() => {
+                          setWalletDialog(customer);
+                          setWalletType("credit");
+                          setWalletAmount("");
+                          setWalletDesc("");
+                        }}
+                      >
+                        <Wallet className="w-3 h-3 mr-1" /> Wallet
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

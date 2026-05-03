@@ -11,6 +11,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { 
   Dialog,
   DialogContent,
   DialogDescription,
@@ -49,6 +59,7 @@ export default function VendorPlans() {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<any>(null);
+  const [deletingPlan, setDeletingPlan] = useState<{ id: string; name: string } | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -186,7 +197,7 @@ export default function VendorPlans() {
                 <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenEdit(plan)}>
                   <Edit className="w-4 h-4 mr-2" /> Edit
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1 text-destructive hover:text-destructive" onClick={() => deletePlan.mutate({ vendorId: vendorId!, planId: plan.id })}>
+                <Button variant="outline" size="sm" className="flex-1 text-destructive hover:text-destructive" onClick={() => setDeletingPlan({ id: plan.id, name: plan.name })}>
                   <Trash2 className="w-4 h-4 mr-2" /> Delete
                 </Button>
               </CardFooter>
@@ -239,9 +250,11 @@ export default function VendorPlans() {
                         <SelectContent>
                           <SelectItem value="daily">Daily</SelectItem>
                           <SelectItem value="weekly">Weekly</SelectItem>
-                          <SelectItem value="weekday">Weekday (Mon-Fri)</SelectItem>
+                          <SelectItem value="weekday">Weekday (Mon–Fri)</SelectItem>
                           <SelectItem value="monthly">Monthly</SelectItem>
                           <SelectItem value="trial_3day">3-Day Trial</SelectItem>
+                          <SelectItem value="trial_7day">7-Day Trial</SelectItem>
+                          <SelectItem value="custom">Custom</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -359,6 +372,32 @@ export default function VendorPlans() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deletingPlan} onOpenChange={(open) => { if (!open) setDeletingPlan(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Plan?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <strong>{deletingPlan?.name}</strong>. Customers with active subscriptions on this plan will not be affected, but new subscriptions cannot be created.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Plan</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={() => {
+                if (deletingPlan) {
+                  deletePlan.mutate({ vendorId: vendorId!, planId: deletingPlan.id });
+                  setDeletingPlan(null);
+                }
+              }}
+            >
+              Yes, Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Users, Search, Wallet, CalendarDays, ShoppingBag, TrendingUp, Plus, Minus, Eye } from "lucide-react";
+import { Users, Search, Wallet, CalendarDays, ShoppingBag, TrendingUp, Plus, Minus, Eye, Download } from "lucide-react";
 import { Link } from "wouter";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -102,6 +102,31 @@ export default function AdminCustomers() {
       )
     : customers;
 
+  function exportCSV(list: AdminCustomer[]) {
+    const headers = ["Name", "Phone", "City", "Wallet Balance", "Loyalty Points", "Active Subs", "Total Orders", "Total Spend", "Joined"];
+    const rows = list.map(c => [
+      c.name ?? "",
+      c.phone ?? "",
+      c.city ?? "",
+      parseFloat(String(c.walletBalance || 0)).toFixed(2),
+      String(c.loyaltyPoints ?? 0),
+      String(c.activeSubscriptions),
+      String(c.totalOrders),
+      c.totalSpend.toFixed(2),
+      format(new Date(c.createdAt), "dd MMM yyyy"),
+    ]);
+    const csv = [headers, ...rows]
+      .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `customers-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   const totalActive = customers.filter(c => c.activeSubscriptions > 0).length;
   const totalGMV    = customers.reduce((sum, c) => sum + c.totalSpend, 0);
   const avgWallet   = customers.length > 0
@@ -161,15 +186,27 @@ export default function AdminCustomers() {
         </Card>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          className="pl-9"
-          placeholder="Search by name or city..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+      {/* Search + Export */}
+      <div className="flex gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Search by name or city..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-10 shrink-0"
+          disabled={filtered.length === 0}
+          onClick={() => exportCSV(filtered)}
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Export CSV
+        </Button>
       </div>
 
       {/* Table */}
@@ -207,15 +244,15 @@ export default function AdminCustomers() {
               filtered.map(customer => (
                 <TableRow key={customer.id} className="hover:bg-muted/20">
                   <TableCell>
-                    <div className="flex items-center gap-3">
+                    <Link href={`/admin/customers/${customer.id}`} className="flex items-center gap-3 hover:text-primary transition-colors group/name">
                       <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold shrink-0">
                         {(customer.name || "?")[0].toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-medium text-sm">{customer.name || "Unnamed"}</p>
+                        <p className="font-medium text-sm group-hover/name:underline">{customer.name || "Unnamed"}</p>
                         {customer.phone && <p className="text-xs text-muted-foreground">{customer.phone}</p>}
                       </div>
-                    </div>
+                    </Link>
                   </TableCell>
                   <TableCell>{customer.city || <span className="text-muted-foreground/50">—</span>}</TableCell>
                   <TableCell>

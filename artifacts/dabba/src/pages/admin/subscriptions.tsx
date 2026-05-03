@@ -1,13 +1,15 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { format, differenceInDays, parseISO } from "date-fns";
 import {
-  CalendarDays, Users, TrendingUp, AlertCircle, Search,
-  IndianRupee, Store, CheckCircle2, Clock, XCircle, PauseCircle,
+  CalendarDays, Users, AlertCircle, Search,
+  IndianRupee, Store, CheckCircle2, Clock, XCircle, PauseCircle, Download,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -50,6 +52,30 @@ function ExpiryBadge({ endDate, status }: { endDate: string; status: string }) {
   if (days <= 3) return <span className="text-xs text-red-500 font-medium">Expires in {days}d</span>;
   if (days <= 7) return <span className="text-xs text-amber-500 font-medium">Expires in {days}d</span>;
   return null;
+}
+
+function exportCSV(subscriptions: Subscription[]) {
+  const headers = ["Customer", "Vendor", "Plan", "Type", "Start Date", "End Date", "Amount", "Status"];
+  const rows = subscriptions.map(s => [
+    s.customerName ?? "",
+    s.vendorName ?? "",
+    s.planName ?? "",
+    s.planType ? (planTypeLabel[s.planType] ?? s.planType) : "",
+    s.startDate ? format(parseISO(s.startDate), "dd MMM yyyy") : "",
+    s.endDate ? format(parseISO(s.endDate), "dd MMM yyyy") : "",
+    parseFloat(s.totalAmount || s.planPrice || "0").toFixed(2),
+    s.status,
+  ]);
+  const csv = [headers, ...rows]
+    .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `subscriptions-${format(new Date(), "yyyy-MM-dd")}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function AdminSubscriptions() {
@@ -182,6 +208,16 @@ export default function AdminSubscriptions() {
             <SelectItem value="expired">Expired</SelectItem>
           </SelectContent>
         </Select>
+        <Button
+          variant="outline"
+          size="sm"
+          className="shrink-0 h-10"
+          disabled={filtered.length === 0}
+          onClick={() => exportCSV(filtered)}
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Export CSV
+        </Button>
       </div>
 
       {/* Table */}
@@ -223,18 +259,18 @@ export default function AdminSubscriptions() {
                 return (
                   <TableRow key={sub.id} className="hover:bg-muted/30">
                     <TableCell>
-                      <div className="flex items-center gap-2.5">
+                      <Link href={`/admin/customers/${sub.customerId}`} className="flex items-center gap-2.5 hover:text-primary transition-colors group/cell">
                         <div className="w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
                           {(sub.customerName ?? "?")[0].toUpperCase()}
                         </div>
-                        <span className="text-sm font-medium">{sub.customerName ?? "—"}</span>
-                      </div>
+                        <span className="text-sm font-medium group-hover/cell:underline">{sub.customerName ?? "—"}</span>
+                      </Link>
                     </TableCell>
                     <TableCell>
-                      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <Link href={`/admin/vendors/${sub.vendorId}`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors group/cell">
                         <Store className="w-3.5 h-3.5 shrink-0" />
-                        {sub.vendorName ?? "—"}
-                      </span>
+                        <span className="group-hover/cell:underline">{sub.vendorName ?? "—"}</span>
+                      </Link>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">

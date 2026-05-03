@@ -9,6 +9,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Star, MessageSquare, TrendingUp, ThumbsUp, Reply, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+type ReviewWithResponse = {
+  id: string;
+  rating: number | null;
+  comment: string | null;
+  createdAt: string;
+  customerName?: string | null;
+  vendorResponse?: string | null;
+};
+
 function StarRating({ rating }: { rating: number }) {
   return (
     <div className="flex items-center gap-0.5">
@@ -36,7 +45,7 @@ export default function VendorReviews() {
     { query: { enabled: !!vendorId, queryKey: ["/api/reviews", vendorId] } }
   );
 
-  const reviews = reviewsData?.reviews || [];
+  const reviews = (reviewsData?.reviews || []) as ReviewWithResponse[];
   const isLoading = profileLoading || reviewsLoading;
 
   const replyMutation = useMutation({
@@ -222,19 +231,19 @@ export default function VendorReviews() {
                   )}
 
                   {/* Existing vendor response */}
-                  {(review as any).vendorResponse && replyingTo !== review.id && (
+                  {review.vendorResponse && replyingTo !== review.id && (
                     <div className="mt-4 border-t pt-4">
                       <div className="bg-primary/5 border border-primary/15 rounded-lg p-4">
                         <p className="text-xs font-semibold text-primary mb-1 flex items-center gap-1">
                           <Reply className="w-3 h-3" /> Your Response
                         </p>
-                        <p className="text-sm text-foreground/80 leading-relaxed">{(review as any).vendorResponse}</p>
+                        <p className="text-sm text-foreground/80 leading-relaxed">{review.vendorResponse}</p>
                       </div>
                       <Button
                         variant="ghost"
                         size="sm"
                         className="mt-2 h-7 text-xs text-muted-foreground"
-                        onClick={() => { setReplyingTo(review.id); setReplyText((review as any).vendorResponse || ""); }}
+                        onClick={() => { setReplyingTo(review.id); setReplyText(review.vendorResponse || ""); }}
                       >
                         Edit Reply
                       </Button>
@@ -276,7 +285,7 @@ export default function VendorReviews() {
                         </Button>
                       </div>
                     </div>
-                  ) : !(review as any).vendorResponse && (
+                  ) : !review.vendorResponse && (
                     <div className="mt-3 pt-3 border-t flex justify-end">
                       <Button
                         variant="outline"

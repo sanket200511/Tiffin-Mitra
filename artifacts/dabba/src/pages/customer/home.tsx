@@ -500,7 +500,16 @@ function MarketingHome() {
                     <Skeleton className="w-1/2 h-4" />
                   </div>
                 ))
-              : vendors.slice(0, 3).map(vendor => (
+              : [...vendors]
+                  .filter(v => (v as any).status === "approved" || !(v as any).status)
+                  .sort((a, b) => {
+                    const aFeat = (a as any).featured ? 1 : 0;
+                    const bFeat = (b as any).featured ? 1 : 0;
+                    if (bFeat !== aFeat) return bFeat - aFeat;
+                    return parseFloat(String(b.rating ?? 0)) - parseFloat(String(a.rating ?? 0));
+                  })
+                  .slice(0, 3)
+                  .map(vendor => (
                   <Link key={vendor.id} href={`/vendors/${vendor.id}`} className="group block">
                     <div className="bg-card rounded-xl overflow-hidden border shadow-sm transition-all hover:shadow-md hover:border-primary/30">
                       <div className="h-48 bg-muted relative">
@@ -520,7 +529,7 @@ function MarketingHome() {
                         {vendor.rating && (
                           <div className="absolute top-3 right-3 bg-background/90 backdrop-blur px-2 py-1 rounded-md text-sm font-medium flex items-center gap-1 shadow-sm">
                             <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            {vendor.rating}
+                            {parseFloat(String(vendor.rating)).toFixed(1)}
                           </div>
                         )}
                       </div>

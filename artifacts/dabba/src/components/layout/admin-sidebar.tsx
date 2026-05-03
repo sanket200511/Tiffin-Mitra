@@ -4,14 +4,20 @@ import { useAuth } from "@workspace/replit-auth-web";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
-  BarChart,
+  BarChart3,
   LogOut,
   Menu,
+  Users,
+  ShoppingBag,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/admin/overview", label: "Overview", icon: BarChart },
+  { href: "/admin/overview", label: "Overview", icon: BarChart3 },
+  { href: "/admin/customers", label: "Customers", icon: Users },
+  { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/admin/analytics", label: "Analytics", icon: TrendingUp },
 ];
 
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {

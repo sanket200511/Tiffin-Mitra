@@ -34,6 +34,9 @@ import VendorReviews from "@/pages/vendor/reviews";
 import VendorEarnings from "@/pages/vendor/earnings";
 
 import AdminOverview from "@/pages/admin/overview";
+import AdminCustomers from "@/pages/admin/customers";
+import AdminOrders from "@/pages/admin/orders";
+import AdminAnalytics from "@/pages/admin/analytics";
 import Login from "@/pages/auth/login";
 import HowItWorks from "@/pages/how-it-works";
 import About from "@/pages/about";
@@ -187,6 +190,15 @@ function Router() {
       {/* Admin Routes */}
       <Route path="/admin/overview">
         <ProtectedRoute component={AdminOverview} allowedRole="super_admin" layout={AdminLayout} />
+      </Route>
+      <Route path="/admin/customers">
+        <ProtectedRoute component={AdminCustomers} allowedRole="super_admin" layout={AdminLayout} />
+      </Route>
+      <Route path="/admin/orders">
+        <ProtectedRoute component={AdminOrders} allowedRole="super_admin" layout={AdminLayout} />
+      </Route>
+      <Route path="/admin/analytics">
+        <ProtectedRoute component={AdminAnalytics} allowedRole="super_admin" layout={AdminLayout} />
       </Route>
 
       <Route component={NotFound} />

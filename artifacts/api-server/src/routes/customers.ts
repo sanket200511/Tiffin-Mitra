@@ -1,8 +1,37 @@
 import { Router } from "express";
-import { db, customersTable, walletTransactionsTable } from "@workspace/db";
+import { db, customersTable, walletTransactionsTable, customerSubscriptionsTable, ordersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 const router = Router();
+
+router.get("/customers", async (req, res) => {
+  if (!req.isAuthenticated() || req.user.role !== "super_admin") {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  try {
+    const customers = await db.select().from(customersTable);
+    const allSubs = await db.select().from(customerSubscriptionsTable);
+    const allOrders = await db.select().from(ordersTable);
+
+    const enriched = customers.map(c => {
+      const cSubs = allSubs.filter(s => s.customerId === c.id);
+      const cOrders = allOrders.filter(o => o.customerId === c.id);
+      return {
+        ...c,
+        totalSubscriptions: cSubs.length,
+        activeSubscriptions: cSubs.filter(s => s.status === "active").length,
+        totalOrders: cOrders.length,
+        totalSpend: cOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount as string), 0),
+      };
+    });
+
+    res.json({ customers: enriched });
+  } catch (err) {
+    req.log.error({ err }, "Failed to list customers");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 router.get("/customers/me", async (req, res) => {
   if (!req.isAuthenticated()) {

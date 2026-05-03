@@ -26,6 +26,8 @@ router.get("/orders", async (req, res) => {
 
     if (vendorId) {
       conditions.push(eq(ordersTable.vendorId, vendorId));
+    } else if (req.isAuthenticated() && req.user.role === "super_admin") {
+      // Admin sees all orders — no additional filter
     } else if (req.isAuthenticated()) {
       const [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user.id));
       if (customer) {

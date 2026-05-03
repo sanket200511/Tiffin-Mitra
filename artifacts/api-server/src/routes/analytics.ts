@@ -104,6 +104,50 @@ router.get("/analytics/vendor/:vendorId/subscription-health", async (req, res) =
   }
 });
 
+router.get("/analytics/platform/revenue", async (req, res) => {
+  if (!req.isAuthenticated() || req.user.role !== "super_admin") {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  try {
+    const { period = "30d" } = req.query as Record<string, string>;
+    const days = period === "7d" ? 7 : period === "90d" ? 90 : 30;
+
+    const allOrders = await db.select().from(ordersTable).where(eq(ordersTable.status, "delivered"));
+    const allVendors = await db.select().from(vendorsTable);
+
+    const vendorRateMap = Object.fromEntries(
+      allVendors.map(v => [v.id, parseFloat(v.commissionRate as string ?? "10") / 100])
+    );
+
+    const trendMap: Record<string, { revenue: number; orders: number; commission: number }> = {};
+    const today = new Date();
+
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const dateStr = d.toISOString().split("T")[0];
+      trendMap[dateStr] = { revenue: 0, orders: 0, commission: 0 };
+    }
+
+    for (const order of allOrders) {
+      if (trendMap[order.scheduledDate]) {
+        const amount = parseFloat(order.totalAmount as string);
+        const commission = amount * (vendorRateMap[order.vendorId] ?? 0.10);
+        trendMap[order.scheduledDate].revenue += amount;
+        trendMap[order.scheduledDate].orders += 1;
+        trendMap[order.scheduledDate].commission += commission;
+      }
+    }
+
+    const trend = Object.entries(trendMap).map(([date, data]) => ({ date, ...data }));
+    res.json({ trend });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get platform revenue trend");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/analytics/platform/overview", async (req, res) => {
   try {
     const allVendors = await db.select().from(vendorsTable);

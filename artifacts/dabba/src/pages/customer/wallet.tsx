@@ -3,8 +3,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
   Wallet, ArrowDownLeft, ArrowUpRight, Plus, IndianRupee,
-  Gift, TrendingUp, AlertCircle, Copy, Check, Users, Share2,
+  Gift, TrendingUp, AlertCircle, Copy, Check, Users, Share2, Zap,
 } from "lucide-react";
+import { isEnabled } from "@/lib/features";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -129,6 +130,30 @@ export default function CustomerWallet() {
     },
   });
 
+  const redeemPoints = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/customers/wallet/redeem-points", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Redemption failed");
+      return body as { pointsRedeemed: number; creditAmount: number; remainingPoints: number };
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Points redeemed!",
+        description: `${data.pointsRedeemed} pts → ₹${data.creditAmount.toFixed(2)} added to your wallet.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers/wallet"] });
+    },
+    onError: (err: any) => {
+      toast({ variant: "destructive", title: "Could not redeem", description: err.message });
+    },
+  });
+
   const effectiveAmount = selectedAmount ?? (customAmount ? parseFloat(customAmount) : null);
 
   const handleTopup = () => {
@@ -201,6 +226,56 @@ export default function CustomerWallet() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Loyalty points redemption */}
+      {isEnabled("LOYALTY_REDEMPTION") && (
+        <Card className="shadow-sm border-amber-200/60 bg-amber-50/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Zap className="w-5 h-5 text-amber-500" /> Redeem Loyalty Points
+            </CardTitle>
+            <CardDescription>
+              Convert your loyalty points into wallet credit. Rate: 10 pts = ₹1. Minimum 100 points.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-16 w-full" />
+            ) : (wallet?.loyaltyPoints ?? 0) < 100 ? (
+              <div className="flex items-start gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
+                <Gift className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                <div>
+                  <p className="font-medium text-foreground">Keep earning!</p>
+                  <p className="text-xs mt-0.5">
+                    You have <strong>{wallet?.loyaltyPoints ?? 0} pts</strong>. Earn {100 - (wallet?.loyaltyPoints ?? 0)} more to unlock your first redemption.
+                    You earn 1 point for every ₹10 spent on orders.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-4">
+                <div className="flex-1 bg-white border border-amber-200 rounded-lg p-4">
+                  <p className="text-xs text-muted-foreground mb-1">Redeemable value</p>
+                  <p className="text-2xl font-bold font-serif text-amber-600">
+                    ₹{(Math.floor((wallet?.loyaltyPoints ?? 0) / 10)).toLocaleString("en-IN")}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {Math.floor((wallet?.loyaltyPoints ?? 0) / 10) * 10} of {wallet?.loyaltyPoints} pts usable
+                  </p>
+                </div>
+                <Button
+                  className="bg-amber-500 hover:bg-amber-600 text-white shrink-0"
+                  onClick={() => redeemPoints.mutate()}
+                  disabled={redeemPoints.isPending}
+                >
+                  <Zap className="w-4 h-4 mr-1.5" />
+                  {redeemPoints.isPending ? "Redeeming…" : "Redeem All"}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Top-up section */}
       <Card className="shadow-sm">

@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin/
+Disallow: /vendor/
+Disallow: /api/auth/
+Disallow: /api/customers/
+Disallow: /api/subscriptions/
+
+Sitemap: https://dabba.replit.app/api/sitemap.xml

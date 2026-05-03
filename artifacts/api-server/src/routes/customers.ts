@@ -573,4 +573,77 @@ router.post("/customers/me/referral/apply", async (req, res) => {
   }
 });
 
+// ─── Loyalty points redemption ────────────────────────────────────────────────
+// POST /customers/wallet/redeem-points
+// Converts loyalty points → wallet credit at rate: 10 pts = ₹1.
+// Body: { points?: number }  — omit to redeem all available points.
+// Minimum redemption: 100 points (= ₹10). Must be multiple of 10.
+router.post("/customers/wallet/redeem-points", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  try {
+    const [customer] = await db
+      .select()
+      .from(customersTable)
+      .where(eq(customersTable.userId, req.user.id));
+    if (!customer) {
+      res.status(404).json({ error: "Customer profile not found." });
+      return;
+    }
+
+    const currentPoints = customer.loyaltyPoints ?? 0;
+    const MIN_POINTS = 100;
+    const POINTS_PER_RUPEE = 10;
+
+    // Default to all redeemable points (rounded down to nearest 10)
+    const rawRequested = req.body.points != null ? parseInt(req.body.points, 10) : null;
+    const pointsToRedeem =
+      rawRequested != null
+        ? rawRequested
+        : Math.floor(currentPoints / MIN_POINTS) * MIN_POINTS;
+
+    if (!pointsToRedeem || pointsToRedeem < MIN_POINTS) {
+      res.status(400).json({ error: `Minimum ${MIN_POINTS} points required to redeem.` });
+      return;
+    }
+    if (pointsToRedeem % 10 !== 0) {
+      res.status(400).json({ error: "Points must be redeemed in multiples of 10." });
+      return;
+    }
+    if (pointsToRedeem > currentPoints) {
+      res.status(400).json({ error: "Insufficient loyalty points." });
+      return;
+    }
+
+    const creditAmount = parseFloat((pointsToRedeem / POINTS_PER_RUPEE).toFixed(2));
+    const newPoints = currentPoints - pointsToRedeem;
+    const newBalance = (parseFloat(String(customer.walletBalance ?? "0")) + creditAmount).toFixed(2);
+
+    await db
+      .update(customersTable)
+      .set({ loyaltyPoints: newPoints, walletBalance: newBalance, updatedAt: new Date() })
+      .where(eq(customersTable.id, customer.id));
+
+    await db.insert(walletTransactionsTable).values({
+      customerId: customer.id,
+      type: "credit",
+      amount: creditAmount.toFixed(2),
+      description: `Loyalty redemption — ${pointsToRedeem} pts converted to ₹${creditAmount.toFixed(2)}`,
+    });
+
+    res.json({
+      ok: true,
+      pointsRedeemed: pointsToRedeem,
+      creditAmount,
+      newBalance,
+      remainingPoints: newPoints,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to redeem loyalty points");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

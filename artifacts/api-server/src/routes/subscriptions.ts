@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, subscriptionPlansTable, customerSubscriptionsTable, vendorsTable, ordersTable, walletTransactionsTable, customersTable, vendorHolidaysTable } from "@workspace/db";
-import { eq, and, inArray, desc } from "drizzle-orm";
+import { db, subscriptionPlansTable, customerSubscriptionsTable, vendorsTable, ordersTable, walletTransactionsTable, customersTable, vendorHolidaysTable, usersTable } from "@workspace/db";
+import { eq, and, inArray, desc, lt } from "drizzle-orm";
 import { notifyUser } from "../lib/notify";
 
 const router = Router();
@@ -543,6 +543,63 @@ router.post("/subscriptions/:subscriptionId/skip", async (req, res) => {
     res.json({ success: true, refunded: !!skippedOrder });
   } catch (err) {
     req.log.error({ err }, "Failed to skip day");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── Admin: batch-expire overdue subscriptions ────────────────────────────────
+// POST /subscriptions/process-expiry — super_admin only
+// Finds every subscription where status='active' and endDate < today,
+// marks them 'expired', and sends a notification to each affected customer.
+router.post("/subscriptions/process-expiry", async (req, res) => {
+  if (!req.isAuthenticated() || req.user.role !== "super_admin") {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  try {
+    const todayStr = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+
+    const expiredSubs = await db
+      .select({
+        subId: customerSubscriptionsTable.id,
+        userId: usersTable.id,
+        planName: subscriptionPlansTable.name,
+      })
+      .from(customerSubscriptionsTable)
+      .innerJoin(customersTable, eq(customerSubscriptionsTable.customerId, customersTable.id))
+      .innerJoin(usersTable, eq(customersTable.userId, usersTable.id))
+      .leftJoin(subscriptionPlansTable, eq(customerSubscriptionsTable.planId, subscriptionPlansTable.id))
+      .where(
+        and(
+          eq(customerSubscriptionsTable.status, "active"),
+          lt(customerSubscriptionsTable.endDate, todayStr),
+        ),
+      );
+
+    if (expiredSubs.length === 0) {
+      res.json({ processed: 0, message: "No subscriptions to expire." });
+      return;
+    }
+
+    const subIds = expiredSubs.map((s) => s.subId);
+    await db
+      .update(customerSubscriptionsTable)
+      .set({ status: "expired", updatedAt: new Date() })
+      .where(inArray(customerSubscriptionsTable.id, subIds));
+
+    await Promise.all(
+      expiredSubs.map((s) =>
+        notifyUser(s.userId, {
+          type: "subscription_expired",
+          title: "Your subscription has ended",
+          body: `Your ${s.planName ?? "tiffin"} subscription has expired. Renew anytime to keep getting fresh tiffins!`,
+        }),
+      ),
+    );
+
+    res.json({ processed: expiredSubs.length, subIds });
+  } catch (err) {
+    req.log.error({ err }, "Failed to process subscription expiry");
     res.status(500).json({ error: "Internal server error" });
   }
 });

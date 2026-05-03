@@ -14,6 +14,7 @@ import payoutsRouter from "./payouts";
 import notificationsRouter from "./notifications";
 import holidaysRouter from "./holidays";
 import settingsRouter from "./settings";
+import sitemapRouter from "./sitemap";
 
 const router: IRouter = Router();
 
@@ -32,5 +33,6 @@ router.use(payoutsRouter);
 router.use(notificationsRouter);
 router.use(holidaysRouter);
 router.use(settingsRouter);
+router.use(sitemapRouter);
 
 export default router;

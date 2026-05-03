@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ChefHat, CalendarDays, Clock, Wallet, PauseCircle, Star, ArrowRight, CheckCircle2, Gift } from "lucide-react";
@@ -84,6 +85,12 @@ const faqs = [
 export default function HowItWorks() {
   return (
     <div className="min-h-screen">
+      <Helmet>
+        <title>How It Works — Dabba</title>
+        <meta name="description" content="Subscribe to fresh home-cooked tiffins in 3 simple steps. Browse kitchens, choose a plan, and get ghar ka khana delivered daily — no lock-ins." />
+        <meta property="og:title" content="How It Works — Dabba" />
+        <meta property="og:description" content="Subscribe to fresh home-cooked tiffins in 3 simple steps. Browse kitchens, choose a plan, and get ghar ka khana delivered daily — no lock-ins." />
+      </Helmet>
       {/* Hero */}
       <section className="bg-primary/5 py-20 md:py-28 overflow-hidden relative">
         <div className="absolute right-0 top-0 w-1/3 h-full bg-primary/10 -skew-x-12 transform translate-x-20 rounded-l-[100px] hidden md:block" />

@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -380,6 +381,13 @@ function MarketingHome() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <Helmet>
+        <title>Dabba — The warmth of ghar ka khana, delivered</title>
+        <meta name="description" content="Subscribe to fresh home-cooked tiffins from FSSAI-registered home kitchens near you. Daily delivery, pause anytime, no lock-ins." />
+        <meta property="og:title" content="Dabba — The warmth of ghar ka khana, delivered" />
+        <meta property="og:description" content="Subscribe to fresh home-cooked tiffins from FSSAI-registered home kitchens near you. Daily delivery, pause anytime, no lock-ins." />
+        <meta property="og:type" content="website" />
+      </Helmet>
       {/* Hero */}
       <section className="relative bg-primary/5 py-14 md:py-24 overflow-hidden">
         <div className="absolute right-0 top-0 w-1/3 h-full bg-primary/10 -skew-x-12 transform rounded-l-[100px] hidden md:block" />

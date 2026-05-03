@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Heart, Users, ChefHat, ArrowRight, Leaf, Shield } from "lucide-react";
@@ -43,6 +44,12 @@ export default function About() {
 
   return (
     <div className="min-h-screen">
+      <Helmet>
+        <title>About Us — Dabba</title>
+        <meta name="description" content="Dabba is a tiffin subscription platform connecting home cooks with people who love ghar ka khana. Learn our story and mission." />
+        <meta property="og:title" content="About Us — Dabba" />
+        <meta property="og:description" content="Dabba is a tiffin subscription platform connecting home cooks with people who love ghar ka khana. Learn our story and mission." />
+      </Helmet>
       {/* Hero */}
       <section className="bg-primary/5 py-16 md:py-24 relative overflow-hidden">
         <div className="absolute right-0 top-0 w-1/3 h-full bg-primary/10 -skew-x-12 transform translate-x-20 rounded-l-[100px] hidden md:block" />

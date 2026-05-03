@@ -326,4 +326,163 @@ router.get("/analytics/platform/overview", async (req, res) => {
   }
 });
 
+// ─── Top 10 vendors by GMV for the period ────────────────────────────────────
+router.get("/analytics/platform/top-vendors", async (req, res) => {
+  if (!req.isAuthenticated() || req.user.role !== "super_admin") {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  try {
+    const { period = "30d" } = req.query as Record<string, string>;
+    const days = period === "7d" ? 7 : period === "90d" ? 90 : 30;
+    const { startDate, endDate } = dateRangeStrings(days);
+
+    const allVendorsForRate = await db
+      .select({ id: vendorsTable.id, commissionRate: vendorsTable.commissionRate })
+      .from(vendorsTable);
+    const vendorRateMap = Object.fromEntries(
+      allVendorsForRate.map(v => [v.id, parseFloat(v.commissionRate as string ?? "10") / 100])
+    );
+
+    const rows = await db
+      .select({
+        vendorId: ordersTable.vendorId,
+        gmv: sql<number>`sum(${ordersTable.totalAmount}::numeric)`,
+        orders: sql<number>`count(*)::int`,
+        vendorName: vendorsTable.name,
+        city: vendorsTable.city,
+      })
+      .from(ordersTable)
+      .leftJoin(vendorsTable, eq(ordersTable.vendorId, vendorsTable.id))
+      .where(
+        and(
+          eq(ordersTable.status, "delivered"),
+          gte(ordersTable.scheduledDate, startDate),
+          lte(ordersTable.scheduledDate, endDate),
+        )
+      )
+      .groupBy(ordersTable.vendorId, vendorsTable.name, vendorsTable.city)
+      .orderBy(sql`sum(${ordersTable.totalAmount}::numeric) desc`)
+      .limit(10);
+
+    const vendors = rows.map(r => ({
+      vendorId: r.vendorId,
+      vendorName: r.vendorName ?? "Unknown",
+      city: r.city ?? "-",
+      gmv: parseFloat(String(r.gmv ?? 0)),
+      orders: r.orders,
+      commission: parseFloat(String(r.gmv ?? 0)) * (vendorRateMap[r.vendorId] ?? 0.1),
+    }));
+
+    res.json({ vendors });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get top vendors");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── City-wise revenue breakdown ─────────────────────────────────────────────
+router.get("/analytics/platform/city-revenue", async (req, res) => {
+  if (!req.isAuthenticated() || req.user.role !== "super_admin") {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  try {
+    const { period = "30d" } = req.query as Record<string, string>;
+    const days = period === "7d" ? 7 : period === "90d" ? 90 : 30;
+    const { startDate, endDate } = dateRangeStrings(days);
+
+    const rows = await db
+      .select({
+        city: vendorsTable.city,
+        revenue: sql<number>`sum(${ordersTable.totalAmount}::numeric)`,
+        orders: sql<number>`count(*)::int`,
+      })
+      .from(ordersTable)
+      .leftJoin(vendorsTable, eq(ordersTable.vendorId, vendorsTable.id))
+      .where(
+        and(
+          eq(ordersTable.status, "delivered"),
+          gte(ordersTable.scheduledDate, startDate),
+          lte(ordersTable.scheduledDate, endDate),
+        )
+      )
+      .groupBy(vendorsTable.city)
+      .orderBy(sql`sum(${ordersTable.totalAmount}::numeric) desc`);
+
+    const cities = rows.map(r => ({
+      city: r.city ?? "Unknown",
+      revenue: parseFloat(String(r.revenue ?? 0)),
+      orders: r.orders,
+    }));
+
+    res.json({ cities });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get city revenue");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── Churn & subscription health ─────────────────────────────────────────────
+router.get("/analytics/platform/churn", async (req, res) => {
+  if (!req.isAuthenticated() || req.user.role !== "super_admin") {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  try {
+    const { period = "30d" } = req.query as Record<string, string>;
+    const days = period === "7d" ? 7 : period === "90d" ? 90 : 30;
+    const { startDate } = dateRangeStrings(days);
+
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+    const expiryThreshold = sevenDaysFromNow.toISOString().split("T")[0];
+    const today = new Date().toISOString().split("T")[0];
+
+    const [churned, totalActive, expiringSoon, newThisPeriod] = await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(customerSubscriptionsTable)
+        .where(
+          and(
+            eq(customerSubscriptionsTable.status, "cancelled"),
+            gte(customerSubscriptionsTable.updatedAt, new Date(startDate)),
+          )
+        ),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(customerSubscriptionsTable)
+        .where(eq(customerSubscriptionsTable.status, "active")),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(customerSubscriptionsTable)
+        .where(
+          and(
+            eq(customerSubscriptionsTable.status, "active"),
+            gte(customerSubscriptionsTable.endDate, today),
+            lte(customerSubscriptionsTable.endDate, expiryThreshold),
+          )
+        ),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(customerSubscriptionsTable)
+        .where(gte(customerSubscriptionsTable.createdAt, new Date(startDate))),
+    ]);
+
+    const churnedCount = churned[0]?.count ?? 0;
+    const activeCount = totalActive[0]?.count ?? 0;
+    const expiringSoonCount = expiringSoon[0]?.count ?? 0;
+    const newCount = newThisPeriod[0]?.count ?? 0;
+    const denominator = activeCount + churnedCount;
+    const churnRate = denominator > 0
+      ? parseFloat(((churnedCount / denominator) * 100).toFixed(1))
+      : 0;
+
+    res.json({ churned: churnedCount, active: activeCount, expiringSoon: expiringSoonCount, newThisPeriod: newCount, churnRate });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get churn stats");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

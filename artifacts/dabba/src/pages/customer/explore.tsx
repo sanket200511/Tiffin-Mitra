@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
 import { useListVendors } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
@@ -75,6 +76,13 @@ export default function Explore() {
 
   return (
     <div className="container py-8 min-h-screen">
+      <Helmet>
+        <title>Explore Tiffins — Dabba</title>
+        <meta name="description" content="Discover FSSAI-registered home kitchens near you. Browse cuisines, filter by city, and subscribe to fresh ghar ka khana delivered daily." />
+        <meta property="og:title" content="Explore Tiffins — Dabba" />
+        <meta property="og:description" content="Discover FSSAI-registered home kitchens near you. Browse cuisines, filter by city, and subscribe to fresh ghar ka khana delivered daily." />
+        <meta property="og:type" content="website" />
+      </Helmet>
       <div className="space-y-2 mb-8">
         <h1 className="text-4xl font-serif font-bold tracking-tight">Explore Tiffins</h1>
         <p className="text-muted-foreground text-lg">Find the perfect ghar ka khana near you.</p>

@@ -61,6 +61,14 @@ router.get("/customers/me", async (req, res) => {
         name: `${req.user.firstName ?? ""} ${req.user.lastName ?? ""}`.trim() || null,
       }).returning();
     }
+    // Backfill referral code for customers created before the column was added
+    if (!customer.referralCode) {
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      [customer] = await db.update(customersTable)
+        .set({ referralCode: code, updatedAt: new Date() })
+        .where(eq(customersTable.userId, req.user.id))
+        .returning();
+    }
     res.json({ customer });
   } catch (err) {
     req.log.error({ err }, "Failed to get customer profile");

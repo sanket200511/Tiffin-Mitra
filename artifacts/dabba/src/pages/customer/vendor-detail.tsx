@@ -1,4 +1,5 @@
 import { useRoute, Link } from "wouter";
+import { Helmet } from "react-helmet-async";
 import { 
   useGetVendor, 
   useListMenuItems, 
@@ -57,8 +58,21 @@ export default function VendorDetail() {
     return <div className="container py-20 text-center">Vendor not found</div>;
   }
 
+  const metaTitle = vendor.name ? `${vendor.name} — Dabba` : "Kitchen — Dabba";
+  const metaDesc = vendor.description
+    ? vendor.description.slice(0, 155)
+    : `Order fresh, home-cooked tiffins from ${vendor.name ?? "this kitchen"} on Dabba. Subscribe daily and get ghar ka khana delivered to your door.`;
+
   return (
     <div className="min-h-screen bg-muted/10 pb-20">
+      <Helmet>
+        <title>{metaTitle}</title>
+        <meta name="description" content={metaDesc} />
+        <meta property="og:title" content={metaTitle} />
+        <meta property="og:description" content={metaDesc} />
+        {vendor.coverImageUrl && <meta property="og:image" content={vendor.coverImageUrl} />}
+        <meta property="og:type" content="restaurant" />
+      </Helmet>
       {/* Cover Image & Header */}
       <div className="relative h-64 md:h-80 bg-muted">
         {vendor.coverImageUrl ? (

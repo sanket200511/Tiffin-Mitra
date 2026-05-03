@@ -3,7 +3,7 @@ import { useAuth } from "@workspace/replit-auth-web";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, X, ChefHat } from "lucide-react";
+import { Menu, X, ChefHat, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
@@ -36,16 +36,31 @@ export function Navbar() {
       : publicLinks
     : publicLinks;
 
+  const isRoot = location === "/";
+
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center justify-between px-4 md:px-6">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <ChefHat className="w-4 h-4 text-primary-foreground" />
-          </div>
-          <span className="font-serif text-2xl font-bold text-primary">Dabba</span>
-        </Link>
+        {/* Logo + optional back button */}
+        <div className="flex items-center gap-1 shrink-0">
+          {!isRoot && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="mr-1 text-muted-foreground hover:text-foreground"
+              onClick={() => window.history.back()}
+              aria-label="Go back"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
+          )}
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+              <ChefHat className="w-4 h-4 text-primary-foreground" />
+            </div>
+            <span className="font-serif text-2xl font-bold text-primary">Dabba</span>
+          </Link>
+        </div>
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-4">

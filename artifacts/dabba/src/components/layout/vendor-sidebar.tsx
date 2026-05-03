@@ -14,6 +14,7 @@ import {
   Menu,
   Star,
   IndianRupee,
+  ChevronLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -83,10 +84,21 @@ export function VendorSidebar() {
 
       {/* Mobile top bar — visible below lg */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between h-14 px-4 bg-card border-b">
-        <Link href="/" className="font-serif text-xl font-bold text-primary flex items-center gap-1.5">
-          Dabba
-          <span className="text-xs font-sans text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">Partner</span>
-        </Link>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={() => window.history.back()}
+            aria-label="Go back"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <Link href="/" className="font-serif text-xl font-bold text-primary flex items-center gap-1.5">
+            Dabba
+            <span className="text-xs font-sans text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">Partner</span>
+          </Link>
+        </div>
         <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)} aria-label="Open navigation">
           <Menu className="h-5 w-5" />
         </Button>

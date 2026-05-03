@@ -1,6 +1,7 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
+import compression from "compression";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import { authMiddleware } from "./middlewares/authMiddleware";
@@ -64,6 +65,7 @@ app.use(
   }),
 );
 
+app.use(compression());
 app.use(cookieParser());
 app.use(express.json({ limit: "100kb" }));
 app.use(express.urlencoded({ extended: true, limit: "100kb" }));

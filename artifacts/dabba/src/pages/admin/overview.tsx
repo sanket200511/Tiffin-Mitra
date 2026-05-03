@@ -53,6 +53,7 @@ export default function AdminOverview() {
 
   const [tab, setTab] = useState<"pending" | "all">("pending");
   const [editingCommission, setEditingCommission] = useState<Record<string, string>>({});
+  const [actioning, setActioning] = useState<string | null>(null);
 
   const pendingVendors = vendors.filter(v => v.status === "pending");
   const approvedVendors = vendors.filter(v => v.status === "approved");
@@ -62,27 +63,43 @@ export default function AdminOverview() {
     queryClient.invalidateQueries({ queryKey: ["/api/analytics/platform/overview"] });
   }
 
-  function approveVendor(vendorId: string) {
-    updateVendor(
-      { vendorId, data: { status: "approved" } as never },
-      {
-        onSuccess: () => {
-          toast({ title: "Vendor approved", description: "The kitchen is now live on the platform." });
-          refetchVendors();
-        }
+  async function patchVendorStatus(vendorId: string, status: string) {
+    setActioning(vendorId);
+    try {
+      const res = await fetch(`/api/vendors/${vendorId}/status`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast({ variant: "destructive", title: "Error", description: body.error || "Action failed." });
+        return;
       }
+      refetchVendors();
+    } catch {
+      toast({ variant: "destructive", title: "Network error", description: "Could not reach the server." });
+    } finally {
+      setActioning(null);
+    }
+  }
+
+  function approveVendor(vendorId: string) {
+    patchVendorStatus(vendorId, "approved").then(() =>
+      toast({ title: "Vendor approved", description: "The kitchen is now live on the platform." })
     );
   }
 
   function rejectVendor(vendorId: string) {
-    updateVendor(
-      { vendorId, data: { status: "suspended" } as never },
-      {
-        onSuccess: () => {
-          toast({ title: "Vendor rejected", description: "The application has been declined." });
-          refetchVendors();
-        }
-      }
+    patchVendorStatus(vendorId, "rejected").then(() =>
+      toast({ title: "Vendor rejected", description: "The application has been declined." })
+    );
+  }
+
+  function suspendVendor(vendorId: string) {
+    patchVendorStatus(vendorId, "suspended").then(() =>
+      toast({ title: "Vendor suspended", description: "The kitchen has been suspended." })
     );
   }
 
@@ -90,18 +107,6 @@ export default function AdminOverview() {
     updateVendor(
       { vendorId, data: { featured: !current } as never },
       { onSuccess: () => refetchVendors() }
-    );
-  }
-
-  function suspendVendor(vendorId: string) {
-    updateVendor(
-      { vendorId, data: { status: "suspended" } as never },
-      {
-        onSuccess: () => {
-          toast({ title: "Vendor suspended", description: "The kitchen has been suspended." });
-          refetchVendors();
-        }
-      }
     );
   }
 
@@ -265,14 +270,15 @@ export default function AdminOverview() {
                               size="sm"
                               variant="outline"
                               className="border-red-200 text-red-600 hover:bg-red-50"
+                              disabled={actioning === vendor.id}
                               onClick={() => rejectVendor(vendor.id)}
                             >
                               <XCircle className="w-3.5 h-3.5 mr-1" />
                               Reject
                             </Button>
-                            <Button size="sm" onClick={() => approveVendor(vendor.id)}>
+                            <Button size="sm" disabled={actioning === vendor.id} onClick={() => approveVendor(vendor.id)}>
                               <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                              Approve
+                              {actioning === vendor.id ? "Saving..." : "Approve"}
                             </Button>
                           </div>
                         </TableCell>
@@ -366,10 +372,11 @@ export default function AdminOverview() {
                               size="sm"
                               variant="outline"
                               className="border-red-200 text-red-600 hover:bg-red-50 h-7 text-xs"
+                              disabled={actioning === vendor.id}
                               onClick={() => suspendVendor(vendor.id)}
                             >
                               <Ban className="w-3 h-3 mr-1" />
-                              Suspend
+                              {actioning === vendor.id ? "..." : "Suspend"}
                             </Button>
                           </TableCell>
                         </TableRow>

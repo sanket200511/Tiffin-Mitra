@@ -86,6 +86,12 @@ router.get("/vendors/:vendorId", async (req, res) => {
       res.status(404).json({ error: "Vendor not found" });
       return;
     }
+    const isAdmin = req.isAuthenticated() && req.user.role === "super_admin";
+    const isOwner = req.isAuthenticated() && vendor.ownerUserId === req.user.id;
+    if (vendor.status !== "approved" && !isAdmin && !isOwner) {
+      res.status(404).json({ error: "Vendor not found" });
+      return;
+    }
     res.json({ vendor });
   } catch (err) {
     req.log.error({ err }, "Failed to get vendor");
@@ -105,7 +111,8 @@ router.patch("/vendors/:vendorId", async (req, res) => {
       res.status(404).json({ error: "Vendor not found" });
       return;
     }
-    if (existing.ownerUserId !== req.user.id && req.user.role !== "super_admin") {
+    const isAdmin = req.user.role === "super_admin";
+    if (existing.ownerUserId !== req.user.id && !isAdmin) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
@@ -114,6 +121,7 @@ router.patch("/vendors/:vendorId", async (req, res) => {
       name, description, address, cuisineType, city,
       logoUrl, coverImageUrl, fssaiLicense,
       deliveryRadius, minimumOrderAmount,
+      featured, commissionRate,
     } = req.body;
 
     const updates: Record<string, unknown> = {};
@@ -127,6 +135,18 @@ router.patch("/vendors/:vendorId", async (req, res) => {
     if (fssaiLicense !== undefined) updates.fssaiLicense = fssaiLicense;
     if (deliveryRadius !== undefined) updates.deliveryRadius = deliveryRadius;
     if (minimumOrderAmount !== undefined) updates.minimumOrderAmount = minimumOrderAmount;
+
+    if (isAdmin) {
+      if (featured !== undefined) updates.featured = Boolean(featured);
+      if (commissionRate !== undefined) {
+        const rate = parseFloat(String(commissionRate));
+        if (isNaN(rate) || rate < 0 || rate > 100) {
+          res.status(400).json({ error: "commissionRate must be between 0 and 100" });
+          return;
+        }
+        updates.commissionRate = rate.toFixed(2);
+      }
+    }
 
     const [vendor] = await db.update(vendorsTable)
       .set({ ...updates, updatedAt: new Date() })

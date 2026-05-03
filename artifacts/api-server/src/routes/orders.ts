@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, ordersTable, vendorsTable, customersTable, walletTransactionsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -38,7 +38,7 @@ router.get("/orders", async (req, res) => {
       }
       conditions.push(eq(ordersTable.vendorId, vendorId));
     } else if (!isAdmin) {
-      const [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user.id));
+      const [customer] = await db.select({ id: customersTable.id }).from(customersTable).where(eq(customersTable.userId, req.user.id));
       if (customer) {
         conditions.push(eq(ordersTable.customerId, customer.id));
       } else {
@@ -47,17 +47,24 @@ router.get("/orders", async (req, res) => {
       }
     }
 
-    const orders = conditions.length > 0
-      ? await db.select().from(ordersTable).where(and(...conditions))
-      : await db.select().from(ordersTable);
+    const rows = await db
+      .select({
+        order: ordersTable,
+        vendorName: vendorsTable.name,
+        customerName: customersTable.name,
+      })
+      .from(ordersTable)
+      .leftJoin(vendorsTable, eq(ordersTable.vendorId, vendorsTable.id))
+      .leftJoin(customersTable, eq(ordersTable.customerId, customersTable.id))
+      .where(conditions.length > 0 ? and(...conditions) : sql`1=1`);
 
-    const enriched = await Promise.all(orders.map(async (order) => {
-      const [vendor] = await db.select({ name: vendorsTable.name }).from(vendorsTable).where(eq(vendorsTable.id, order.vendorId));
-      const [customer] = await db.select({ name: customersTable.name }).from(customersTable).where(eq(customersTable.id, order.customerId));
-      return { ...order, vendorName: vendor?.name, customerName: customer?.name };
+    const orders = rows.map(r => ({
+      ...r.order,
+      vendorName: r.vendorName ?? undefined,
+      customerName: r.customerName ?? undefined,
     }));
 
-    res.json({ orders: enriched });
+    res.json({ orders });
   } catch (err) {
     req.log.error({ err }, "Failed to list orders");
     res.status(500).json({ error: "Internal server error" });
@@ -120,19 +127,26 @@ router.get("/orders/:orderId", async (req, res) => {
     return;
   }
   try {
-    const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, req.params.orderId));
-    if (!order) {
+    const [row] = await db
+      .select({
+        order: ordersTable,
+        vendorOwnerUserId: vendorsTable.ownerUserId,
+        vendorName: vendorsTable.name,
+        customerUserId: customersTable.userId,
+        customerName: customersTable.name,
+      })
+      .from(ordersTable)
+      .leftJoin(vendorsTable, eq(ordersTable.vendorId, vendorsTable.id))
+      .leftJoin(customersTable, eq(ordersTable.customerId, customersTable.id))
+      .where(eq(ordersTable.id, req.params.orderId));
+
+    if (!row) {
       res.status(404).json({ error: "Order not found" });
       return;
     }
 
-    const [vendorRow] = await db.select({ ownerUserId: vendorsTable.ownerUserId })
-      .from(vendorsTable).where(eq(vendorsTable.id, order.vendorId));
-    const [customerRow] = await db.select({ userId: customersTable.userId })
-      .from(customersTable).where(eq(customersTable.id, order.customerId));
-
-    const isVendorOwner = vendorRow?.ownerUserId === req.user.id;
-    const isCustomer = customerRow?.userId === req.user.id;
+    const isVendorOwner = row.vendorOwnerUserId === req.user.id;
+    const isCustomer = row.customerUserId === req.user.id;
     const isAdmin = req.user.role === "super_admin";
 
     if (!isVendorOwner && !isCustomer && !isAdmin) {
@@ -140,9 +154,7 @@ router.get("/orders/:orderId", async (req, res) => {
       return;
     }
 
-    const [vendor] = await db.select({ name: vendorsTable.name }).from(vendorsTable).where(eq(vendorsTable.id, order.vendorId));
-    const [customer] = await db.select({ name: customersTable.name }).from(customersTable).where(eq(customersTable.id, order.customerId));
-    res.json({ order: { ...order, vendorName: vendor?.name, customerName: customer?.name } });
+    res.json({ order: { ...row.order, vendorName: row.vendorName ?? undefined, customerName: row.customerName ?? undefined } });
   } catch (err) {
     req.log.error({ err }, "Failed to get order");
     res.status(500).json({ error: "Internal server error" });

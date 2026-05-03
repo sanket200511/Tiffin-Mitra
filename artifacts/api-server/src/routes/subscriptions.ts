@@ -119,14 +119,23 @@ router.get("/subscriptions", async (req, res) => {
       return;
     }
 
-    const subs = await db.select().from(customerSubscriptionsTable)
+    const rows = await db
+      .select({
+        sub: customerSubscriptionsTable,
+        vendorName: vendorsTable.name,
+        planName: subscriptionPlansTable.name,
+        planType: subscriptionPlansTable.planType,
+      })
+      .from(customerSubscriptionsTable)
+      .leftJoin(vendorsTable, eq(customerSubscriptionsTable.vendorId, vendorsTable.id))
+      .leftJoin(subscriptionPlansTable, eq(customerSubscriptionsTable.planId, subscriptionPlansTable.id))
       .where(eq(customerSubscriptionsTable.customerId, customer.id));
 
-    const subscriptions = await Promise.all(subs.map(async (sub) => {
-      const [vendor] = await db.select({ name: vendorsTable.name }).from(vendorsTable).where(eq(vendorsTable.id, sub.vendorId));
-      const [plan] = await db.select({ name: subscriptionPlansTable.name, planType: subscriptionPlansTable.planType })
-        .from(subscriptionPlansTable).where(eq(subscriptionPlansTable.id, sub.planId));
-      return { ...sub, vendorName: vendor?.name, planName: plan?.name, planType: plan?.planType };
+    const subscriptions = rows.map(r => ({
+      ...r.sub,
+      vendorName: r.vendorName ?? undefined,
+      planName: r.planName ?? undefined,
+      planType: r.planType ?? undefined,
     }));
 
     res.json({ subscriptions });

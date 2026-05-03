@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Plus, Edit, Trash2, CalendarDays } from "lucide-react";
+import { Plus, Edit, Trash2, CalendarDays, Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -260,6 +260,47 @@ export default function VendorPlans() {
                   )}
                 />
               </div>
+              <FormField
+                control={form.control}
+                name="mealTypes"
+                render={({ field }) => {
+                  const options = ["breakfast", "lunch", "dinner", "snacks"];
+                  const toggle = (val: string) => {
+                    const current = field.value ?? [];
+                    field.onChange(
+                      current.includes(val)
+                        ? current.filter(v => v !== val)
+                        : [...current, val]
+                    );
+                  };
+                  return (
+                    <FormItem>
+                      <FormLabel>Meal Types Included</FormLabel>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {options.map(opt => {
+                          const selected = (field.value ?? []).includes(opt);
+                          return (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => toggle(opt)}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm transition-colors ${
+                                selected
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-background border-border text-muted-foreground hover:border-primary/50"
+                              }`}
+                            >
+                              {selected && <Check className="w-3 h-3" />}
+                              <span className="capitalize">{opt}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -273,6 +314,7 @@ export default function VendorPlans() {
                           <SelectItem value="veg">Pure Veg</SelectItem>
                           <SelectItem value="non_veg">Non-Veg</SelectItem>
                           <SelectItem value="jain">Jain</SelectItem>
+                          <SelectItem value="diabetic_friendly">Diabetic Friendly</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />

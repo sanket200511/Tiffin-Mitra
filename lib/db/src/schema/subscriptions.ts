@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, numeric, integer, boolean, pgEnum, date } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, numeric, integer, boolean, pgEnum, date, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -18,7 +18,9 @@ export const subscriptionPlansTable = pgTable("subscription_plans", {
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => [
+  index("subscription_plans_vendor_id_idx").on(table.vendorId),
+]);
 
 export const customerSubscriptionsTable = pgTable("customer_subscriptions", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -34,7 +36,11 @@ export const customerSubscriptionsTable = pgTable("customer_subscriptions", {
   skippedDays: text("skipped_days").array().notNull().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => [
+  index("customer_subs_customer_id_idx").on(table.customerId),
+  index("customer_subs_vendor_id_idx").on(table.vendorId),
+  index("customer_subs_status_idx").on(table.status),
+]);
 
 export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlansTable).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertCustomerSubscriptionSchema = createInsertSchema(customerSubscriptionsTable).omit({ id: true, createdAt: true, updatedAt: true });

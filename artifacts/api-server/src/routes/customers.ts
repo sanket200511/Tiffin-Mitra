@@ -255,4 +255,54 @@ router.get("/customers/upcoming-deliveries", async (req, res) => {
   }
 });
 
+// POST /customers/:customerId/wallet-credit — admin credits or debits a customer's wallet
+router.post("/customers/:customerId/wallet-credit", async (req, res) => {
+  if (!req.isAuthenticated() || req.user.role !== "super_admin") {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  const { amount, type, description } = req.body as {
+    amount: number;
+    type: "credit" | "debit";
+    description?: string;
+  };
+  if (!amount || typeof amount !== "number" || amount <= 0 || amount > 1_00_000) {
+    res.status(400).json({ error: "Invalid amount. Must be between ₹1 and ₹1,00,000." });
+    return;
+  }
+  if (!["credit", "debit"].includes(type)) {
+    res.status(400).json({ error: "type must be 'credit' or 'debit'" });
+    return;
+  }
+  try {
+    const [customer] = await db.select().from(customersTable)
+      .where(eq(customersTable.id, req.params.customerId));
+    if (!customer) {
+      res.status(404).json({ error: "Customer not found" });
+      return;
+    }
+    const currentBalance = parseFloat(String(customer.walletBalance ?? "0"));
+    const newBalance = type === "credit"
+      ? (currentBalance + amount).toFixed(2)
+      : Math.max(0, currentBalance - amount).toFixed(2);
+
+    const [updated] = await db.update(customersTable)
+      .set({ walletBalance: newBalance, updatedAt: new Date() })
+      .where(eq(customersTable.id, req.params.customerId))
+      .returning();
+
+    await db.insert(walletTransactionsTable).values({
+      customerId: customer.id,
+      type,
+      amount: amount.toFixed(2),
+      description: description?.trim() || `Admin ${type} of ₹${amount}`,
+    });
+
+    res.json({ customer: updated, newBalance: parseFloat(newBalance) });
+  } catch (err) {
+    req.log.error({ err }, "Failed to adjust customer wallet");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

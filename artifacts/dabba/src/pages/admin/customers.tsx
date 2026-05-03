@@ -1,13 +1,18 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Users, Search, Wallet, CalendarDays, ShoppingBag, TrendingUp } from "lucide-react";
+import { Users, Search, Wallet, CalendarDays, ShoppingBag, TrendingUp, Plus, Minus } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 
 type AdminCustomer = {
   id: string;
@@ -25,6 +30,12 @@ type AdminCustomer = {
 
 export default function AdminCustomers() {
   const [search, setSearch] = useState("");
+  const [walletDialog, setWalletDialog] = useState<AdminCustomer | null>(null);
+  const [walletAmount, setWalletAmount] = useState("");
+  const [walletType, setWalletType] = useState<"credit" | "debit">("credit");
+  const [walletDesc, setWalletDesc] = useState("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ["/api/customers", "admin"],
@@ -34,6 +45,52 @@ export default function AdminCustomers() {
       return res.json() as Promise<{ customers: AdminCustomer[] }>;
     },
   });
+
+  const walletMutation = useMutation({
+    mutationFn: async ({ customerId, amount, type, description }: {
+      customerId: string;
+      amount: number;
+      type: "credit" | "debit";
+      description: string;
+    }) => {
+      const res = await fetch(`/api/customers/${customerId}/wallet-credit`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount, type, description }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as any).error || "Failed to update wallet");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: `Wallet ${walletType === "credit" ? "credited" : "debited"} successfully` });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers", "admin"] });
+      setWalletDialog(null);
+      setWalletAmount("");
+      setWalletDesc("");
+    },
+    onError: (err: any) => {
+      toast({ variant: "destructive", title: "Error", description: err.message });
+    },
+  });
+
+  const handleWalletSubmit = () => {
+    if (!walletDialog) return;
+    const amount = parseFloat(walletAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast({ variant: "destructive", title: "Invalid amount" });
+      return;
+    }
+    walletMutation.mutate({
+      customerId: walletDialog.id,
+      amount,
+      type: walletType,
+      description: walletDesc || `Admin ${walletType} of ₹${amount}`,
+    });
+  };
 
   const customers = data?.customers || [];
 
@@ -45,8 +102,8 @@ export default function AdminCustomers() {
     : customers;
 
   const totalActive = customers.filter(c => c.activeSubscriptions > 0).length;
-  const totalGMV = customers.reduce((sum, c) => sum + c.totalSpend, 0);
-  const avgWallet = customers.length > 0
+  const totalGMV    = customers.reduce((sum, c) => sum + c.totalSpend, 0);
+  const avgWallet   = customers.length > 0
     ? customers.reduce((sum, c) => sum + parseFloat(String(c.walletBalance || 0)), 0) / customers.length
     : 0;
 
@@ -116,7 +173,7 @@ export default function AdminCustomers() {
 
       {/* Table */}
       <Card className="shadow-sm overflow-hidden overflow-x-auto">
-        <Table className="min-w-[700px]">
+        <Table className="min-w-[780px]">
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead>Customer</TableHead>
@@ -126,20 +183,21 @@ export default function AdminCustomers() {
               <TableHead>Orders</TableHead>
               <TableHead>Total Spend</TableHead>
               <TableHead>Joined</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               Array.from({ length: 6 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 7 }).map((_, j) => (
+                  {Array.from({ length: 8 }).map((_, j) => (
                     <TableCell key={j}><Skeleton className="h-4 w-full max-w-[100px]" /></TableCell>
                   ))}
                 </TableRow>
               ))
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-40 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-40 text-center text-muted-foreground">
                   <Users className="w-8 h-8 mx-auto mb-2 opacity-20" />
                   {search ? "No customers match your search." : "No customers registered yet."}
                 </TableCell>
@@ -188,12 +246,101 @@ export default function AdminCustomers() {
                       {format(new Date(customer.createdAt), "MMM d, yyyy")}
                     </div>
                   </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => {
+                        setWalletDialog(customer);
+                        setWalletType("credit");
+                        setWalletAmount("");
+                        setWalletDesc("");
+                      }}
+                    >
+                      <Wallet className="w-3 h-3 mr-1" /> Wallet
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </Card>
+
+      {/* Wallet credit/debit dialog */}
+      <Dialog open={!!walletDialog} onOpenChange={(open) => { if (!open) setWalletDialog(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-serif">Adjust Wallet Balance</DialogTitle>
+            <DialogDescription>
+              Customer: <strong>{walletDialog?.name || "Unknown"}</strong><br />
+              Current balance: <strong>₹{parseFloat(String(walletDialog?.walletBalance ?? 0)).toFixed(2)}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-3 space-y-4">
+            {/* Credit / Debit toggle */}
+            <div className="space-y-1.5">
+              <Label>Operation</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={walletType === "credit" ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setWalletType("credit")}
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Credit
+                </Button>
+                <Button
+                  type="button"
+                  variant={walletType === "debit" ? "destructive" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setWalletType("debit")}
+                >
+                  <Minus className="w-3.5 h-3.5 mr-1" /> Debit
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="wallet-amount">Amount (₹)</Label>
+              <Input
+                id="wallet-amount"
+                type="number"
+                min={1}
+                placeholder="Enter amount"
+                value={walletAmount}
+                onChange={e => setWalletAmount(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="wallet-desc">
+                Reason <span className="text-muted-foreground font-normal">(optional)</span>
+              </Label>
+              <Textarea
+                id="wallet-desc"
+                placeholder="e.g. Goodwill refund for delivery issue on 3 May..."
+                className="resize-none h-16"
+                value={walletDesc}
+                onChange={e => setWalletDesc(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWalletDialog(null)}>Cancel</Button>
+            <Button
+              variant={walletType === "debit" ? "destructive" : "default"}
+              disabled={walletMutation.isPending || !walletAmount || parseFloat(walletAmount) <= 0}
+              onClick={handleWalletSubmit}
+            >
+              {walletMutation.isPending ? "Saving..." : `${walletType === "credit" ? "Credit" : "Debit"} Wallet`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

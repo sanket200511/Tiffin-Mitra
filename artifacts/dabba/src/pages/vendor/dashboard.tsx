@@ -1,40 +1,134 @@
 import { useEffect } from "react";
 import { useLocation, Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { useGetVendorStats, useGetTodayOrderSummary, useGetMyVendorProfile, useListOrders } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { IndianRupee, ShoppingBag, Users, Star, ArrowRight, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import {
+  IndianRupee, ShoppingBag, Users, Star, ArrowRight,
+  CheckCircle2, Clock, AlertCircle, UtensilsCrossed, CalendarDays, CircleDashed,
+} from "lucide-react";
 import { format } from "date-fns";
 
-
 const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
-  pending: { color: "bg-yellow-100 text-yellow-800 border-yellow-200", label: "Pending" },
-  accepted: { color: "bg-blue-100 text-blue-800 border-blue-200", label: "Accepted" },
+  pending:   { color: "bg-yellow-100 text-yellow-800 border-yellow-200", label: "Pending" },
+  accepted:  { color: "bg-blue-100 text-blue-800 border-blue-200",       label: "Accepted" },
   preparing: { color: "bg-orange-100 text-orange-800 border-orange-200", label: "Preparing" },
-  packed: { color: "bg-purple-100 text-purple-800 border-purple-200", label: "Packed" },
+  packed:    { color: "bg-purple-100 text-purple-800 border-purple-200", label: "Packed" },
   picked_up: { color: "bg-indigo-100 text-indigo-800 border-indigo-200", label: "Picked Up" },
-  delivered: { color: "bg-green-100 text-green-800 border-green-200", label: "Delivered" },
-  cancelled: { color: "bg-red-100 text-red-800 border-red-200", label: "Cancelled" },
+  delivered: { color: "bg-green-100 text-green-800 border-green-200",    label: "Delivered" },
+  cancelled: { color: "bg-red-100 text-red-800 border-red-200",          label: "Cancelled" },
 };
 
+// ─── Setup checklist card ─────────────────────────────────────────────────────
+function SetupChecklist({ vendorId }: { vendorId: string }) {
+  const { data: menuData } = useQuery({
+    queryKey: ["/api/menus/setup-check", vendorId],
+    queryFn: () =>
+      fetch(`/api/menus?vendorId=${vendorId}`, { credentials: "include" }).then(r => r.json()),
+    staleTime: 60_000,
+  });
+  const { data: plansData } = useQuery({
+    queryKey: ["/api/plans/setup-check", vendorId],
+    queryFn: () =>
+      fetch(`/api/plans?vendorId=${vendorId}`, { credentials: "include" }).then(r => r.json()),
+    staleTime: 60_000,
+  });
+
+  const hasMenuItems = (menuData?.items?.length ?? 0) > 0;
+  const hasPlans     = (plansData?.plans?.length ?? 0) > 0;
+
+  if (hasMenuItems && hasPlans) return null;
+
+  const steps = [
+    {
+      done:  true,
+      icon:  CheckCircle2,
+      label: "Kitchen Profile",
+      sub:   "Name, cuisine type, city and FSSAI details submitted.",
+      href:  "/vendor/profile",
+      cta:   "Edit Profile",
+    },
+    {
+      done:  hasMenuItems,
+      icon:  UtensilsCrossed,
+      label: "Add Menu Items",
+      sub:   hasMenuItems
+        ? "Menu items are set up."
+        : "List your tiffin meals so customers can see what you offer.",
+      href:  "/vendor/menu",
+      cta:   "Add Menu",
+    },
+    {
+      done:  hasPlans,
+      icon:  CalendarDays,
+      label: "Create Subscription Plans",
+      sub:   hasPlans
+        ? "Subscription plans are live."
+        : "Create daily/weekly/monthly plans that customers can subscribe to.",
+      href:  "/vendor/plans",
+      cta:   "Create Plan",
+    },
+  ];
+
+  const doneCount = steps.filter(s => s.done).length;
+
+  return (
+    <Card className="shadow-sm border-l-4 border-l-amber-400 bg-amber-50/50">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <CardTitle className="text-lg">Getting Started</CardTitle>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Complete these steps before customers can subscribe to your tiffin.
+            </p>
+          </div>
+          <Badge variant="outline" className="shrink-0 text-amber-700 border-amber-300 bg-amber-50">
+            {doneCount}/{steps.length} done
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {steps.map((step) => {
+            const Icon = step.done ? CheckCircle2 : CircleDashed;
+            return (
+              <div key={step.label} className={`flex items-start gap-4 p-3 rounded-lg border ${step.done ? "bg-green-50 border-green-200" : "bg-card border-border"}`}>
+                <Icon className={`w-5 h-5 mt-0.5 shrink-0 ${step.done ? "text-green-600" : "text-muted-foreground/40"}`} />
+                <div className="flex-1 min-w-0">
+                  <p className={`font-medium text-sm ${step.done ? "line-through text-muted-foreground" : ""}`}>{step.label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{step.sub}</p>
+                </div>
+                {!step.done && (
+                  <Button size="sm" variant="outline" className="shrink-0 h-7 text-xs" asChild>
+                    <Link href={step.href}>{step.cta}</Link>
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Main dashboard ───────────────────────────────────────────────────────────
 export default function VendorDashboard() {
   const [, setLocation] = useLocation();
 
   const { data: profileData, isLoading: profileLoading } = useGetMyVendorProfile();
-  const vendor = profileData?.vendor;
+  const vendor   = profileData?.vendor;
   const vendorId = vendor?.id;
 
-  // If profile loaded and no vendor record exists, redirect to onboarding
   useEffect(() => {
-    if (!profileLoading && !vendor) {
-      setLocation("/vendor/onboarding");
-    }
+    if (!profileLoading && !vendor) setLocation("/vendor/onboarding");
   }, [profileLoading, vendor, setLocation]);
 
-  const { data: statsData, isLoading: statsLoading } = useGetVendorStats(vendorId ?? "", {
+  const { data: statsData,   isLoading: statsLoading   } = useGetVendorStats(vendorId ?? "", {
     query: { enabled: !!vendorId, queryKey: ["/api/vendors/stats", vendorId] }
   });
   const stats = statsData?.stats;
@@ -62,7 +156,6 @@ export default function VendorDashboard() {
     );
   }
 
-  // Pending approval notice
   const isPending = vendor?.status === "pending";
 
   return (
@@ -90,6 +183,9 @@ export default function VendorDashboard() {
         </div>
       )}
 
+      {/* Onboarding checklist — only shown when setup is incomplete */}
+      {vendorId && <SetupChecklist vendorId={vendorId} />}
+
       {/* KPI Cards */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="border-l-4 border-l-primary shadow-sm">
@@ -110,7 +206,7 @@ export default function VendorDashboard() {
               <IndianRupee className="h-4 w-4 text-green-500" />
             </div>
             {statsLoading ? <Skeleton className="h-8 w-24" /> : (
-              <div className="text-3xl font-bold">₹{stats?.monthlyRevenue?.toLocaleString("en-IN", { maximumFractionDigits: 0 }) || 0}</div>
+              <div className="text-3xl font-bold">₹{(stats?.monthlyRevenue ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</div>
             )}
           </CardContent>
         </Card>
@@ -166,10 +262,10 @@ export default function VendorDashboard() {
                 {Object.keys(summary.byMealType || {}).length > 0 && (
                   <div className="space-y-3">
                     <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">By Meal Type</h4>
-                    {Object.entries(summary.byMealType).map(([type, count]) => (
+                    {Object.entries(summary.byMealType).map(([type, cnt]) => (
                       <div key={type} className="flex justify-between items-center py-2 border-b last:border-0">
                         <span className="capitalize">{type}</span>
-                        <span className="font-semibold">{count}</span>
+                        <span className="font-semibold">{cnt}</span>
                       </div>
                     ))}
                   </div>
@@ -241,7 +337,6 @@ export default function VendorDashboard() {
               </Table>
             </CardContent>
           </Card>
-
         </div>
       </div>
     </div>

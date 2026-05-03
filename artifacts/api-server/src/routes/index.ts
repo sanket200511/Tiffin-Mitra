@@ -10,6 +10,7 @@ import reviewRouter from "./reviews";
 import analyticsRouter from "./analytics";
 import deliveryRouter from "./deliveries";
 import peerDeliveryRouter from "./peer-deliveries";
+import payoutsRouter from "./payouts";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(reviewRouter);
 router.use(analyticsRouter);
 router.use(deliveryRouter);
 router.use(peerDeliveryRouter);
+router.use(payoutsRouter);
 
 export default router;

@@ -6,3 +6,4 @@ export * from "./orders";
 export * from "./customers";
 export * from "./reviews";
 export * from "./peer-deliveries";
+export * from "./payouts";

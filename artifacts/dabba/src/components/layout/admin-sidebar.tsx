@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Store,
   ChevronLeft,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/admin/vendors",   label: "Vendors",   icon: Store },
   { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/orders",    label: "Orders",    icon: ShoppingBag },
+  { href: "/admin/payouts",   label: "Payouts",   icon: Wallet },
   { href: "/admin/analytics", label: "Analytics", icon: TrendingUp },
 ];
 
@@ -71,12 +73,10 @@ export function AdminSidebar() {
 
   return (
     <>
-      {/* Desktop sidebar — hidden below lg */}
       <aside className="hidden lg:flex w-64 border-r bg-card flex-col h-full min-h-[100dvh] sticky top-0 shrink-0">
         <SidebarNav />
       </aside>
 
-      {/* Mobile top bar — visible below lg */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between h-14 px-4 bg-card border-b">
         <div className="flex items-center gap-1">
           <Button
@@ -98,7 +98,6 @@ export function AdminSidebar() {
         </Button>
       </div>
 
-      {/* Mobile drawer */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-72 p-0 flex flex-col">
           <SidebarNav onNavigate={() => setMobileOpen(false)} />

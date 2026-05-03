@@ -220,8 +220,8 @@ export default function VendorDashboard() {
                 </Link>
               </Button>
             </CardHeader>
-            <CardContent>
-              <Table>
+            <CardContent className="overflow-x-auto">
+              <Table className="min-w-[400px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Customer</TableHead>

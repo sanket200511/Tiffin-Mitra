@@ -115,8 +115,8 @@ export default function AdminCustomers() {
       </div>
 
       {/* Table */}
-      <Card className="shadow-sm overflow-hidden">
-        <Table>
+      <Card className="shadow-sm overflow-hidden overflow-x-auto">
+        <Table className="min-w-[700px]">
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead>Customer</TableHead>

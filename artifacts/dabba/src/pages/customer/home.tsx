@@ -18,7 +18,7 @@ export default function Home() {
 
         <div className="container relative z-10">
           <div className="max-w-2xl space-y-6">
-            <h1 className="text-5xl md:text-7xl font-serif font-bold text-foreground leading-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-serif font-bold text-foreground leading-tight">
               The warmth of <span className="text-primary italic">ghar ka khana</span>, delivered.
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground">

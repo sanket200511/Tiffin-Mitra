@@ -130,7 +130,7 @@ export default function MySubscriptions() {
 
         <Card className="md:col-span-2">
           <CardHeader><CardTitle className="text-lg">Quick Actions</CardTitle></CardHeader>
-          <CardContent className="flex gap-4">
+          <CardContent className="flex flex-col sm:flex-row gap-4">
             <Button variant="outline" asChild className="flex-1 h-auto py-4 flex flex-col gap-2">
               <Link href="/explore">
                 <ChefHat className="w-6 h-6 text-primary" />

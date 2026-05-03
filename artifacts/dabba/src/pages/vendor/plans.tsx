@@ -118,9 +118,9 @@ export default function VendorPlans() {
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     if (editingPlan) {
-      updatePlan.mutate({ id: editingPlan.id, data: values });
+      updatePlan.mutate({ vendorId: vendorId!, planId: editingPlan.id, data: values });
     } else {
-      createPlan.mutate({ data: values });
+      createPlan.mutate({ vendorId: vendorId!, data: values });
     }
   };
 
@@ -186,7 +186,7 @@ export default function VendorPlans() {
                 <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenEdit(plan)}>
                   <Edit className="w-4 h-4 mr-2" /> Edit
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1 text-destructive hover:text-destructive" onClick={() => deletePlan.mutate({ id: plan.id })}>
+                <Button variant="outline" size="sm" className="flex-1 text-destructive hover:text-destructive" onClick={() => deletePlan.mutate({ vendorId: vendorId!, planId: plan.id })}>
                   <Trash2 className="w-4 h-4 mr-2" /> Delete
                 </Button>
               </CardFooter>

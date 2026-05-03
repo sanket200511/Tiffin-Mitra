@@ -40,7 +40,7 @@ export default function Profile() {
         toast({
           variant: "destructive",
           title: "Error",
-          description: err.error || "Failed to update profile.",
+          description: "Failed to update profile.",
         });
       }
     }

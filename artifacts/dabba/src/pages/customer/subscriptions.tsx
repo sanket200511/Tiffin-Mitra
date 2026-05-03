@@ -56,7 +56,7 @@ export default function MySubscriptions() {
   });
 
   const handleStatusChange = (id: string, newStatus: "active" | "paused" | "cancelled") => {
-    updateSub.mutate({ id, data: { status: newStatus } });
+    updateSub.mutate({ subscriptionId: id, data: { status: newStatus } });
   };
 
   return (
@@ -203,7 +203,7 @@ export default function MySubscriptions() {
                             disabled={(date) => date < addDays(new Date(), 1) || date > new Date(sub.endDate)}
                             onSelect={(date) => {
                               if (date) {
-                                skipDay.mutate({ id: sub.id, data: { date: format(date, "yyyy-MM-dd") } });
+                                skipDay.mutate({ subscriptionId: sub.id, data: { date: format(date, "yyyy-MM-dd") } });
                               }
                             }}
                           />

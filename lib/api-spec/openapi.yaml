@@ -973,6 +973,10 @@ components:
           type: array
           items:
             type: string
+        featured:
+          type: boolean
+        commissionRate:
+          type: number
         createdAt:
           type: string
           format: date-time
@@ -1705,6 +1709,8 @@ components:
           type: integer
         activeVendors:
           type: integer
+        featuredVendors:
+          type: integer
         totalCustomers:
           type: integer
         activeSubscriptions:
@@ -1712,6 +1718,8 @@ components:
         totalOrdersToday:
           type: integer
         platformGMV:
+          type: number
+        commissionRevenue:
           type: number
         monthlyRevenue:
           type: number

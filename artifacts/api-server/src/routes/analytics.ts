@@ -88,17 +88,28 @@ router.get("/analytics/platform/overview", async (req, res) => {
 
     const activeVendors = allVendors.filter(v => v.status === "approved").length;
     const pendingApprovals = allVendors.filter(v => v.status === "pending").length;
+    const featuredVendors = allVendors.filter(v => v.featured).length;
     const activeSubs = allSubs.filter(s => s.status === "active").length;
     const gmv = allOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount as string), 0);
+
+    // Commission = per-vendor weighted average of their commissionRate × their revenue
+    const commissionRevenue = allVendors.reduce((total, vendor) => {
+      const vendorOrders = allOrders.filter(o => o.vendorId === vendor.id);
+      const vendorGMV = vendorOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount as string), 0);
+      const rate = parseFloat(vendor.commissionRate as string) / 100;
+      return total + vendorGMV * rate;
+    }, 0);
 
     res.json({
       overview: {
         totalVendors: allVendors.length,
         activeVendors,
+        featuredVendors,
         totalCustomers: allCustomers.length,
         activeSubscriptions: activeSubs,
         totalOrdersToday: todayOrders.length,
         platformGMV: gmv,
+        commissionRevenue,
         monthlyRevenue: gmv * 0.12,
         pendingVendorApprovals: pendingApprovals,
       }

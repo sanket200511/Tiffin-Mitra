@@ -130,6 +130,8 @@ export const ListVendorsResponse = zod.object({
       subscriptionTier: zod.enum(["basic", "pro", "enterprise"]),
       fssaiLicense: zod.string().nullish(),
       deliveryZones: zod.array(zod.string()).optional(),
+      featured: zod.boolean().optional(),
+      commissionRate: zod.number().optional(),
       createdAt: zod.coerce.date(),
     }),
   ),
@@ -172,6 +174,8 @@ export const GetMyVendorProfileResponse = zod.object({
     subscriptionTier: zod.enum(["basic", "pro", "enterprise"]),
     fssaiLicense: zod.string().nullish(),
     deliveryZones: zod.array(zod.string()).optional(),
+    featured: zod.boolean().optional(),
+    commissionRate: zod.number().optional(),
     createdAt: zod.coerce.date(),
   }),
 });
@@ -200,6 +204,8 @@ export const GetVendorResponse = zod.object({
     subscriptionTier: zod.enum(["basic", "pro", "enterprise"]),
     fssaiLicense: zod.string().nullish(),
     deliveryZones: zod.array(zod.string()).optional(),
+    featured: zod.boolean().optional(),
+    commissionRate: zod.number().optional(),
     createdAt: zod.coerce.date(),
   }),
 });
@@ -241,6 +247,8 @@ export const UpdateVendorResponse = zod.object({
     subscriptionTier: zod.enum(["basic", "pro", "enterprise"]),
     fssaiLicense: zod.string().nullish(),
     deliveryZones: zod.array(zod.string()).optional(),
+    featured: zod.boolean().optional(),
+    commissionRate: zod.number().optional(),
     createdAt: zod.coerce.date(),
   }),
 });
@@ -947,10 +955,12 @@ export const GetPlatformOverviewResponse = zod.object({
   overview: zod.object({
     totalVendors: zod.number(),
     activeVendors: zod.number().optional(),
+    featuredVendors: zod.number().optional(),
     totalCustomers: zod.number(),
     activeSubscriptions: zod.number(),
     totalOrdersToday: zod.number(),
     platformGMV: zod.number(),
+    commissionRevenue: zod.number().optional(),
     monthlyRevenue: zod.number().optional(),
     pendingVendorApprovals: zod.number().optional(),
   }),

@@ -59,7 +59,7 @@ export default function Subscribe() {
         toast({
           variant: "destructive",
           title: "Error",
-          description: error.error || "Failed to create subscription.",
+          description: "Failed to create subscription.",
         });
       }
     }

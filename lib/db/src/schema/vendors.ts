@@ -21,6 +21,8 @@ export const vendorsTable = pgTable("vendors", {
   subscriptionTier: vendorTierEnum("subscription_tier").notNull().default("basic"),
   fssaiLicense: text("fssai_license"),
   deliveryZones: text("delivery_zones").array().notNull().default([]),
+  featured: boolean("featured").notNull().default(false),
+  commissionRate: numeric("commission_rate", { precision: 5, scale: 2 }).notNull().default("10.00"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

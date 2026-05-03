@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, MapPin, ChefHat, Star, Filter } from "lucide-react";
+import { Search, MapPin, ChefHat, Star, Filter, Sparkles } from "lucide-react";
 
 export default function Explore() {
   const [search, setSearch] = useState("");
@@ -112,6 +112,11 @@ export default function Explore() {
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-primary/5 text-primary/20">
                       <ChefHat className="w-12 h-12" />
+                    </div>
+                  )}
+                  {vendor.featured && (
+                    <div className="absolute top-3 left-3 bg-primary text-primary-foreground px-2 py-0.5 rounded-md text-xs font-semibold flex items-center gap-1 shadow-sm">
+                      <Sparkles className="w-3 h-3" /> Featured
                     </div>
                   )}
                   {vendor.rating && (

@@ -21,7 +21,7 @@ export default function VendorDetail() {
   });
   const vendor = vendorData?.vendor;
 
-  const { data: menuData, isLoading: menuLoading } = useListMenuItems(vendorId!, {
+  const { data: menuData, isLoading: menuLoading } = useListMenuItems(vendorId!, undefined, {
     query: { enabled: !!vendorId, queryKey: ["/api/vendors", vendorId, "menu"] }
   });
   const menuItems = menuData?.menuItems || [];

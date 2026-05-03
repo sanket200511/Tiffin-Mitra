@@ -111,6 +111,8 @@ export interface Vendor {
   /** @nullable */
   fssaiLicense?: string | null;
   deliveryZones?: string[];
+  featured?: boolean;
+  commissionRate?: number;
   createdAt: string;
 }
 
@@ -671,10 +673,12 @@ export interface SubscriptionHealthEnvelope {
 export interface PlatformOverview {
   totalVendors: number;
   activeVendors?: number;
+  featuredVendors?: number;
   totalCustomers: number;
   activeSubscriptions: number;
   totalOrdersToday: number;
   platformGMV: number;
+  commissionRevenue?: number;
   monthlyRevenue?: number;
   pendingVendorApprovals?: number;
 }

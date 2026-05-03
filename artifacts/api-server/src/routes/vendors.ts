@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { vendorsTable } from "@workspace/db";
-import { eq, like, and } from "drizzle-orm";
+import { eq, like, and, desc } from "drizzle-orm";
 
 const router = Router();
 
@@ -15,7 +15,9 @@ router.get("/vendors", async (req, res) => {
     if (cuisine) conditions.push(like(vendorsTable.cuisineType, `%${cuisine}%`));
     if (search) conditions.push(like(vendorsTable.name, `%${search}%`));
 
-    const vendors = await db.select().from(vendorsTable).where(and(...conditions));
+    const vendors = await db.select().from(vendorsTable)
+      .where(and(...conditions))
+      .orderBy(desc(vendorsTable.featured), desc(vendorsTable.createdAt));
     res.json({ vendors });
   } catch (err) {
     req.log.error({ err }, "Failed to list vendors");

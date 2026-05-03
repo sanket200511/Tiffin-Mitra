@@ -47,7 +47,7 @@ export default function VendorMenu() {
   const { data: profileData } = useGetMyVendorProfile();
   const vendorId = profileData?.vendor?.id;
 
-  const { data: menuData, isLoading } = useListMenuItems(vendorId!, {
+  const { data: menuData, isLoading } = useListMenuItems(vendorId!, undefined, {
     query: { enabled: !!vendorId, queryKey: ["/api/vendors", vendorId, "menu"] }
   });
   const menuItems = menuData?.menuItems || [];
@@ -121,9 +121,9 @@ export default function VendorMenu() {
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     if (editingItem) {
-      updateItem.mutate({ id: editingItem.id, data: values });
+      updateItem.mutate({ vendorId: vendorId!, menuItemId: editingItem.id, data: values });
     } else {
-      createItem.mutate({ data: values });
+      createItem.mutate({ vendorId: vendorId!, data: values });
     }
   };
 
@@ -168,7 +168,7 @@ export default function VendorMenu() {
                       <DropdownMenuItem onClick={() => handleOpenEdit(item)}>
                         <Edit className="w-4 h-4 mr-2" /> Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onClick={() => deleteItem.mutate({ id: item.id })}>
+                      <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onClick={() => deleteItem.mutate({ vendorId: vendorId!, menuItemId: item.id })}>
                         <Trash2 className="w-4 h-4 mr-2" /> Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>

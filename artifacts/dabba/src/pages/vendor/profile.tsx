@@ -42,7 +42,7 @@ export default function VendorProfile() {
         toast({
           variant: "destructive",
           title: "Error",
-          description: err.error || "Failed to update profile.",
+          description: "Failed to update profile.",
         });
       }
     }
@@ -86,7 +86,7 @@ export default function VendorProfile() {
       : [];
 
     updateProfile.mutate({ 
-      id: vendor.id,
+      vendorId: vendor.id,
       data: {
         ...values,
         logoUrl: values.logoUrl || undefined,

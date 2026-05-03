@@ -62,7 +62,7 @@ export default function VendorOrders() {
   });
 
   const handleStatusChange = (orderId: string, newStatus: any) => {
-    updateStatus.mutate({ id: orderId, data: { status: newStatus } });
+    updateStatus.mutate({ orderId, data: { status: newStatus } });
   };
 
   const getStatusConfig = (status: string) => {

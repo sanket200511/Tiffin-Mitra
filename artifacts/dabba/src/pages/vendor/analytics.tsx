@@ -24,16 +24,16 @@ export default function VendorAnalytics() {
 
   const [period, setPeriod] = useState<"7d" | "30d" | "90d">("30d");
 
-  const { data: trendData, isLoading: trendLoading } = useGetVendorRevenueTrend({ period }, {
-    query: { enabled: !!vendorId, queryKey: ["/api/analytics/vendor/revenue", { period }] }
+  const { data: trendData, isLoading: trendLoading } = useGetVendorRevenueTrend(vendorId ?? '', { period }, {
+    query: { enabled: !!vendorId, queryKey: ["/api/analytics/vendor/revenue", vendorId, { period }] }
   });
   
-  const { data: dishesData, isLoading: dishesLoading } = useGetPopularDishes(undefined, {
-    query: { enabled: !!vendorId, queryKey: ["/api/analytics/vendor/dishes"] }
+  const { data: dishesData, isLoading: dishesLoading } = useGetPopularDishes(vendorId ?? '', {
+    query: { enabled: !!vendorId, queryKey: ["/api/analytics/vendor/dishes", vendorId] }
   });
 
-  const { data: healthData, isLoading: healthLoading } = useGetSubscriptionHealth(undefined, {
-    query: { enabled: !!vendorId, queryKey: ["/api/analytics/vendor/subscriptions/health"] }
+  const { data: healthData, isLoading: healthLoading } = useGetSubscriptionHealth(vendorId ?? '', {
+    query: { enabled: !!vendorId, queryKey: ["/api/analytics/vendor/subscriptions/health", vendorId] }
   });
 
   const trend = trendData?.trend || [];

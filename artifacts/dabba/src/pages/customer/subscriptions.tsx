@@ -7,7 +7,7 @@ import {
   useSkipSubscriptionDay
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { format, addDays, isAfter, parseISO } from "date-fns";
+import { format, addDays, isAfter, parseISO, differenceInDays } from "date-fns";
 import {
   Calendar as CalendarIcon,
   CreditCard,
@@ -20,6 +20,7 @@ import {
   ArrowRight,
   Ban,
   AlertCircle,
+  AlertTriangle,
 } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -28,14 +29,15 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 
 const STATUS_COLORS: Record<string, string> = {
-  active: "bg-green-500",
-  paused: "bg-amber-500",
+  active:    "bg-green-500",
+  paused:    "bg-amber-500",
   cancelled: "bg-red-500",
-  expired: "bg-gray-400",
+  expired:   "bg-gray-400",
 };
 
 export default function MySubscriptions() {
@@ -77,7 +79,7 @@ export default function MySubscriptions() {
     }
   });
 
-  const handlePause = (id: string) => updateSub.mutate({ subscriptionId: id, data: { status: "paused" } });
+  const handlePause  = (id: string) => updateSub.mutate({ subscriptionId: id, data: { status: "paused" } });
   const handleResume = (id: string) => updateSub.mutate({ subscriptionId: id, data: { status: "active" } });
   const handleCancel = (id: string) => {
     updateSub.mutate({ subscriptionId: id, data: { status: "cancelled" } });
@@ -85,6 +87,13 @@ export default function MySubscriptions() {
   };
 
   const activeCount = subscriptions.filter(s => s.status === "active").length;
+
+  // Subscriptions expiring within 3 days
+  const expiringSoon = subscriptions.filter(sub => {
+    if (sub.status !== "active") return false;
+    const daysLeft = differenceInDays(parseISO(sub.endDate), new Date());
+    return daysLeft >= 0 && daysLeft <= 3;
+  });
 
   return (
     <div className="container py-8 max-w-5xl min-h-screen space-y-8">
@@ -97,6 +106,30 @@ export default function MySubscriptions() {
           <p className="text-muted-foreground mt-0.5">Manage your tiffin subscriptions and wallet</p>
         </div>
       </div>
+
+      {/* Expiry warnings */}
+      {expiringSoon.length > 0 && (
+        <div className="space-y-2">
+          {expiringSoon.map(sub => {
+            const daysLeft = differenceInDays(parseISO(sub.endDate), new Date());
+            return (
+              <Alert key={sub.id} className="border-amber-200 bg-amber-50 text-amber-900">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="flex items-center justify-between gap-4 flex-wrap">
+                  <span>
+                    <strong>{sub.planName || "Your subscription"}</strong> from{" "}
+                    <strong>{sub.vendorName}</strong> expires{" "}
+                    {daysLeft === 0 ? "today" : daysLeft === 1 ? "tomorrow" : `in ${daysLeft} days`}.
+                  </span>
+                  <Button size="sm" variant="outline" className="border-amber-300 text-amber-800 hover:bg-amber-100 shrink-0" asChild>
+                    <Link href="/explore">Renew or Find New Tiffin</Link>
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            );
+          })}
+        </div>
+      )}
 
       {/* Summary row */}
       <div className="grid md:grid-cols-3 gap-6">
@@ -122,8 +155,8 @@ export default function MySubscriptions() {
             </p>
           </CardContent>
           <CardFooter className="relative z-10 pt-0">
-            <Button variant="secondary" size="sm" className="w-full bg-white text-primary hover:bg-white/90">
-              Add Money
+            <Button variant="secondary" size="sm" className="w-full bg-white text-primary hover:bg-white/90" asChild>
+              <Link href="/wallet">Add Money</Link>
             </Button>
           </CardFooter>
         </Card>
@@ -184,17 +217,26 @@ export default function MySubscriptions() {
         ) : (
           <div className="space-y-6">
             {subscriptions.map(sub => {
-              const isActive = sub.status === "active";
-              const isPaused = sub.status === "paused";
+              const isActive    = sub.status === "active";
+              const isPaused    = sub.status === "paused";
               const isCancelled = sub.status === "cancelled" || sub.status === "expired";
+              const daysLeft    = differenceInDays(parseISO(sub.endDate), new Date());
+              const isExpiring  = isActive && daysLeft >= 0 && daysLeft <= 3;
 
               return (
-                <Card key={sub.id} className="overflow-hidden">
+                <Card key={sub.id} className={`overflow-hidden ${isExpiring ? "ring-1 ring-amber-300" : ""}`}>
                   <div className={`h-1.5 w-full ${STATUS_COLORS[sub.status] || "bg-gray-400"}`} />
                   <CardHeader className="pb-4">
                     <div className="flex justify-between items-start gap-4">
                       <div>
-                        <CardTitle className="text-xl font-serif mb-1">{sub.planName || "Subscription Plan"}</CardTitle>
+                        <CardTitle className="text-xl font-serif mb-1">
+                          {sub.planName || "Subscription Plan"}
+                          {isExpiring && (
+                            <Badge variant="outline" className="ml-2 text-xs border-amber-300 text-amber-700 bg-amber-50">
+                              Expires {daysLeft === 0 ? "today" : `in ${daysLeft}d`}
+                            </Badge>
+                          )}
+                        </CardTitle>
                         <CardDescription className="flex items-center gap-1.5 text-base">
                           <ChefHat className="w-4 h-4" /> {sub.vendorName || "Kitchen"}
                         </CardDescription>
@@ -298,6 +340,11 @@ export default function MySubscriptions() {
 
                   {!isCancelled && (
                     <CardFooter className="bg-muted/30 border-t gap-3 justify-end py-4">
+                      {isExpiring && (
+                        <Button variant="outline" size="sm" className="border-amber-300 text-amber-700 hover:bg-amber-50 mr-auto" asChild>
+                          <Link href="/explore">Renew</Link>
+                        </Button>
+                      )}
                       {isActive && (
                         <Button variant="secondary" size="sm" onClick={() => handlePause(sub.id)} disabled={updateSub.isPending}>
                           <PauseCircle className="w-4 h-4 mr-2" /> Pause

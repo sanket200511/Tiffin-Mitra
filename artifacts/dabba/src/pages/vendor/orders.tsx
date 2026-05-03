@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useListOrders, useUpdateOrderStatus, useGetMyVendorProfile } from "@workspace/api-client-react";
+import { useListOrders, useGetMyVendorProfile } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
@@ -15,6 +15,7 @@ import {
   Bike,
   Shield,
   ArrowLeft,
+  Zap,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -34,26 +35,57 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 const STATUS_CONFIG: Record<string, { color: string; icon: any; label: string }> = {
-  pending: { color: "bg-yellow-100 text-yellow-800 border-yellow-200", icon: Clock, label: "Pending" },
-  accepted: { color: "bg-blue-100 text-blue-800 border-blue-200", icon: CheckCircle2, label: "Accepted" },
-  preparing: { color: "bg-orange-100 text-orange-800 border-orange-200", icon: ChefHat, label: "Preparing" },
-  packed: { color: "bg-purple-100 text-purple-800 border-purple-200", icon: Package, label: "Packed" },
-  picked_up: { color: "bg-indigo-100 text-indigo-800 border-indigo-200", icon: Bike, label: "Picked Up" },
-  delivered: { color: "bg-green-100 text-green-800 border-green-200", icon: CheckCircle2, label: "Delivered" },
-  cancelled: { color: "bg-red-100 text-red-800 border-red-200", icon: AlertCircle, label: "Cancelled" },
+  pending:  { color: "bg-yellow-100 text-yellow-800 border-yellow-200",  icon: Clock,         label: "Pending" },
+  accepted: { color: "bg-blue-100 text-blue-800 border-blue-200",        icon: CheckCircle2,  label: "Accepted" },
+  preparing:{ color: "bg-orange-100 text-orange-800 border-orange-200",  icon: ChefHat,       label: "Preparing" },
+  packed:   { color: "bg-purple-100 text-purple-800 border-purple-200",  icon: Package,       label: "Packed" },
+  picked_up:{ color: "bg-indigo-100 text-indigo-800 border-indigo-200",  icon: Bike,          label: "Picked Up" },
+  delivered:{ color: "bg-green-100 text-green-800 border-green-200",     icon: CheckCircle2,  label: "Delivered" },
+  cancelled:{ color: "bg-red-100 text-red-800 border-red-200",           icon: AlertCircle,   label: "Cancelled" },
 };
 
-// Next valid status transitions (mirrors backend enforcement)
 const NEXT_STATUSES: Record<string, Array<{ value: string; label: string }>> = {
-  pending: [{ value: "accepted", label: "Accept Order" }, { value: "cancelled", label: "Cancel Order" }],
-  accepted: [{ value: "preparing", label: "Mark as Preparing" }, { value: "cancelled", label: "Cancel Order" }],
-  preparing: [{ value: "packed", label: "Mark as Packed" }, { value: "cancelled", label: "Cancel Order" }],
-  packed: [{ value: "picked_up", label: "Handed to Delivery" }, { value: "cancelled", label: "Cancel Order" }],
+  pending:   [{ value: "accepted",  label: "Accept Order" }, { value: "cancelled", label: "Cancel Order" }],
+  accepted:  [{ value: "preparing", label: "Mark as Preparing" }, { value: "cancelled", label: "Cancel Order" }],
+  preparing: [{ value: "packed",    label: "Mark as Packed" }, { value: "cancelled", label: "Cancel Order" }],
+  packed:    [{ value: "picked_up", label: "Handed to Delivery" }, { value: "cancelled", label: "Cancel Order" }],
   picked_up: [{ value: "delivered", label: "Mark as Delivered" }],
   delivered: [],
   cancelled: [],
 };
 
+// ─── Day-level pipeline stats bar ────────────────────────────────────────────
+function PipelineStats({ orders }: { orders: Array<{ status: string }> }) {
+  const counts: Record<string, number> = {};
+  for (const o of orders) counts[o.status] = (counts[o.status] ?? 0) + 1;
+
+  const stats = [
+    { key: "pending",   label: "Pending",   color: "bg-yellow-100 text-yellow-800 border-yellow-200" },
+    { key: "accepted",  label: "Accepted",  color: "bg-blue-100 text-blue-800 border-blue-200" },
+    { key: "preparing", label: "Preparing", color: "bg-orange-100 text-orange-800 border-orange-200" },
+    { key: "packed",    label: "Packed",    color: "bg-purple-100 text-purple-800 border-purple-200" },
+    { key: "picked_up", label: "Out",       color: "bg-indigo-100 text-indigo-800 border-indigo-200" },
+    { key: "delivered", label: "Delivered", color: "bg-green-100 text-green-800 border-green-200" },
+    { key: "cancelled", label: "Cancelled", color: "bg-red-100 text-red-800 border-red-200" },
+  ].filter(s => (counts[s.key] ?? 0) > 0);
+
+  if (stats.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {stats.map(s => (
+        <Badge key={s.key} variant="outline" className={`border ${s.color} text-xs font-semibold`}>
+          {counts[s.key]} {s.label}
+        </Badge>
+      ))}
+      <span className="text-xs text-muted-foreground ml-1">
+        · {orders.length} total order{orders.length !== 1 ? "s" : ""}
+      </span>
+    </div>
+  );
+}
+
+// ─── Main Component ────────────────────────────────────────────────────────────
 export default function VendorOrders() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -64,39 +96,90 @@ export default function VendorOrders() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [search, setSearch] = useState("");
+  const [isAcceptingAll, setIsAcceptingAll] = useState(false);
 
-  const { data: ordersData, isLoading } = useListOrders({
-    vendorId,
-    status: statusFilter !== "all" ? statusFilter as any : undefined,
-    date: dateFilter || undefined,
-  }, {
-    query: { enabled: !!vendorId, queryKey: ["/api/orders", { vendorId, status: statusFilter, date: dateFilter }] }
-  });
+  const { data: ordersData, isLoading } = useListOrders(
+    {
+      vendorId,
+      status: statusFilter !== "all" ? statusFilter as any : undefined,
+      date: dateFilter || undefined,
+    },
+    {
+      query: { enabled: !!vendorId, queryKey: ["/api/orders", { vendorId, status: statusFilter, date: dateFilter }] }
+    },
+  );
 
   const rawOrders = ordersData?.orders || [];
   const orders = search.trim()
     ? rawOrders.filter(o => o.customerName?.toLowerCase().includes(search.toLowerCase()))
     : rawOrders;
 
-  const updateStatus = useUpdateOrderStatus({
-    mutation: {
-      onSuccess: () => {
-        toast({ title: "Order status updated" });
-        queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+  // All orders for the day (without status filter) — used for pipeline stats
+  const { data: allDayData } = useListOrders(
+    { vendorId, date: dateFilter || undefined },
+    {
+      query: {
+        enabled: !!vendorId,
+        queryKey: ["/api/orders/all-day", { vendorId, date: dateFilter }],
       },
-      onError: (err: any) => {
-        const msg = err?.response?.data?.error || "Failed to update order status.";
-        toast({ variant: "destructive", title: "Error", description: msg });
+    },
+  );
+  const allDayOrders = allDayData?.orders || [];
+
+  // Pending orders visible in current list
+  const pendingOrders = orders.filter(o => o.status === "pending");
+  const hasMultiplePending = pendingOrders.length > 1;
+
+  // ─── Bulk accept all pending orders ───────────────────────────────────────
+  const handleAcceptAll = async () => {
+    if (pendingOrders.length === 0) return;
+    setIsAcceptingAll(true);
+    let succeeded = 0;
+    for (const order of pendingOrders) {
+      try {
+        const res = await fetch(`/api/orders/${order.id}`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "accepted" }),
+        });
+        if (res.ok) succeeded++;
+      } catch {
+        // continue on individual failures
       }
     }
-  });
+    setIsAcceptingAll(false);
+    queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+    toast({
+      title: succeeded === pendingOrders.length
+        ? `All ${succeeded} orders accepted`
+        : `${succeeded} of ${pendingOrders.length} orders accepted`,
+    });
+  };
 
-  const handleStatusChange = (orderId: string, newStatus: string) => {
-    updateStatus.mutate({ orderId, data: { status: newStatus as any } });
+  // ─── Single order status update ───────────────────────────────────────────
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as any)?.error || "Failed to update");
+      }
+      toast({ title: "Order status updated" });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Error", description: err.message });
+    }
   };
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+      {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild className="lg:hidden">
           <a href="/vendor/dashboard"><ArrowLeft className="w-5 h-5" /></a>
@@ -116,8 +199,8 @@ export default function VendorOrders() {
         </p>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      {/* Filters row */}
+      <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
         <div className="w-full sm:w-48 shrink-0">
           <Input
             type="date"
@@ -142,7 +225,7 @@ export default function VendorOrders() {
             </SelectContent>
           </Select>
         </div>
-        <div className="relative flex-1">
+        <div className="relative flex-1 min-w-[160px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search by customer name..."
@@ -151,9 +234,30 @@ export default function VendorOrders() {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
+        {/* Bulk accept — only when 2+ pending orders are visible */}
+        {hasMultiplePending && (
+          <Button
+            variant="default"
+            size="default"
+            disabled={isAcceptingAll}
+            onClick={handleAcceptAll}
+            className="shrink-0"
+          >
+            <Zap className="w-4 h-4 mr-2" />
+            {isAcceptingAll
+              ? "Accepting..."
+              : `Accept All Pending (${pendingOrders.length})`
+            }
+          </Button>
+        )}
       </div>
 
-      {/* Orders Table */}
+      {/* Day pipeline stats — shows counts of all non-filtered orders for the chosen day */}
+      {!isLoading && allDayOrders.length > 0 && (
+        <PipelineStats orders={allDayOrders} />
+      )}
+
+      {/* Orders table */}
       <div className="bg-card rounded-xl border shadow-sm overflow-hidden overflow-x-auto">
         <Table className="min-w-[640px]">
           <TableHeader>

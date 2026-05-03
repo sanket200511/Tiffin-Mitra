@@ -289,3 +289,11 @@
     inset: -1px;
   }
 }
+
+/* Hide Replit badge */
+#replit-badge,
+[data-replit-badge],
+.replit-badge,
+iframe[src*="replit"] {
+  display: none !important;
+}

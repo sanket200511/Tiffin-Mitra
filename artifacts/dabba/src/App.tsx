@@ -30,6 +30,10 @@ import VendorProfile from "@/pages/vendor/profile";
 
 import AdminOverview from "@/pages/admin/overview";
 import Login from "@/pages/auth/login";
+import HowItWorks from "@/pages/how-it-works";
+import About from "@/pages/about";
+import Contact from "@/pages/contact";
+import Privacy from "@/pages/privacy";
 
 const queryClient = new QueryClient();
 
@@ -140,6 +144,20 @@ function Router() {
       </Route>
       <Route path="/vendor/profile">
         <ProtectedRoute component={VendorProfile} allowedRole="vendor" layout={VendorLayout} />
+      </Route>
+
+      {/* Static Pages */}
+      <Route path="/how-it-works">
+        <CustomerLayout><HowItWorks /></CustomerLayout>
+      </Route>
+      <Route path="/about">
+        <CustomerLayout><About /></CustomerLayout>
+      </Route>
+      <Route path="/contact">
+        <CustomerLayout><Contact /></CustomerLayout>
+      </Route>
+      <Route path="/privacy">
+        <CustomerLayout><Privacy /></CustomerLayout>
       </Route>
 
       {/* Admin Routes */}

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, ordersTable, vendorsTable, customersTable, walletTransactionsTable, customerSubscriptionsTable, subscriptionPlansTable } from "@workspace/db";
+import { db, ordersTable, vendorsTable, customersTable, walletTransactionsTable, customerSubscriptionsTable, subscriptionPlansTable, DEFAULT_SETTINGS, platformSettingsTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import { notifyUser } from "../lib/notify";
 
@@ -197,12 +197,28 @@ router.patch("/orders/:orderId", async (req, res) => {
       const [vendor] = await db.select({ ownerUserId: vendorsTable.ownerUserId })
         .from(vendorsTable).where(eq(vendorsTable.id, order.vendorId));
       const isAdmin = req.user.role === "super_admin";
+      const isCustomerCancelling = newStatus === "cancelled" && req.user.role === "customer";
 
-      if (!vendor || (vendor.ownerUserId !== req.user.id && !isAdmin)) {
+      if (isCustomerCancelling) {
+        if (order.status !== "pending") {
+          res.status(400).json({ error: "Orders can only be cancelled before the vendor accepts them." });
+          return;
+        }
+        const [custRow] = await db.select({ id: customersTable.id })
+          .from(customersTable).where(eq(customersTable.userId, req.user.id));
+        if (!custRow || custRow.id !== order.customerId) {
+          res.status(403).json({ error: "You can only cancel your own orders." });
+          return;
+        }
+      } else if (!vendor || (vendor.ownerUserId !== req.user.id && !isAdmin)) {
         res.status(403).json({ error: "Only the vendor can update order status." });
         return;
       }
     }
+
+    const cancelledByCustomer =
+      newStatus === "cancelled" &&
+      req.user.role === "customer";
 
     if (newStatus === "cancelled") {
       const [customerRow] = await db.select()
@@ -220,7 +236,9 @@ router.patch("/orders/:orderId", async (req, res) => {
           customerId: customerRow.id,
           type: "credit",
           amount: refundAmount.toFixed(2),
-          description: `Refund: order cancelled by kitchen (scheduled ${order.scheduledDate})`,
+          description: cancelledByCustomer
+            ? `Refund: you cancelled your order (scheduled ${order.scheduledDate})`
+            : `Refund: order cancelled by kitchen (scheduled ${order.scheduledDate})`,
         });
       }
     }

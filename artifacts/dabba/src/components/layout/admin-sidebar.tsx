@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   Wallet,
   CalendarDays,
+  Settings2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/layout/notification-bell";
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/admin/orders",         label: "Orders",         icon: ShoppingBag },
   { href: "/admin/payouts",        label: "Payouts",        icon: Wallet },
   { href: "/admin/analytics",      label: "Analytics",      icon: TrendingUp },
+  { href: "/admin/settings",       label: "Settings",       icon: Settings2 },
 ];
 
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {

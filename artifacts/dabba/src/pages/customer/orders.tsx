@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useListOrders, useCreateReview } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, addDays, startOfDay, isBefore, parseISO, isToday, isTomorrow } from "date-fns";
 import {
   Search, Filter, ShoppingBag, Clock, CheckCircle2, AlertCircle, Star,
-  ArrowLeft, MapPin, CalendarDays, ChefHat, Bike, Package,
+  ArrowLeft, MapPin, CalendarDays, ChefHat, Bike, Package, XCircle,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
@@ -72,11 +73,12 @@ const STATUS_CONFIG: Record<string, { color: string; icon: typeof Clock; label: 
 };
 
 // ─── Upcoming week view ────────────────────────────────────────────────────────
-function UpcomingView({ orders, isLoading, onReview, reviewed }: {
+function UpcomingView({ orders, isLoading, onReview, reviewed, onCancel }: {
   orders: Order[];
   isLoading: boolean;
   onReview: (order: Order) => void;
   reviewed: Set<string>;
+  onCancel: (order: Order) => void;
 }) {
   const today = startOfDay(new Date());
   const week = Array.from({ length: 7 }, (_, i) => addDays(today, i));
@@ -175,6 +177,16 @@ function UpcomingView({ orders, isLoading, onReview, reviewed }: {
                             <Star className="w-3 h-3 mr-1" /> Rate
                           </Button>
                         )}
+                        {order.status === "pending" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                            onClick={() => onCancel(order)}
+                          >
+                            <XCircle className="w-3 h-3 mr-1" /> Cancel
+                          </Button>
+                        )}
                       </div>
                     </div>
                   );
@@ -225,6 +237,33 @@ export default function Orders() {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [reviewed, setReviewed] = useState<Set<string>>(new Set());
+
+  // Cancel order state + mutation
+  const [cancelingOrder, setCancelingOrder] = useState<Order | null>(null);
+  const openCancelDialog = (order: Order) => setCancelingOrder(order);
+
+  const cancelOrder = useMutation({
+    mutationFn: async (orderId: string) => {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "cancelled" }),
+      });
+      const body = await res.json() as { order?: unknown; error?: string };
+      if (!res.ok) throw new Error(body.error ?? "Failed to cancel order");
+      return body;
+    },
+    onSuccess: () => {
+      toast({ title: "Order cancelled", description: "A full refund has been added to your Dabba Wallet." });
+      setCancelingOrder(null);
+      void queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", title: "Could not cancel", description: err.message });
+      setCancelingOrder(null);
+    },
+  });
 
   const createReview = useCreateReview({
     mutation: {
@@ -286,6 +325,7 @@ export default function Orders() {
             isLoading={allLoading}
             onReview={openReviewDialog}
             reviewed={reviewed}
+            onCancel={openCancelDialog}
           />
         </TabsContent>
 
@@ -399,6 +439,16 @@ export default function Orders() {
                                 <Star className="w-3 h-3 mr-1" /> Rate
                               </Button>
                             )}
+                            {order.status === "pending" && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                                onClick={() => openCancelDialog(order)}
+                              >
+                                <XCircle className="w-3 h-3 mr-1" /> Cancel
+                              </Button>
+                            )}
                             {order.status === "delivered" && reviewed.has(order.id) && (
                               <span className="text-xs text-muted-foreground flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3 text-green-500" /> Reviewed
@@ -415,6 +465,38 @@ export default function Orders() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Cancel Order Confirmation */}
+      <AlertDialog open={!!cancelingOrder} onOpenChange={(open) => { if (!open) setCancelingOrder(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel this order?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {cancelingOrder && (
+                <>
+                  Your <span className="font-medium">{cancelingOrder.mealType || "standard"}</span> tiffin from{" "}
+                  <span className="font-medium">{cancelingOrder.vendorName || "this kitchen"}</span> on{" "}
+                  {format(new Date(cancelingOrder.scheduledDate), "EEEE, MMM d")} will be cancelled.
+                  <br /><br />
+                  <span className="font-semibold text-foreground">
+                    ₹{parseFloat(String(cancelingOrder.totalAmount)).toFixed(0)} will be refunded to your Dabba Wallet.
+                  </span>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelOrder.isPending}>Keep Order</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={cancelOrder.isPending}
+              onClick={() => cancelingOrder && cancelOrder.mutate(cancelingOrder.id)}
+            >
+              {cancelOrder.isPending ? "Cancelling..." : "Yes, Cancel"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Leave Review Dialog */}
       <Dialog open={!!reviewingOrder} onOpenChange={(open) => { if (!open) setReviewingOrder(null); }}>

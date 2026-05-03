@@ -38,6 +38,7 @@ const VendorEarnings   = lazy(() => import("@/pages/vendor/earnings"));
 const VendorSchedule   = lazy(() => import("@/pages/vendor/schedule"));
 
 const AdminOverview       = lazy(() => import("@/pages/admin/overview"));
+const AdminSettings       = lazy(() => import("@/pages/admin/settings"));
 const AdminVendors        = lazy(() => import("@/pages/admin/vendors"));
 const AdminVendorDetail   = lazy(() => import("@/pages/admin/vendor-detail"));
 const AdminCustomers      = lazy(() => import("@/pages/admin/customers"));
@@ -242,6 +243,9 @@ function Router() {
         </Route>
         <Route path="/admin/payouts">
           <ProtectedRoute component={AdminPayouts} allowedRole="super_admin" layout={AdminLayout} />
+        </Route>
+        <Route path="/admin/settings">
+          <ProtectedRoute component={AdminSettings} allowedRole="super_admin" layout={AdminLayout} />
         </Route>
         <Route path="/admin/analytics">
           <ProtectedRoute component={AdminAnalytics} allowedRole="super_admin" layout={AdminLayout} />

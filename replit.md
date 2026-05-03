@@ -127,6 +127,18 @@ Warm saffron/amber palette (`--primary: 28 90% 50%`). Fraunces (serif display) +
 - **Rasoi Express** — South Indian, Bengaluru (4.4★, 87 reviews)
 - **Ghar Ki Daal** — Gujarati, Ahmedabad (4.8★, 203 reviews)
 
+## Performance & Scalability
+
+- **Rate limiting:** global 300 req/min per IP, auth 20/15 min, wallet 10/min (`express-rate-limit`)
+- **React Query defaults:** `staleTime: 30s`, `gcTime: 5min`, `retry: 1`, `refetchOnWindowFocus: false`
+- **Code splitting:** all 22 pages are `React.lazy` + wrapped in a single `Suspense` boundary
+- **Image loading:** `loading="lazy"` + `decoding="async"` on all vendor images below the fold; cover images use `loading="eager"`
+- **Vendor stats route:** 4 parallel SQL aggregate queries (no full table scan)
+- **Vendor search:** `ilike` (case-insensitive) instead of `like`
+- **HTTP caching:** `Cache-Control: public, max-age=30, stale-while-revalidate=120` on unfiltered vendor list
+- **DB query patterns:** JOIN instead of N+1 throughout; batch queries for upcoming deliveries; SQL aggregates for admin lists
+- See `SCALABILITY.md` for the full scaling blueprint and phase plan.
+
 ## Key Commands
 
 ```bash

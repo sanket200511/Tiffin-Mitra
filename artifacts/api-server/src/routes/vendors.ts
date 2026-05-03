@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { vendorsTable, reviewsTable } from "@workspace/db";
-import { eq, like, and, desc, count } from "drizzle-orm";
+import { eq, ilike, and, desc, count, gte, sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -19,16 +19,27 @@ router.get("/vendors", async (req, res) => {
   try {
     const { city, cuisine, search } = req.query as Record<string, string>;
     const isAdmin = req.isAuthenticated() && req.user.role === "super_admin";
+    // Support legacy ?includeAll=true used by admin overview page
+    const includeAll = req.query.includeAll === "true" && isAdmin;
 
     const conditions: ReturnType<typeof eq>[] = [];
-    if (!isAdmin) conditions.push(eq(vendorsTable.status, "approved"));
+    if (!isAdmin && !includeAll) conditions.push(eq(vendorsTable.status, "approved"));
     if (city) conditions.push(eq(vendorsTable.city, city));
-    if (cuisine) conditions.push(like(vendorsTable.cuisineType, `%${cuisine}%`));
-    if (search) conditions.push(like(vendorsTable.name, `%${search}%`));
+    // ilike = case-insensitive LIKE — avoids missing "north indian" vs "North Indian"
+    if (cuisine) conditions.push(ilike(vendorsTable.cuisineType, `%${cuisine}%`));
+    if (search) conditions.push(ilike(vendorsTable.name, `%${search}%`));
 
     const vendors = await db.select().from(vendorsTable)
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(vendorsTable.featured), desc(vendorsTable.createdAt));
+
+    // Add cache hint for public vendor lists (approved only, no filters)
+    if (!isAdmin && !search && !city && !cuisine) {
+      res.set("Cache-Control", "public, max-age=30, stale-while-revalidate=120");
+    } else {
+      res.set("Cache-Control", "no-store");
+    }
+
     res.json({ vendors });
   } catch (err) {
     req.log.error({ err }, "Failed to list vendors");
@@ -179,43 +190,63 @@ router.get("/vendors/:vendorId/stats", async (req, res) => {
       return;
     }
 
-    const [subCount] = await db
-      .select({ count: count() })
-      .from(customerSubscriptionsTable)
-      .where(and(
-        eq(customerSubscriptionsTable.vendorId, vendorId),
-        eq(customerSubscriptionsTable.status, "active")
-      ));
-
-    const orders = await db.select().from(ordersTable).where(eq(ordersTable.vendorId, vendorId));
-    const totalRevenue = orders.reduce((sum, o) => sum + parseFloat(o.totalAmount as string), 0);
     const today = new Date().toISOString().split("T")[0];
-    const todayOrders = orders.filter(o => o.scheduledDate === today);
-
     const monthStart = new Date();
     monthStart.setDate(1);
     const monthStartStr = monthStart.toISOString().split("T")[0];
-    const monthOrders = orders.filter(o => o.scheduledDate >= monthStartStr);
-    const monthlyRevenue = monthOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount as string), 0);
 
-    const reviews = await db.select({ rating: reviewsTable.rating })
-      .from(reviewsTable)
-      .where(eq(reviewsTable.vendorId, vendorId));
-    const averageRating = reviews.length > 0
-      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-      : null;
+    // Run all 4 queries in parallel — no more full table scan
+    const [allTimeRow, todayRow, monthRow, subRow] = await Promise.all([
+      db
+        .select({
+          total: count(),
+          revenue: sql<number>`coalesce(sum(${ordersTable.totalAmount}::numeric), 0)`,
+        })
+        .from(ordersTable)
+        .where(eq(ordersTable.vendorId, vendorId)),
+
+      db
+        .select({
+          total: count(),
+          pending: sql<number>`count(*) filter (where ${ordersTable.status} = 'pending')::int`,
+          delivered: sql<number>`count(*) filter (where ${ordersTable.status} = 'delivered')::int`,
+        })
+        .from(ordersTable)
+        .where(and(eq(ordersTable.vendorId, vendorId), eq(ordersTable.scheduledDate, today))),
+
+      db
+        .select({
+          revenue: sql<number>`coalesce(sum(${ordersTable.totalAmount}::numeric), 0)`,
+        })
+        .from(ordersTable)
+        .where(and(eq(ordersTable.vendorId, vendorId), gte(ordersTable.scheduledDate, monthStartStr))),
+
+      db
+        .select({ count: count() })
+        .from(customerSubscriptionsTable)
+        .where(and(
+          eq(customerSubscriptionsTable.vendorId, vendorId),
+          eq(customerSubscriptionsTable.status, "active"),
+        )),
+    ]);
+
+    // Rating is already stored on the vendor row (updated by refreshVendorRating on each review)
+    const [vendorFull] = await db
+      .select({ rating: vendorsTable.rating, reviewCount: vendorsTable.reviewCount })
+      .from(vendorsTable)
+      .where(eq(vendorsTable.id, vendorId));
 
     res.json({
       stats: {
-        totalRevenue,
-        totalOrders: orders.length,
-        activeSubscriptions: Number(subCount?.count ?? 0),
-        averageRating: averageRating !== null ? parseFloat(averageRating.toFixed(1)) : null,
-        reviewCount: reviews.length,
-        todayOrders: todayOrders.length,
-        monthlyRevenue,
-        pendingOrders: todayOrders.filter(o => o.status === "pending").length,
-        completedOrdersToday: todayOrders.filter(o => o.status === "delivered").length,
+        totalRevenue: Number(allTimeRow[0]?.revenue ?? 0),
+        totalOrders: Number(allTimeRow[0]?.total ?? 0),
+        activeSubscriptions: Number(subRow[0]?.count ?? 0),
+        averageRating: vendorFull?.rating ? parseFloat(String(vendorFull.rating)) : null,
+        reviewCount: vendorFull?.reviewCount ?? 0,
+        todayOrders: Number(todayRow[0]?.total ?? 0),
+        monthlyRevenue: Number(monthRow[0]?.revenue ?? 0),
+        pendingOrders: Number(todayRow[0]?.pending ?? 0),
+        completedOrdersToday: Number(todayRow[0]?.delivered ?? 0),
       }
     });
   } catch (err) {

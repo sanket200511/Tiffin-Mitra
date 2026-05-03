@@ -62,7 +62,7 @@ export default function VendorDetail() {
       {/* Cover Image & Header */}
       <div className="relative h-64 md:h-80 bg-muted">
         {vendor.coverImageUrl ? (
-          <img src={vendor.coverImageUrl} alt={vendor.name} className="w-full h-full object-cover" />
+          <img src={vendor.coverImageUrl} alt={vendor.name} className="w-full h-full object-cover" loading="eager" decoding="async" />
         ) : (
           <div className="w-full h-full bg-primary/10 flex items-center justify-center">
             <ChefHat className="w-20 h-20 text-primary/30" />
@@ -74,7 +74,7 @@ export default function VendorDetail() {
           <div className="container pb-6 md:pb-8 flex flex-col md:flex-row md:items-end gap-6">
             {vendor.logoUrl && (
               <div className="w-24 h-24 md:w-32 md:h-32 rounded-xl border-4 border-background bg-card overflow-hidden shrink-0 shadow-lg -mb-12 md:-mb-16 z-10 hidden md:block">
-                <img src={vendor.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                <img src={vendor.logoUrl} alt="Logo" className="w-full h-full object-cover" loading="lazy" decoding="async" />
               </div>
             )}
             <div className="text-white flex-1 space-y-2 z-10">

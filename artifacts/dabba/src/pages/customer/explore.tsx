@@ -136,7 +136,7 @@ export default function Explore() {
               <div className="bg-card h-full flex flex-col rounded-xl overflow-hidden border shadow-sm transition-all hover:shadow-md hover:border-primary/30">
                 <div className="h-48 bg-muted relative shrink-0">
                   {vendor.coverImageUrl ? (
-                    <img src={vendor.coverImageUrl} alt={vendor.name} className="w-full h-full object-cover" />
+                    <img src={vendor.coverImageUrl} alt={vendor.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-primary/5 text-primary/20">
                       <ChefHat className="w-12 h-12" />
@@ -156,7 +156,7 @@ export default function Explore() {
                   )}
                   {vendor.logoUrl && (
                     <div className="absolute -bottom-6 left-4 w-12 h-12 rounded-full border-2 border-background bg-card overflow-hidden shadow-sm">
-                      <img src={vendor.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                      <img src={vendor.logoUrl} alt="Logo" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     </div>
                   )}
                 </div>

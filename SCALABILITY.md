@@ -421,15 +421,19 @@ the most direct guide to where to add indexes or rewrite queries.
 | Search debounce on Explore page (300 ms) | Done |
 | DB indexes (9 applied) | Done |
 | Vendor plans visibility for owner | Done |
+| Rate limiting (global 300/min, auth 20/15 min, wallet 10/min) | Done |
+| React Query `staleTime` (30 s) + `gcTime` (5 min) + `retry: 1` | Done |
+| `refetchOnWindowFocus: false` | Done |
+| Code splitting with `React.lazy` + `Suspense` (all 22 pages) | Done |
+| Image lazy loading + `decoding="async"` (explore, home, vendor-detail) | Done |
+| Vendor stats: 4 parallel SQL aggregates (no more full table scan) | Done |
+| Case-insensitive vendor search with `ilike` | Done |
+| `Cache-Control` headers on public vendor list (30 s max-age) | Done |
 | Pagination on list endpoints | **Missing** |
-| `staleTime` on React Query | **Missing** |
-| Image lazy loading + explicit dimensions | **Missing** |
-| Rate limiting middleware | **Missing** |
 | PostgreSQL full-text search on vendors | **Missing** |
 | SSE-based order tracking | **Missing** |
 | Daily aggregate table for analytics | **Missing** |
 | Background job queue for slow work | **Missing** |
-| Code splitting with `React.lazy` | **Missing** |
 
 ---
 

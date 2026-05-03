@@ -469,6 +469,8 @@ function MarketingHome() {
                             src={vendor.coverImageUrl}
                             alt={vendor.name}
                             className="w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-primary/5 text-primary/20">

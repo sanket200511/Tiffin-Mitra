@@ -35,12 +35,14 @@ const VendorProfile    = lazy(() => import("@/pages/vendor/profile"));
 const VendorReviews    = lazy(() => import("@/pages/vendor/reviews"));
 const VendorEarnings   = lazy(() => import("@/pages/vendor/earnings"));
 
-const AdminOverview    = lazy(() => import("@/pages/admin/overview"));
-const AdminVendors     = lazy(() => import("@/pages/admin/vendors"));
-const AdminCustomers   = lazy(() => import("@/pages/admin/customers"));
-const AdminOrders      = lazy(() => import("@/pages/admin/orders"));
-const AdminPayouts     = lazy(() => import("@/pages/admin/payouts"));
-const AdminAnalytics   = lazy(() => import("@/pages/admin/analytics"));
+const AdminOverview       = lazy(() => import("@/pages/admin/overview"));
+const AdminVendors        = lazy(() => import("@/pages/admin/vendors"));
+const AdminVendorDetail   = lazy(() => import("@/pages/admin/vendor-detail"));
+const AdminCustomers      = lazy(() => import("@/pages/admin/customers"));
+const AdminSubscriptions  = lazy(() => import("@/pages/admin/subscriptions"));
+const AdminOrders         = lazy(() => import("@/pages/admin/orders"));
+const AdminPayouts        = lazy(() => import("@/pages/admin/payouts"));
+const AdminAnalytics      = lazy(() => import("@/pages/admin/analytics"));
 
 const Login            = lazy(() => import("@/pages/auth/login"));
 const HowItWorks       = lazy(() => import("@/pages/how-it-works"));
@@ -211,11 +213,17 @@ function Router() {
         <Route path="/admin/overview">
           <ProtectedRoute component={AdminOverview} allowedRole="super_admin" layout={AdminLayout} />
         </Route>
+        <Route path="/admin/vendors/:vendorId">
+          <ProtectedRoute component={AdminVendorDetail} allowedRole="super_admin" layout={AdminLayout} />
+        </Route>
         <Route path="/admin/vendors">
           <ProtectedRoute component={AdminVendors} allowedRole="super_admin" layout={AdminLayout} />
         </Route>
         <Route path="/admin/customers">
           <ProtectedRoute component={AdminCustomers} allowedRole="super_admin" layout={AdminLayout} />
+        </Route>
+        <Route path="/admin/subscriptions">
+          <ProtectedRoute component={AdminSubscriptions} allowedRole="super_admin" layout={AdminLayout} />
         </Route>
         <Route path="/admin/orders">
           <ProtectedRoute component={AdminOrders} allowedRole="super_admin" layout={AdminLayout} />

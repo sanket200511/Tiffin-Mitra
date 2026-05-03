@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
-  Store, Search, CheckCircle2, XCircle, Clock, ChefHat, MapPin, Percent, Pencil,
+  Store, Search, CheckCircle2, XCircle, Clock, ChefHat, MapPin, Percent, Pencil, ExternalLink,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -276,6 +277,11 @@ export default function AdminVendors() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <Link href={`/admin/vendors/${vendor.id}`}>
+                          <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground hover:text-foreground">
+                            <ExternalLink className="w-3 h-3 mr-1" /> View
+                          </Button>
+                        </Link>
                         {isPending && (
                           <>
                             <Button

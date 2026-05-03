@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, subscriptionPlansTable, customerSubscriptionsTable, vendorsTable, ordersTable, walletTransactionsTable, customersTable } from "@workspace/db";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, desc } from "drizzle-orm";
 import { notifyUser } from "../lib/notify";
 
 const router = Router();
@@ -132,7 +132,42 @@ router.get("/subscriptions", async (req, res) => {
     return;
   }
   try {
-    const { customersTable } = await import("@workspace/db");
+    // ── Admin: return all subscriptions with optional filters ──────────────
+    if (req.user.role === "super_admin") {
+      const { vendorId, status } = req.query as Record<string, string>;
+      const conditions: ReturnType<typeof eq>[] = [];
+      if (vendorId) conditions.push(eq(customerSubscriptionsTable.vendorId, vendorId));
+      if (status)   conditions.push(eq(customerSubscriptionsTable.status, status as "active" | "paused" | "cancelled" | "expired"));
+
+      const rows = await db
+        .select({
+          sub:          customerSubscriptionsTable,
+          vendorName:   vendorsTable.name,
+          planName:     subscriptionPlansTable.name,
+          planType:     subscriptionPlansTable.planType,
+          planPrice:    subscriptionPlansTable.price,
+          customerName: customersTable.name,
+        })
+        .from(customerSubscriptionsTable)
+        .leftJoin(vendorsTable,           eq(customerSubscriptionsTable.vendorId,  vendorsTable.id))
+        .leftJoin(subscriptionPlansTable, eq(customerSubscriptionsTable.planId,    subscriptionPlansTable.id))
+        .leftJoin(customersTable,         eq(customerSubscriptionsTable.customerId, customersTable.id))
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(desc(customerSubscriptionsTable.createdAt));
+
+      const subscriptions = rows.map(r => ({
+        ...r.sub,
+        vendorName:   r.vendorName   ?? undefined,
+        planName:     r.planName     ?? undefined,
+        planType:     r.planType     ?? undefined,
+        planPrice:    r.planPrice    ?? undefined,
+        customerName: r.customerName ?? undefined,
+      }));
+      res.json({ subscriptions });
+      return;
+    }
+
+    // ── Customer: own subscriptions only ──────────────────────────────────
     const [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user.id));
     if (!customer) {
       res.json({ subscriptions: [] });
@@ -141,21 +176,21 @@ router.get("/subscriptions", async (req, res) => {
 
     const rows = await db
       .select({
-        sub: customerSubscriptionsTable,
+        sub:      customerSubscriptionsTable,
         vendorName: vendorsTable.name,
-        planName: subscriptionPlansTable.name,
-        planType: subscriptionPlansTable.planType,
+        planName:   subscriptionPlansTable.name,
+        planType:   subscriptionPlansTable.planType,
       })
       .from(customerSubscriptionsTable)
-      .leftJoin(vendorsTable, eq(customerSubscriptionsTable.vendorId, vendorsTable.id))
-      .leftJoin(subscriptionPlansTable, eq(customerSubscriptionsTable.planId, subscriptionPlansTable.id))
+      .leftJoin(vendorsTable,           eq(customerSubscriptionsTable.vendorId, vendorsTable.id))
+      .leftJoin(subscriptionPlansTable, eq(customerSubscriptionsTable.planId,   subscriptionPlansTable.id))
       .where(eq(customerSubscriptionsTable.customerId, customer.id));
 
     const subscriptions = rows.map(r => ({
       ...r.sub,
       vendorName: r.vendorName ?? undefined,
-      planName: r.planName ?? undefined,
-      planType: r.planType ?? undefined,
+      planName:   r.planName   ?? undefined,
+      planType:   r.planType   ?? undefined,
     }));
 
     res.json({ subscriptions });

@@ -8,3 +8,4 @@ export * from "./reviews";
 export * from "./peer-deliveries";
 export * from "./payouts";
 export * from "./notifications";
+export * from "./holidays";

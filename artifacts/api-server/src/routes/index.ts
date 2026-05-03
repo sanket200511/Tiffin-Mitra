@@ -12,6 +12,7 @@ import deliveryRouter from "./deliveries";
 import peerDeliveryRouter from "./peer-deliveries";
 import payoutsRouter from "./payouts";
 import notificationsRouter from "./notifications";
+import holidaysRouter from "./holidays";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(deliveryRouter);
 router.use(peerDeliveryRouter);
 router.use(payoutsRouter);
 router.use(notificationsRouter);
+router.use(holidaysRouter);
 
 export default router;

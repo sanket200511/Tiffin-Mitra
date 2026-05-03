@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRoute, useLocation, Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,12 +7,13 @@ import { format, addDays } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import {
   CalendarIcon, MapPin, Clock, IndianRupee, ArrowLeft,
-  CheckCircle2, ChefHat, Wallet, AlertTriangle, Plus,
+  CheckCircle2, ChefHat, Wallet, AlertTriangle, Plus, Gift,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useCreateCustomerSubscription, useListSubscriptionPlans, useGetMyCustomerProfile } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -47,12 +48,16 @@ const formSchema = z.object({
   deliverySlot: z.string().min(1, "Please select a delivery time slot."),
 });
 
+// 100 loyalty points = ₹10 discount
+const POINTS_PER_RUPEE = 10;
+
 export default function Subscribe() {
   const [, params] = useRoute("/subscribe/:vendorId/:planId");
   const planId = params?.planId;
   const vendorId = params?.vendorId;
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [redeemLoyaltyPoints, setRedeemLoyaltyPoints] = useState(false);
 
   const { data: profileData } = useGetMyCustomerProfile();
   const customer = profileData?.customer;
@@ -73,8 +78,14 @@ export default function Subscribe() {
 
   const walletBalance = walletData?.wallet?.balance ?? 0;
   const planPrice = plan ? Number(plan.price) : 0;
-  const hasEnoughBalance = walletBalance >= planPrice;
-  const shortfall = planPrice - walletBalance;
+  const loyaltyPoints = customer?.loyaltyPoints ?? 0;
+  const redeemablePoints = Math.floor(loyaltyPoints / 100) * 100;
+  const pointsDiscount = redeemLoyaltyPoints && redeemablePoints > 0
+    ? redeemablePoints / POINTS_PER_RUPEE
+    : 0;
+  const effectivePrice = Math.max(0, planPrice - pointsDiscount);
+  const hasEnoughBalance = walletBalance >= effectivePrice;
+  const shortfall = effectivePrice - walletBalance;
 
   const createSubscription = useCreateCustomerSubscription({
     mutation: {
@@ -115,7 +126,8 @@ export default function Subscribe() {
         startDate: format(values.startDate, "yyyy-MM-dd"),
         deliveryAddress: values.deliveryAddress,
         deliverySlot: values.deliverySlot,
-      }
+        redeemLoyaltyPoints: redeemLoyaltyPoints && redeemablePoints > 0,
+      } as Parameters<typeof createSubscription.mutate>[0]["data"]
     });
   };
 
@@ -210,6 +222,39 @@ export default function Subscribe() {
                     </FormItem>
                   )} />
 
+                  {/* Loyalty points redemption */}
+                  {loyaltyPoints >= 100 && plan && (
+                    <div
+                      onClick={() => setRedeemLoyaltyPoints(v => !v)}
+                      className={cn(
+                        "flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-colors select-none",
+                        redeemLoyaltyPoints
+                          ? "border-primary/40 bg-primary/5"
+                          : "border-border hover:border-primary/20 hover:bg-muted/40"
+                      )}
+                    >
+                      <Checkbox
+                        checked={redeemLoyaltyPoints}
+                        onCheckedChange={(v) => setRedeemLoyaltyPoints(!!v)}
+                        className="mt-0.5 shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <Gift className="w-4 h-4 text-primary shrink-0" />
+                          <p className="text-sm font-medium">Use loyalty points</p>
+                          <span className="ml-auto text-sm font-bold text-green-700">
+                            −₹{pointsDiscount > 0 ? pointsDiscount.toFixed(0) : (redeemablePoints / POINTS_PER_RUPEE).toFixed(0)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          You have <strong>{loyaltyPoints.toLocaleString()}</strong> points.
+                          Redeem <strong>{redeemablePoints}</strong> for ₹{(redeemablePoints / POINTS_PER_RUPEE).toFixed(0)} off.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Insufficient balance warning */}
                   {!walletLoading && plan && !hasEnoughBalance && (
                     <div className="flex items-start gap-3 p-4 bg-destructive/5 border border-destructive/20 rounded-lg">
@@ -239,7 +284,7 @@ export default function Subscribe() {
                       ? "Processing..."
                       : !hasEnoughBalance && plan
                       ? "Add Wallet Balance to Continue"
-                      : `Confirm & Pay ₹${planPrice > 0 ? planPrice.toFixed(0) : "..."}`
+                      : `Confirm & Pay ₹${effectivePrice > 0 ? effectivePrice.toFixed(0) : planPrice > 0 ? planPrice.toFixed(0) : "..."}`
                     }
                   </Button>
                 </form>
@@ -310,9 +355,22 @@ export default function Subscribe() {
                   </div>
                   <div className="flex items-baseline gap-1 text-primary">
                     <IndianRupee className="w-4 h-4" />
-                    <span className="text-2xl font-bold">{plan.price}</span>
+                    <span className={cn("text-2xl font-bold", pointsDiscount > 0 && "line-through text-muted-foreground text-lg")}>
+                      {plan.price}
+                    </span>
+                    {pointsDiscount > 0 && (
+                      <span className="text-2xl font-bold text-green-700">
+                        {effectivePrice.toFixed(0)}
+                      </span>
+                    )}
                     <span className="text-muted-foreground text-sm">/ {PLAN_TYPE_LABELS[plan.planType] ?? plan.planType}</span>
                   </div>
+                  {pointsDiscount > 0 && (
+                    <div className="flex items-center gap-1.5 text-xs text-green-700 font-medium">
+                      <Gift className="w-3.5 h-3.5" />
+                      ₹{pointsDiscount.toFixed(0)} loyalty discount applied ({redeemablePoints} pts)
+                    </div>
+                  )}
                   {plan.mealTypes?.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {plan.mealTypes.map(mt => (

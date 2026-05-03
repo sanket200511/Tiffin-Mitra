@@ -34,6 +34,7 @@ const VendorAnalytics  = lazy(() => import("@/pages/vendor/analytics"));
 const VendorProfile    = lazy(() => import("@/pages/vendor/profile"));
 const VendorReviews    = lazy(() => import("@/pages/vendor/reviews"));
 const VendorEarnings   = lazy(() => import("@/pages/vendor/earnings"));
+const VendorSchedule   = lazy(() => import("@/pages/vendor/schedule"));
 
 const AdminOverview       = lazy(() => import("@/pages/admin/overview"));
 const AdminVendors        = lazy(() => import("@/pages/admin/vendors"));
@@ -187,6 +188,9 @@ function Router() {
         </Route>
         <Route path="/vendor/earnings">
           <ProtectedRoute component={VendorEarnings} allowedRole="vendor" layout={VendorLayout} />
+        </Route>
+        <Route path="/vendor/schedule">
+          <ProtectedRoute component={VendorSchedule} allowedRole="vendor" layout={VendorLayout} />
         </Route>
         <Route path="/vendor/reviews">
           <ProtectedRoute component={VendorReviews} allowedRole="vendor" layout={VendorLayout} />

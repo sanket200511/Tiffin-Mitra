@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, subscriptionPlansTable, customerSubscriptionsTable, vendorsTable, ordersTable, walletTransactionsTable, customersTable } from "@workspace/db";
+import { db, subscriptionPlansTable, customerSubscriptionsTable, vendorsTable, ordersTable, walletTransactionsTable, customersTable, vendorHolidaysTable } from "@workspace/db";
 import { eq, and, inArray, desc } from "drizzle-orm";
 import { notifyUser } from "../lib/notify";
 
@@ -211,12 +211,13 @@ router.post("/subscriptions", async (req, res) => {
       [customer] = await db.insert(customersTable).values({ userId: req.user.id }).returning();
     }
 
-    const { planId, vendorId, startDate, deliveryAddress, deliverySlot } = req.body as {
+    const { planId, vendorId, startDate, deliveryAddress, deliverySlot, redeemLoyaltyPoints } = req.body as {
       planId: string;
       vendorId: string;
       startDate: string;
       deliveryAddress: string;
       deliverySlot?: string;
+      redeemLoyaltyPoints?: boolean;
     };
 
     const [plan] = await db.select().from(subscriptionPlansTable)
@@ -239,10 +240,19 @@ router.post("/subscriptions", async (req, res) => {
 
     const planPrice = parseFloat(plan.price as string);
     const walletBalance = parseFloat(customer.walletBalance as string ?? "0");
-    if (walletBalance < planPrice) {
+    const currentPoints = customer.loyaltyPoints ?? 0;
+
+    // ── Loyalty points redemption ──────────────────────────────────────────
+    // 100 points = ₹10 discount. Points are rounded down to nearest 100.
+    const POINTS_PER_RUPEE = 10; // 100 points = ₹10
+    const redeemablePoints = redeemLoyaltyPoints ? Math.floor(currentPoints / 100) * 100 : 0;
+    const pointsDiscount = redeemablePoints / POINTS_PER_RUPEE;
+    const chargeAmount = Math.max(0, planPrice - pointsDiscount);
+
+    if (walletBalance < chargeAmount) {
       res.status(402).json({
-        error: `Insufficient wallet balance. This plan costs ₹${planPrice.toFixed(0)} but your wallet has ₹${walletBalance.toFixed(0)}. Please top up your wallet first.`,
-        required: planPrice,
+        error: `Insufficient wallet balance. This plan costs ₹${chargeAmount.toFixed(0)} but your wallet has ₹${walletBalance.toFixed(0)}. Please top up your wallet first.`,
+        required: chargeAmount,
         available: walletBalance,
       });
       return;
@@ -256,16 +266,47 @@ router.post("/subscriptions", async (req, res) => {
     const endDate = new Date(start);
     endDate.setDate(endDate.getDate() + periodDays);
 
-    const newBalance = (walletBalance - planPrice).toFixed(2);
+    // ── Build raw delivery dates (skip weekends for weekday plans) ─────────
+    const isWeekdayPlan = plan.planType === "weekday";
+    const rawDates: string[] = [];
+    const cursor = new Date(start);
+    while (cursor < endDate) {
+      const day = cursor.getDay();
+      if (!isWeekdayPlan || (day !== 0 && day !== 6)) {
+        rawDates.push(cursor.toISOString().split("T")[0]);
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    // ── Skip vendor holidays ───────────────────────────────────────────────
+    const holidayRows = await db.select({ date: vendorHolidaysTable.date })
+      .from(vendorHolidaysTable)
+      .where(and(
+        eq(vendorHolidaysTable.vendorId, vendorId),
+        inArray(vendorHolidaysTable.date, rawDates.length > 0 ? rawDates : [""]),
+      ));
+    const holidaySet = new Set(holidayRows.map((h) => h.date));
+    const deliveryDates = rawDates.filter((d) => !holidaySet.has(d));
+
+    // ── Debit wallet ───────────────────────────────────────────────────────
+    const newBalance = (walletBalance - chargeAmount).toFixed(2);
+    const newPoints = redeemablePoints > 0
+      ? currentPoints - redeemablePoints + Math.floor(chargeAmount)
+      : currentPoints + Math.floor(chargeAmount);
+
     await db.update(customersTable)
-      .set({ walletBalance: newBalance, updatedAt: new Date() })
+      .set({ walletBalance: newBalance, loyaltyPoints: newPoints, updatedAt: new Date() })
       .where(eq(customersTable.id, customer.id));
+
+    const debitDesc = redeemablePoints > 0
+      ? `Subscription: ${plan.name} from ${vendor.name} (${redeemablePoints} pts redeemed)`
+      : `Subscription: ${plan.name} from ${vendor.name}`;
 
     await db.insert(walletTransactionsTable).values({
       customerId: customer.id,
       type: "debit",
-      amount: planPrice.toFixed(2),
-      description: `Subscription: ${plan.name} from ${vendor.name}`,
+      amount: chargeAmount.toFixed(2),
+      description: debitDesc,
     });
 
     const [subscription] = await db.insert(customerSubscriptionsTable).values({
@@ -279,19 +320,8 @@ router.post("/subscriptions", async (req, res) => {
       status: "active",
     }).returning();
 
-    const isWeekdayPlan = plan.planType === "weekday";
-    const deliveryDates: string[] = [];
-    const cursor = new Date(start);
-    while (cursor < endDate) {
-      const day = cursor.getDay();
-      if (!isWeekdayPlan || (day !== 0 && day !== 6)) {
-        deliveryDates.push(cursor.toISOString().split("T")[0]);
-      }
-      cursor.setDate(cursor.getDate() + 1);
-    }
-
     if (deliveryDates.length > 0) {
-      const pricePerOrder = planPrice / deliveryDates.length;
+      const pricePerOrder = chargeAmount / deliveryDates.length;
       const primaryMealType = plan.mealTypes?.[0] || null;
 
       const ordersToInsert = deliveryDates.map(date => ({
@@ -313,12 +343,17 @@ router.post("/subscriptions", async (req, res) => {
       void notifyUser(vendor.ownerUserId, {
         type: "new_subscription",
         title: "New subscription",
-        body: `A customer just subscribed to your "${plan.name}" plan starting ${startDate}. ${deliveryDates.length} meal(s) have been scheduled.`,
+        body: `A customer just subscribed to your "${plan.name}" plan starting ${startDate}. ${deliveryDates.length} meal(s) scheduled${holidaySet.size > 0 ? ` (${holidaySet.size} holiday(s) skipped)` : ""}.`,
         metadata: { subscriptionId: subscription.id, planId, vendorId, planName: plan.name },
       });
     }
 
-    res.status(201).json({ subscription });
+    res.status(201).json({
+      subscription,
+      skippedHolidays: holidaySet.size,
+      pointsRedeemed: redeemablePoints,
+      pointsEarned: Math.floor(chargeAmount),
+    });
   } catch (err) {
     req.log.error({ err }, "Failed to create subscription");
     res.status(500).json({ error: "Internal server error" });

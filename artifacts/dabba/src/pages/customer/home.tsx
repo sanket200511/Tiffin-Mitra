@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Star, Clock, ChefHat, CheckCircle2, CalendarDays } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ArrowRight, Star, Clock, ChefHat, CheckCircle2, CalendarDays, Bike, BookOpen, FileText, Package } from "lucide-react";
 import { useListVendors } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -30,6 +31,47 @@ export default function Home() {
               <Button variant="outline" size="lg" className="h-12 px-8 text-base" asChild>
                 <Link href="/role-select">Become a Partner</Link>
               </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Carry & Earn Feature Promotion */}
+      <section className="py-14 border-y bg-gradient-to-r from-primary/5 via-background to-background">
+        <div className="container">
+          <div className="max-w-5xl mx-auto">
+            <div className="bg-card rounded-2xl border shadow-sm p-7 md:p-10 flex flex-col md:flex-row gap-8 items-center">
+              <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center shrink-0">
+                <Bike className="w-10 h-10 text-primary" />
+              </div>
+              <div className="flex-1">
+                <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary text-xs font-semibold px-2.5 py-1 rounded-full mb-3">
+                  New Feature
+                </div>
+                <h2 className="text-2xl md:text-3xl font-serif font-bold mb-2">
+                  Carry &amp; Earn — Community Delivery
+                </h2>
+                <p className="text-muted-foreground mb-5 max-w-xl">
+                  Need a textbook, document, or small package delivered nearby? Post a request
+                  and someone already heading that way on their bike carries it for you —
+                  a small earn for them, big convenience for you.
+                </p>
+                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-6">
+                  <span className="flex items-center gap-1.5"><BookOpen className="w-4 h-4 text-amber-600" /> Books & Notes</span>
+                  <span className="flex items-center gap-1.5"><FileText className="w-4 h-4 text-blue-600" /> Documents</span>
+                  <span className="flex items-center gap-1.5"><Package className="w-4 h-4 text-gray-600" /> Parcels up to 5 kg</span>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <Button asChild>
+                    <Link href="/peer-delivery">
+                      Send a Package <ArrowRight className="ml-2 w-4 h-4" />
+                    </Link>
+                  </Button>
+                  <Button variant="outline" asChild>
+                    <Link href="/peer-delivery">Carry &amp; Earn</Link>
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -151,12 +193,14 @@ export default function Home() {
               <div className="text-center space-y-6">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="bg-primary-foreground/10 rounded-xl p-6">
-                    <div className="text-4xl font-bold font-serif mb-2">500+</div>
-                    <div className="text-primary-foreground/80 font-medium">Home Chefs</div>
+                    <div className="text-4xl font-bold font-serif mb-2">
+                      {vendors.length > 0 ? `${vendors.length}+` : "—"}
+                    </div>
+                    <div className="text-primary-foreground/80 font-medium">Home Kitchens</div>
                   </div>
                   <div className="bg-primary-foreground/10 rounded-xl p-6">
-                    <div className="text-4xl font-bold font-serif mb-2">10k+</div>
-                    <div className="text-primary-foreground/80 font-medium">Happy Eaters</div>
+                    <div className="text-4xl font-bold font-serif mb-2">Fresh</div>
+                    <div className="text-primary-foreground/80 font-medium">Daily Deliveries</div>
                   </div>
                 </div>
               </div>

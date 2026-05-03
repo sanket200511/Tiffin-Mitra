@@ -186,9 +186,9 @@ export default function Profile() {
       (err) => {
         setLocating(false);
         const messages: Record<number, string> = {
-          1: "Location permission denied. Please allow location access in your browser.",
-          2: "Could not detect location. Please enter your address manually.",
-          3: "Location request timed out.",
+          1: "Location access was denied. Please allow location permission in your browser settings and try again.",
+          2: "We couldn't detect your location. Please check your GPS signal and try again, or enter your address manually.",
+          3: "Location detection timed out. Please try again in a moment.",
         };
         toast({ variant: "destructive", title: "Location error", description: messages[err.code] || "Unknown error." });
       },

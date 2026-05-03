@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "ii2ft15MfQvtYWXROSIxr"
+uri = "file://SCALABILITY.md"
+type = "text"
+title = "Dabba — Scalability Blueprint"

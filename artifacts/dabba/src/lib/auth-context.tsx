@@ -22,8 +22,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await fetch("/api/auth/user", { credentials: "include" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as { user: AuthUser | null };
-      setUser(data.user ?? null);
+      const data = (await res.json()) as { user?: AuthUser | null } | null;
+      setUser(data?.user ?? null);
     } catch {
       setUser(null);
     } finally {
@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchUser]);
 
   const login = useCallback(() => {
-    window.location.href = "/login";
+    window.location.assign("/login");
   }, []);
 
   const logout = useCallback(async () => {
@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // ignore network errors on logout
     }
     setUser(null);
-    window.location.href = "/";
+    window.location.assign("/");
   }, []);
 
   const refetch = useCallback(async () => {

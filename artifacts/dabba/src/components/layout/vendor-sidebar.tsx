@@ -18,6 +18,7 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NotificationBell } from "@/components/layout/notification-bell";
 
 const navItems = [
   { href: "/vendor/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -57,11 +58,12 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <>
-      <div className="p-6 shrink-0">
+      <div className="p-5 shrink-0 flex items-center justify-between">
         <Link href="/" className="font-serif text-2xl font-bold text-primary flex items-center gap-2" onClick={onNavigate}>
           Dabba
           <span className="text-sm font-sans text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Partner</span>
         </Link>
+        <NotificationBell />
       </div>
 
       <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
@@ -132,9 +134,12 @@ export function VendorSidebar() {
             <span className="text-xs font-sans text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">Partner</span>
           </Link>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)} aria-label="Open navigation">
-          <Menu className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <NotificationBell />
+          <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)} aria-label="Open navigation">
+            <Menu className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
 
       {/* Mobile drawer */}

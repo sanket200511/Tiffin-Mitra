@@ -46,58 +46,104 @@ The `useAuth` hook from `@workspace/replit-auth-web` returns:
 
 - `sessions` — custom session store (sid, sess JSON, expire)
 - `users` — accounts (email, password_hash, role, first_name, last_name)
-- `vendors` — vendor profiles (name, city, cuisine, status, subscription_tier)
+- `vendors` — vendor profiles (name, city, cuisine, status, commission_rate, subscription_tier)
 - `menu_items` — vendor menu items (meal_type, diet_type, price, calories)
 - `subscription_plans` — plan definitions (daily/weekly/monthly/trial types)
 - `customer_subscriptions` — active subscriptions with skip days support
-- `orders` — individual delivery orders (status pipeline)
-- `customers` — customer profiles (wallet, loyalty points)
+- `orders` — individual delivery orders (status pipeline: pending→accepted→preparing→packed→picked_up→delivered)
+- `customers` — customer profiles (wallet, loyalty points, GPS coordinates)
 - `wallet_transactions` — wallet credit/debit history
 - `reviews` — vendor reviews with tags and vendor responses
+- `peer_deliveries` — peer delivery requests and assignments
+- `payout_requests` — vendor earnings withdrawal requests (UPI/bank)
+- `notifications` — in-app notifications for all roles (userId, type, title, body, isRead)
 
 ## Backend Routes
 
 All routes mounted at `/api`:
 - `/healthz` — health check
 - `/auth/*` — email/password auth routes
-- `/vendors` — vendor CRUD
+- `/vendors` — vendor CRUD, `?includeAll=true` for admin
+- `/vendors/:id/status` — admin-only status change (approved/rejected/suspended)
 - `/vendors/:id/menus` — menu item CRUD
 - `/vendors/:id/plans` — subscription plan CRUD
-- `/vendors/:id/stats` — vendor stats
-- `/subscriptions` — customer subscription management
-- `/orders` — order listing and status updates
+- `/vendors/:id/stats` — vendor stats (4 parallel queries)
+- `/subscriptions` — customer subscription management (create generates all delivery orders)
+- `/orders` — order listing and status updates (refunds on cancel)
 - `/customers/me` — customer profile
-- `/customers/wallet` — wallet balance
+- `/customers/wallet` — wallet balance and transactions
+- `/customers/wallet/topup` — add funds to wallet
+- `/customers/:id/wallet-credit` — admin credit/debit
 - `/customers/upcoming-deliveries` — 7-day delivery calendar
 - `/reviews` — review listing and creation
 - `/analytics/*` — revenue trends, popular dishes, platform overview
 - `/deliveries` — delivery tracking
+- `/peer-deliveries` — peer delivery CRUD
+- `/payouts` — vendor payout requests; admin status updates
+- `/notifications` — list, mark-read, mark-all-read, delete notifications
+
+## Notification System
+
+`artifacts/api-server/src/lib/notify.ts` exports two helpers:
+- `notifyUser(userId, payload)` — insert one notification for a specific user
+- `notifyAllAdmins(payload)` — insert notifications for every super_admin user
+
+Notifications are triggered automatically:
+- **Order status changes** → customer notified (accepted, preparing, packed, picked_up, delivered, cancelled)
+- **New subscription** → vendor notified
+- **Payout request** → all admins notified
+- **Payout processed/rejected** → vendor notified
+- **Vendor approved/rejected/suspended** → vendor notified
+
+Frontend `NotificationBell` component shown in:
+- Customer: navbar (desktop + mobile)
+- Vendor: desktop sidebar header + mobile top bar
+- Admin: desktop sidebar header + mobile top bar
+
+Polls every 30 seconds. Popover shows last 50 notifications with per-item dismiss and "Mark all read".
 
 ## Frontend Pages
 
 **Customer:**
 - `/` — Landing page (hero, how it works, featured vendors)
-- `/explore` — Browse/search vendors
+- `/explore` — Browse/search vendors (sort, diet/cuisine filters, active chips)
 - `/vendors/:vendorId` — Vendor detail with plans, menu, reviews
-- `/subscribe/:planId` — Subscription form
-- `/my-subscriptions` — Subscription dashboard with skip-a-day
-- `/orders` — Order history
-- `/profile` — Profile settings
+- `/subscribe/:planId` — Subscription checkout (wallet deduct + bulk order creation)
+- `/my-subscriptions` — Subscription dashboard with skip-a-day and cancel
+- `/orders` — Order history with status badges
+- `/orders/:id/track` — Live order tracking (5s poll, status pipeline)
+- `/wallet` — Wallet balance, quick top-up, transaction history
+- `/profile` — Profile settings + GPS location detect
+- `/peer-delivery` — Peer delivery board
 
 **Vendor:**
-- `/vendor/dashboard` — Stats, today's orders
-- `/vendor/menu` — Menu management
-- `/vendor/plans` — Plan management
-- `/vendor/orders` — Order pipeline
-- `/vendor/analytics` — Revenue/subscription charts
+- `/vendor/dashboard` — Stats, today's orders, setup checklist
+- `/vendor/menu` — Menu management (CRUD via slide-out sheet)
+- `/vendor/plans` — Subscription plan management
+- `/vendor/orders` — Order pipeline (date filter, bulk accept, status dropdown)
+- `/vendor/analytics` — Revenue/subscription charts (Recharts)
+- `/vendor/earnings` — Earnings overview, payout request dialog (UPI/bank)
+- `/vendor/reviews` — Review management with vendor reply
 - `/vendor/profile` — Vendor profile editor
 
 **Admin:**
-- `/admin/overview` — Platform KPIs, pending approvals
+- `/admin/overview` — Platform KPIs, vendor approval/rejection, commission editor
+- `/admin/vendors` — Full vendor table with filters
+- `/admin/customers` — Customer table with wallet credit/debit
+- `/admin/orders` — All orders with date/status filters
+- `/admin/payouts` — Payout request management with approve/reject dialogs
+- `/admin/analytics` — Platform revenue/subscription trend charts
 
 **Auth:**
 - `/login` — Email/password login + register (tabs)
 - `/role-select` — Role selection after first registration
+
+## Layout Components
+
+- `artifacts/dabba/src/components/layout/navbar.tsx` — customer navbar with notification bell
+- `artifacts/dabba/src/components/layout/vendor-sidebar.tsx` — vendor sidebar with pending order badge + notification bell
+- `artifacts/dabba/src/components/layout/admin-sidebar.tsx` — admin sidebar with notification bell
+- `artifacts/dabba/src/components/layout/notification-bell.tsx` — shared notification popover
 
 ## Deployment
 
@@ -118,7 +164,7 @@ pnpm --filter @workspace/db run push
 
 ## Styling
 
-Warm saffron/amber palette (`--primary: 28 90% 50%`). Fraunces (serif display) + Outfit (sans) fonts. Recharts for data visualization. Framer Motion for animations. Dark mode supported.
+Warm saffron/amber palette (`--primary: 28 90% 50%`). Fraunces (serif display) + Outfit (sans) fonts. Recharts for data visualization. Dark mode supported.
 
 ## Seeded Demo Data
 
@@ -131,13 +177,10 @@ Warm saffron/amber palette (`--primary: 28 90% 50%`). Fraunces (serif display) +
 
 - **Rate limiting:** global 300 req/min per IP, auth 20/15 min, wallet 10/min (`express-rate-limit`)
 - **React Query defaults:** `staleTime: 30s`, `gcTime: 5min`, `retry: 1`, `refetchOnWindowFocus: false`
-- **Code splitting:** all 22 pages are `React.lazy` + wrapped in a single `Suspense` boundary
-- **Image loading:** `loading="lazy"` + `decoding="async"` on all vendor images below the fold; cover images use `loading="eager"`
-- **Vendor stats route:** 4 parallel SQL aggregate queries (no full table scan)
-- **Vendor search:** `ilike` (case-insensitive) instead of `like`
+- **Code splitting:** all pages are `React.lazy` + wrapped in a single `Suspense` boundary
 - **HTTP caching:** `Cache-Control: public, max-age=30, stale-while-revalidate=120` on unfiltered vendor list
-- **DB query patterns:** JOIN instead of N+1 throughout; batch queries for upcoming deliveries; SQL aggregates for admin lists
-- See `SCALABILITY.md` for the full scaling blueprint and phase plan.
+- **Notification polling:** 30s interval, stops when component unmounts
+- **Notification failures are fire-and-forget:** never blocks the primary operation
 
 ## Key Commands
 

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, payoutRequestsTable, vendorsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
+import { notifyUser, notifyAllAdmins } from "../lib/notify";
 
 const router = Router();
 
@@ -81,6 +82,14 @@ router.post("/payouts", async (req, res) => {
       notes: notes?.trim() || null,
     }).returning();
 
+    // Notify all admins of the new payout request
+    void notifyAllAdmins({
+      type: "payout_request",
+      title: "New payout request",
+      body: `${vendor.name} has requested a payout of ₹${amount.toFixed(0)}. Please review in Payouts.`,
+      metadata: { payoutId: payout.id, vendorId: vendor.id, vendorName: vendor.name, amount },
+    });
+
     res.status(201).json({ payout });
   } catch (err) {
     req.log.error({ err }, "Failed to create payout request");
@@ -116,6 +125,27 @@ router.patch("/payouts/:payoutId", async (req, res) => {
       res.status(404).json({ error: "Payout request not found" });
       return;
     }
+
+    // Notify vendor if payout was paid or rejected
+    if (status === "paid" || status === "rejected") {
+      const [vendor] = await db
+        .select({ ownerUserId: vendorsTable.ownerUserId, name: vendorsTable.name })
+        .from(vendorsTable)
+        .where(eq(vendorsTable.id, payout.vendorId));
+
+      if (vendor?.ownerUserId) {
+        const amountStr = `₹${parseFloat(payout.amount as string).toFixed(0)}`;
+        void notifyUser(vendor.ownerUserId, {
+          type: "payout_processed",
+          title: status === "paid" ? "Payout completed" : "Payout rejected",
+          body: status === "paid"
+            ? `Your payout of ${amountStr} has been processed and sent to your account.`
+            : `Your payout request of ${amountStr} was rejected. ${adminNotes ? `Note: ${adminNotes}` : "Please contact support for details."}`,
+          metadata: { payoutId: payout.id, amount: payout.amount, status },
+        });
+      }
+    }
+
     res.json({ payout });
   } catch (err) {
     req.log.error({ err }, "Failed to update payout request");

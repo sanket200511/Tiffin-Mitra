@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, subscriptionPlansTable, customerSubscriptionsTable, vendorsTable, ordersTable, walletTransactionsTable, customersTable } from "@workspace/db";
 import { eq, and, inArray } from "drizzle-orm";
+import { notifyUser } from "../lib/notify";
 
 const router = Router();
 
@@ -194,7 +195,7 @@ router.post("/subscriptions", async (req, res) => {
       return;
     }
 
-    const [vendor] = await db.select({ status: vendorsTable.status, name: vendorsTable.name })
+    const [vendor] = await db.select({ status: vendorsTable.status, name: vendorsTable.name, ownerUserId: vendorsTable.ownerUserId })
       .from(vendorsTable).where(eq(vendorsTable.id, vendorId));
     if (!vendor || vendor.status !== "approved") {
       res.status(400).json({ error: "This kitchen is not currently accepting subscriptions." });
@@ -270,6 +271,16 @@ router.post("/subscriptions", async (req, res) => {
       }));
 
       await db.insert(ordersTable).values(ordersToInsert);
+    }
+
+    // Notify the vendor about their new subscriber
+    if (vendor?.ownerUserId) {
+      void notifyUser(vendor.ownerUserId, {
+        type: "new_subscription",
+        title: "New subscription",
+        body: `A customer just subscribed to your "${plan.name}" plan starting ${startDate}. ${deliveryDates.length} meal(s) have been scheduled.`,
+        metadata: { subscriptionId: subscription.id, planId, vendorId, planName: plan.name },
+      });
     }
 
     res.status(201).json({ subscription });

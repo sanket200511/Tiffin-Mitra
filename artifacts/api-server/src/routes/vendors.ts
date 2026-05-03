@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { vendorsTable, reviewsTable } from "@workspace/db";
 import { eq, ilike, and, desc, count, gte, sql } from "drizzle-orm";
+import { notifyUser } from "../lib/notify";
 
 const router = Router();
 
@@ -276,6 +277,25 @@ router.patch("/vendors/:vendorId/status", async (req, res) => {
       res.status(404).json({ error: "Vendor not found" });
       return;
     }
+
+    // Notify the vendor owner about their application status change
+    if ((status === "approved" || status === "rejected" || status === "suspended") && vendor.ownerUserId) {
+      const messages: Record<string, { title: string; body: string }> = {
+        approved:  { title: "Kitchen approved!", body: `Congratulations! Your kitchen "${vendor.name}" is now live on Dabba. Customers can discover and subscribe to your tiffin plans.` },
+        rejected:  { title: "Application not approved", body: `Your kitchen application for "${vendor.name}" was not approved at this time. Please contact support for more details.` },
+        suspended: { title: "Kitchen suspended", body: `Your kitchen "${vendor.name}" has been temporarily suspended. Please contact support to resolve this.` },
+      };
+      const msg = messages[status];
+      if (msg) {
+        void notifyUser(vendor.ownerUserId, {
+          type: `vendor_${status}`,
+          title: msg.title,
+          body: msg.body,
+          metadata: { vendorId: vendor.id, vendorName: vendor.name, status },
+        });
+      }
+    }
+
     res.json({ vendor });
   } catch (err) {
     req.log.error({ err }, "Failed to update vendor status");

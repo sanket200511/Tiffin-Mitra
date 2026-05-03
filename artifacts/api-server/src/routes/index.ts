@@ -11,6 +11,7 @@ import analyticsRouter from "./analytics";
 import deliveryRouter from "./deliveries";
 import peerDeliveryRouter from "./peer-deliveries";
 import payoutsRouter from "./payouts";
+import notificationsRouter from "./notifications";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(analyticsRouter);
 router.use(deliveryRouter);
 router.use(peerDeliveryRouter);
 router.use(payoutsRouter);
+router.use(notificationsRouter);
 
 export default router;

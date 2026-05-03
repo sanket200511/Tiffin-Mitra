@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, ordersTable, vendorsTable, customersTable, walletTransactionsTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
+import { notifyUser } from "../lib/notify";
 
 const router = Router();
 
@@ -12,6 +13,15 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   picked_up: ["delivered"],
   delivered: [],
   cancelled: [],
+};
+
+const STATUS_NOTIFICATION: Record<string, { title: string; body: (v: string, d: string) => string }> = {
+  accepted:  { title: "Order accepted", body: (v, d) => `${v} has accepted your tiffin for ${d}. Preparation is starting soon.` },
+  preparing: { title: "Order being prepared", body: (v, d) => `${v} is now preparing your tiffin for ${d}.` },
+  packed:    { title: "Tiffin packed", body: (v, d) => `Your tiffin from ${v} (${d}) is packed and ready for pickup.` },
+  picked_up: { title: "Out for delivery", body: (v, d) => `Your tiffin from ${v} is on its way! Delivery date: ${d}.` },
+  delivered: { title: "Tiffin delivered!", body: (v, d) => `Your tiffin from ${v} for ${d} has been delivered. Enjoy your meal!` },
+  cancelled: { title: "Order cancelled", body: (v, d) => `Your order from ${v} (${d}) was cancelled. A refund has been processed to your wallet.` },
 };
 
 router.get("/orders", async (req, res) => {
@@ -222,6 +232,30 @@ router.patch("/orders/:orderId", async (req, res) => {
       })
       .where(eq(ordersTable.id, req.params.orderId))
       .returning();
+
+    // Notify the customer about the status change (fire-and-forget)
+    if (newStatus && STATUS_NOTIFICATION[newStatus]) {
+      const [customerRow] = await db
+        .select({ userId: customersTable.userId })
+        .from(customersTable)
+        .where(eq(customersTable.id, order.customerId));
+
+      const [vendorRow] = await db
+        .select({ name: vendorsTable.name })
+        .from(vendorsTable)
+        .where(eq(vendorsTable.id, order.vendorId));
+
+      if (customerRow?.userId && vendorRow?.name) {
+        const notifCfg = STATUS_NOTIFICATION[newStatus];
+        void notifyUser(customerRow.userId, {
+          type: `order_${newStatus}`,
+          title: notifCfg.title,
+          body: notifCfg.body(vendorRow.name, order.scheduledDate),
+          metadata: { orderId: order.id, vendorId: order.vendorId },
+        });
+      }
+    }
+
     res.json({ order: updated });
   } catch (err) {
     req.log.error({ err }, "Failed to update order");

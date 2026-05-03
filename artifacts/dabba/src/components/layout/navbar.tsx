@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, X, ChefHat, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NotificationBell } from "@/components/layout/notification-bell";
 
 export function Navbar() {
   const { user, isAuthenticated, login, logout } = useAuth();
@@ -35,6 +36,8 @@ export function Navbar() {
       ? [{ href: "/admin/overview", label: "Admin Panel" }]
       : publicLinks
     : publicLinks;
+
+  const showNotificationBell = isAuthenticated && user?.role === "customer";
 
   const isRoot = location === "/";
 
@@ -76,6 +79,7 @@ export function Navbar() {
               {link.label}
             </Link>
           ))}
+          {showNotificationBell && <NotificationBell />}
           {isAuthenticated ? (
             <Button variant="outline" size="sm" onClick={() => logout()} data-testid="button-logout">
               Log out
@@ -87,8 +91,9 @@ export function Navbar() {
           )}
         </div>
 
-        {/* Mobile: hamburger */}
+        {/* Mobile: notification bell + hamburger */}
         <div className="flex md:hidden items-center gap-2">
+          {showNotificationBell && <NotificationBell />}
           {!isAuthenticated && (
             <Button size="sm" onClick={login} data-testid="button-login">
               Log in

@@ -74,9 +74,8 @@ export default function Login() {
       const data = await res.json() as { user?: { role?: string | null }; error?: string };
       if (!res.ok) {
         const description =
-          data.error?.toLowerCase().includes("too many") ||
           res.status === 429
-            ? "Too many login attempts. Please wait a few minutes and try again."
+            ? data.error || "Too many login attempts. Please wait a few minutes and try again."
             : data.error || "Invalid credentials";
         toast({ variant: "destructive", title: "Login failed", description });
         return;

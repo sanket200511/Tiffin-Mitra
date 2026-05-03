@@ -27,10 +27,12 @@ const SORT_LABELS: Record<SortOption, string> = {
 };
 
 export default function Explore() {
-  const [search, setSearch]   = useState("");
-  const [city, setCity]       = useState("all");
-  const [cuisine, setCuisine] = useState("all");
-  const [sort, setSort]       = useState<SortOption>("recommended");
+  const [search, setSearch]       = useState("");
+  const [city, setCity]           = useState("all");
+  const [cuisine, setCuisine]     = useState("all");
+  const [sort, setSort]           = useState<SortOption>("recommended");
+  const [featuredOnly, setFeaturedOnly] = useState(false);
+  const [topRatedOnly, setTopRatedOnly] = useState(false);
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -42,9 +44,11 @@ export default function Explore() {
 
   const rawVendors = vendorsData?.vendors || [];
 
-  // ─── Client-side sort ─────────────────────────────────────────────────────
+  // ─── Client-side filter + sort ────────────────────────────────────────────
   const vendors = useMemo(() => {
-    const arr = [...rawVendors];
+    let arr = [...rawVendors];
+    if (featuredOnly) arr = arr.filter(v => v.featured);
+    if (topRatedOnly) arr = arr.filter(v => parseFloat(String(v.rating ?? 0)) >= 4);
     switch (sort) {
       case "rating":
         return arr.sort((a, b) =>
@@ -58,17 +62,16 @@ export default function Explore() {
         );
       case "recommended":
       default:
-        // Featured vendors first, then by rating descending
         return arr.sort((a, b) => {
           if (a.featured && !b.featured) return -1;
           if (!a.featured && b.featured) return 1;
           return parseFloat(String(b.rating ?? 0)) - parseFloat(String(a.rating ?? 0));
         });
     }
-  }, [rawVendors, sort]);
+  }, [rawVendors, sort, featuredOnly, topRatedOnly]);
 
-  const hasActiveFilters = search || city !== "all" || cuisine !== "all";
-  const clearAll = () => { setSearch(""); setCity("all"); setCuisine("all"); };
+  const hasActiveFilters = search || city !== "all" || cuisine !== "all" || featuredOnly || topRatedOnly;
+  const clearAll = () => { setSearch(""); setCity("all"); setCuisine("all"); setFeaturedOnly(false); setTopRatedOnly(false); };
 
   return (
     <div className="container py-8 min-h-screen">
@@ -140,6 +143,25 @@ export default function Explore() {
                 </SelectContent>
               </Select>
             </div>
+            {/* Quick toggles */}
+            <Button
+              variant={featuredOnly ? "default" : "outline"}
+              size="sm"
+              className="shrink-0 gap-1.5 h-10"
+              onClick={() => setFeaturedOnly(v => !v)}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Featured
+            </Button>
+            <Button
+              variant={topRatedOnly ? "default" : "outline"}
+              size="sm"
+              className="shrink-0 gap-1.5 h-10"
+              onClick={() => setTopRatedOnly(v => !v)}
+            >
+              <Star className="w-3.5 h-3.5" />
+              4+ Stars
+            </Button>
             {hasActiveFilters && (
               <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-foreground" onClick={clearAll} title="Clear all filters">
                 <X className="w-4 h-4" />
@@ -175,6 +197,22 @@ export default function Explore() {
             <Badge variant="secondary" className="gap-1.5 pr-1">
               <ChefHat className="w-3 h-3" /> {cuisine}
               <button onClick={() => setCuisine("all")} className="hover:bg-muted rounded ml-0.5 p-0.5">
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          )}
+          {featuredOnly && (
+            <Badge variant="secondary" className="gap-1.5 pr-1">
+              <Sparkles className="w-3 h-3" /> Featured Only
+              <button onClick={() => setFeaturedOnly(false)} className="hover:bg-muted rounded ml-0.5 p-0.5">
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          )}
+          {topRatedOnly && (
+            <Badge variant="secondary" className="gap-1.5 pr-1">
+              <Star className="w-3 h-3" /> 4+ Stars
+              <button onClick={() => setTopRatedOnly(false)} className="hover:bg-muted rounded ml-0.5 p-0.5">
                 <X className="w-3 h-3" />
               </button>
             </Badge>

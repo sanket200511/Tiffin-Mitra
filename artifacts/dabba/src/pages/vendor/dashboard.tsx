@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   IndianRupee, ShoppingBag, Users, Star, ArrowRight,
-  CheckCircle2, Clock, AlertCircle, UtensilsCrossed, CalendarDays, CircleDashed, Zap,
+  CheckCircle2, Clock, AlertCircle, UtensilsCrossed, CalendarDays, CircleDashed, Zap, ClipboardList,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -261,8 +261,16 @@ export default function VendorDashboard() {
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Today's Production */}
         <Card className="lg:col-span-1 shadow-sm h-fit">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-lg">Today's Production</CardTitle>
+            {vendorId && (
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1 shrink-0" asChild>
+                <Link href="/vendor/delivery-sheet">
+                  <ClipboardList className="w-3 h-3" />
+                  Sheet
+                </Link>
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             {summaryLoading ? (

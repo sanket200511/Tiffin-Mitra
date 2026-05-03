@@ -228,6 +228,7 @@ export const UpdateVendorBody = zod.object({
   status: zod.enum(["pending", "approved", "suspended"]).optional(),
   subscriptionTier: zod.enum(["basic", "pro", "enterprise"]).optional(),
   deliveryZones: zod.array(zod.string()).optional(),
+  fssaiLicense: zod.string().optional(),
 });
 
 export const UpdateVendorResponse = zod.object({

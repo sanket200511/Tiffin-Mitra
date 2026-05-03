@@ -3,10 +3,11 @@ import { useListOrders } from "@workspace/api-client-react";
 import { format } from "date-fns";
 import {
   ShoppingBag, Filter, Search, Clock, CheckCircle2, AlertCircle,
-  ChefHat, Package, Bike,
+  ChefHat, Package, Bike, Download,
 } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,27 @@ const STATUS_CONFIG: Record<string, { color: string; icon: typeof Clock; label: 
   delivered: { color: "bg-green-100 text-green-800 border-green-200", icon: CheckCircle2, label: "Delivered" },
   cancelled: { color: "bg-red-100 text-red-800 border-red-200", icon: AlertCircle, label: "Cancelled" },
 };
+
+function exportCsv(orders: Array<{ id: string; scheduledDate: string; vendorName?: string | null; customerName?: string | null; mealType?: string | null; totalAmount: string | number; status: string }>) {
+  const header = ["Order ID", "Date", "Kitchen", "Customer", "Meal Type", "Amount (₹)", "Status"];
+  const rows = orders.map(o => [
+    o.id,
+    o.scheduledDate,
+    o.vendorName ?? "",
+    o.customerName ?? "",
+    o.mealType ?? "Standard",
+    parseFloat(String(o.totalAmount)).toFixed(2),
+    o.status,
+  ]);
+  const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `dabba-orders-${new Date().toISOString().split("T")[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function AdminOrders() {
   const [statusFilter, setStatusFilter] = useState("all");
@@ -55,9 +77,17 @@ export default function AdminOrders() {
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-3xl font-serif font-bold text-foreground">Platform Orders</h1>
-        <p className="text-muted-foreground mt-1">All orders across every kitchen on the platform.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-serif font-bold text-foreground">Platform Orders</h1>
+          <p className="text-muted-foreground mt-1">All orders across every kitchen on the platform.</p>
+        </div>
+        {!isLoading && orders.length > 0 && (
+          <Button variant="outline" size="sm" className="shrink-0 gap-2" onClick={() => exportCsv(orders)}>
+            <Download className="w-4 h-4" />
+            Export CSV
+          </Button>
+        )}
       </div>
 
       {/* Summary chips */}

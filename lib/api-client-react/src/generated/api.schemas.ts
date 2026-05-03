@@ -172,6 +172,7 @@ export interface UpdateVendorBody {
   status?: UpdateVendorBodyStatus;
   subscriptionTier?: UpdateVendorBodySubscriptionTier;
   deliveryZones?: string[];
+  fssaiLicense?: string;
 }
 
 export interface VendorStats {

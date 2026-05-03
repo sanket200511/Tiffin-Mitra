@@ -360,6 +360,17 @@ export default function Orders() {
             </div>
           </div>
 
+          {!isLoading && orders.length > 0 && (
+            <p className="text-sm text-muted-foreground -mt-1">
+              Showing{" "}
+              <span className="font-medium text-foreground">{orders.length}</span>{" "}
+              order{orders.length !== 1 ? "s" : ""}
+              {rawOrders.length !== orders.length && (
+                <span className="text-muted-foreground"> (filtered from {rawOrders.length})</span>
+              )}
+            </p>
+          )}
+
           <div className="bg-card rounded-xl border shadow-sm overflow-hidden overflow-x-auto">
             <Table>
               <TableHeader>

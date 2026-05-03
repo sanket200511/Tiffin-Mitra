@@ -253,7 +253,7 @@ export default function AdminVendors() {
                     </TableCell>
                     <TableCell>
                       <span className="text-sm text-muted-foreground font-mono">
-                        {vendor.fssaiNumber ?? "—"}
+                        {vendor.fssaiLicense ?? "—"}
                       </span>
                     </TableCell>
                     <TableCell>

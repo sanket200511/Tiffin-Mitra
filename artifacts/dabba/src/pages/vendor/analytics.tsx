@@ -53,6 +53,10 @@ export default function VendorAnalytics() {
     { name: 'Cancelled', value: health.cancelled },
   ].filter(d => d.value > 0) : [];
 
+  const totalRevenue = trend.reduce((sum, p) => sum + p.revenue, 0);
+  const totalOrders = trend.reduce((sum, p) => sum + p.orders, 0);
+  const avgDaily = trend.length > 0 ? totalRevenue / trend.length : 0;
+
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4">
@@ -60,6 +64,29 @@ export default function VendorAnalytics() {
           <h1 className="text-3xl font-serif font-bold text-foreground">Analytics</h1>
           <p className="text-muted-foreground mt-1">Track your kitchen's performance and growth.</p>
         </div>
+      </div>
+
+      {/* Period KPI strip */}
+      <div className="grid sm:grid-cols-3 gap-4">
+        {[
+          { label: "Period Revenue", value: trendLoading ? null : `₹${totalRevenue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`, sub: `Last ${period === "7d" ? "7" : period === "30d" ? "30" : "90"} days`, color: "border-l-green-500" },
+          { label: "Period Orders", value: trendLoading ? null : String(totalOrders), sub: "Delivered orders", color: "border-l-blue-500" },
+          { label: "Avg Daily Revenue", value: trendLoading ? null : `₹${avgDaily.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`, sub: "Per day in period", color: "border-l-primary" },
+        ].map(({ label, value, sub, color }) => (
+          <Card key={label} className={`shadow-sm border-l-4 ${color}`}>
+            <CardContent className="p-5">
+              <p className="text-sm font-medium text-muted-foreground">{label}</p>
+              {value === null ? (
+                <Skeleton className="h-8 w-24 mt-1" />
+              ) : (
+                <>
+                  <p className="text-2xl font-bold mt-1">{value}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">

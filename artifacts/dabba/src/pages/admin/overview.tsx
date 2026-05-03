@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useGetPlatformOverview, useUpdateVendor } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -258,7 +259,11 @@ export default function AdminOverview() {
                   <TableBody>
                     {pendingVendors.map(vendor => (
                       <TableRow key={vendor.id}>
-                        <TableCell className="font-medium">{vendor.name}</TableCell>
+                        <TableCell className="font-medium">
+                          <Link href={`/admin/vendors/${vendor.id}`} className="hover:text-primary hover:underline transition-colors">
+                            {vendor.name}
+                          </Link>
+                        </TableCell>
                         <TableCell>{vendor.city}</TableCell>
                         <TableCell>{vendor.cuisineType}</TableCell>
                         <TableCell className="text-muted-foreground text-sm">
@@ -315,7 +320,11 @@ export default function AdminOverview() {
                       const isEditing = editingCommission[vendor.id] !== undefined;
                       return (
                         <TableRow key={vendor.id}>
-                          <TableCell className="font-medium">{vendor.name}</TableCell>
+                          <TableCell className="font-medium">
+                            <Link href={`/admin/vendors/${vendor.id}`} className="hover:text-primary hover:underline transition-colors">
+                              {vendor.name}
+                            </Link>
+                          </TableCell>
                           <TableCell>{vendor.city}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className={TIER_COLORS[vendor.subscriptionTier] || TIER_COLORS.basic}>

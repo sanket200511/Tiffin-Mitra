@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   ArrowRight, Star, ChefHat, CheckCircle2, CalendarDays,
   Bike, BookOpen, FileText, Package, CreditCard,
-  AlertTriangle, ShoppingBag, Clock,
+  AlertTriangle, ShoppingBag, Clock, Gift,
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import {
@@ -17,7 +17,7 @@ import {
   useListOrders,
   useGetMyCustomerProfile,
 } from "@workspace/api-client-react";
-import { format } from "date-fns";
+import { format, differenceInDays, parseISO } from "date-fns";
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -71,6 +71,13 @@ function CustomerDashboard() {
 
   const LOW_BALANCE = 200;
   const isLowBalance = !walletLoading && balance < LOW_BALANCE;
+
+  const expiringSoon = subscriptions.filter(sub => {
+    if (sub.status !== "active") return false;
+    const daysLeft = differenceInDays(parseISO(sub.endDate), new Date());
+    return daysLeft >= 0 && daysLeft <= 3;
+  });
+
   const displayName = customer?.name || (user as any)?.name || "there";
   const firstName = displayName.split(" ")[0];
 
@@ -105,6 +112,38 @@ function CustomerDashboard() {
             </Button>
           </AlertDescription>
         </Alert>
+      )}
+
+      {/* Expiring subscription warnings */}
+      {expiringSoon.length > 0 && (
+        <div className="space-y-2">
+          {expiringSoon.map(sub => {
+            const daysLeft = differenceInDays(parseISO(sub.endDate), new Date());
+            return (
+              <Alert key={sub.id} className="border-orange-200 bg-orange-50 text-orange-900">
+                <AlertTriangle className="h-4 w-4 text-orange-600 shrink-0" />
+                <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+                  <span>
+                    <strong>{sub.planName || "Your subscription"}</strong> from{" "}
+                    <strong>{sub.vendorName}</strong> expires{" "}
+                    {daysLeft === 0 ? "today" : daysLeft === 1 ? "tomorrow" : `in ${daysLeft} days`}.
+                    Renew to keep your daily tiffin coming.
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    asChild
+                    className="shrink-0 border-orange-300 hover:bg-orange-100 text-orange-800"
+                  >
+                    <Link href={sub.vendorId && sub.planId ? `/subscribe/${sub.vendorId}/${sub.planId}` : "/explore"}>
+                      Renew Now
+                    </Link>
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            );
+          })}
+        </div>
       )}
 
       {/* Summary cards */}
@@ -308,11 +347,12 @@ function CustomerDashboard() {
       {/* Quick actions */}
       <div>
         <h2 className="text-xl font-serif font-bold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
           {[
             { label: "Explore Kitchens", icon: ChefHat, href: "/explore", color: "text-primary bg-primary/10" },
             { label: "My Orders", icon: ShoppingBag, href: "/orders", color: "text-blue-600 bg-blue-50" },
             { label: "My Wallet", icon: CreditCard, href: "/wallet", color: "text-green-600 bg-green-50" },
+            { label: "Refer & Earn", icon: Gift, href: "/wallet#referral", color: "text-amber-600 bg-amber-50" },
             { label: "Peer Delivery", icon: Bike, href: "/peer-delivery", color: "text-purple-600 bg-purple-50" },
           ].map(({ label, icon: Icon, href, color }) => (
             <Link key={href} href={href} className="block">

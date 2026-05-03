@@ -97,7 +97,10 @@ const walletLimiter = rateLimit({
 });
 
 app.use("/api", globalLimiter);
-app.use("/api/auth", authLimiter);
+// Auth limiter only on write/sensitive endpoints — not on GET /api/auth/user
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/register", authLimiter);
+app.use("/api/auth/logout", authLimiter);
 app.use("/api/customers/wallet/topup", walletLimiter);
 
 // ─── Body parsing & auth ──────────────────────────────────────────────────────

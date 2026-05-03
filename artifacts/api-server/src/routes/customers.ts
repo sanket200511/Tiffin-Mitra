@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, customersTable, walletTransactionsTable, customerSubscriptionsTable, ordersTable, subscriptionPlansTable, vendorsTable, referralsTable } from "@workspace/db";
-import { eq, sql, desc } from "drizzle-orm";
+import { db, customersTable, walletTransactionsTable, customerSubscriptionsTable, ordersTable, subscriptionPlansTable, vendorsTable, referralsTable, platformSettingsTable, DEFAULT_SETTINGS } from "@workspace/db";
+import { eq, sql, desc, count } from "drizzle-orm";
 
 const router = Router();
 
@@ -111,6 +111,29 @@ router.patch("/customers/me", async (req, res) => {
   }
 });
 
+// GET /customers/wallet/limits — returns configured min/max topup amounts (no auth required for UI display)
+router.get("/customers/wallet/limits", async (_req, res) => {
+  try {
+    const rows = await db
+      .select()
+      .from(platformSettingsTable)
+      .where(
+        sql`${platformSettingsTable.key} IN ('min_wallet_topup', 'max_wallet_topup')`,
+      );
+
+    const map = Object.fromEntries(rows.map(r => [r.key, r.value]));
+    const minDefault = DEFAULT_SETTINGS.find(s => s.key === "min_wallet_topup")?.value ?? "100";
+    const maxDefault = DEFAULT_SETTINGS.find(s => s.key === "max_wallet_topup")?.value ?? "100000";
+
+    res.json({
+      minTopup: parseFloat(map["min_wallet_topup"] ?? minDefault),
+      maxTopup: parseFloat(map["max_wallet_topup"] ?? maxDefault),
+    });
+  } catch (err) {
+    res.json({ minTopup: 100, maxTopup: 100000 });
+  }
+});
+
 router.get("/customers/wallet", async (req, res) => {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "Unauthorized" });
@@ -123,14 +146,25 @@ router.get("/customers/wallet", async (req, res) => {
       return;
     }
 
-    const transactions = await db.select().from(walletTransactionsTable)
+    const LIMIT = 100;
+    const [countResult] = await db
+      .select({ total: count() })
+      .from(walletTransactionsTable)
       .where(eq(walletTransactionsTable.customerId, customer.id));
+
+    const transactions = await db
+      .select()
+      .from(walletTransactionsTable)
+      .where(eq(walletTransactionsTable.customerId, customer.id))
+      .orderBy(desc(walletTransactionsTable.createdAt))
+      .limit(LIMIT);
 
     res.json({
       wallet: {
         balance: parseFloat(customer.walletBalance as string ?? "0"),
         loyaltyPoints: customer.loyaltyPoints,
         transactions,
+        totalTransactions: countResult?.total ?? 0,
       }
     });
   } catch (err) {
@@ -145,11 +179,36 @@ router.post("/customers/wallet/topup", async (req, res) => {
     return;
   }
   const { amount } = req.body as { amount: number };
-  if (!amount || typeof amount !== "number" || amount <= 0 || amount > 50000) {
-    res.status(400).json({ error: "Invalid amount. Must be between ₹1 and ₹50,000." });
+  if (!amount || typeof amount !== "number" || amount <= 0) {
+    res.status(400).json({ error: "Invalid amount." });
     return;
   }
   try {
+    // Read configurable min/max from platform_settings
+    const limitRows = await db
+      .select()
+      .from(platformSettingsTable)
+      .where(
+        eq(platformSettingsTable.key, "min_wallet_topup"),
+      );
+    const maxRows = await db
+      .select()
+      .from(platformSettingsTable)
+      .where(
+        eq(platformSettingsTable.key, "max_wallet_topup"),
+      );
+
+    const minDefault = DEFAULT_SETTINGS.find(s => s.key === "min_wallet_topup")?.value ?? "100";
+    const maxDefault = DEFAULT_SETTINGS.find(s => s.key === "max_wallet_topup")?.value ?? "100000";
+    const MIN_TOPUP = parseFloat(limitRows[0]?.value ?? minDefault);
+    const MAX_TOPUP = parseFloat(maxRows[0]?.value ?? maxDefault);
+
+    if (amount < MIN_TOPUP || amount > MAX_TOPUP) {
+      res.status(400).json({
+        error: `Top-up amount must be between ₹${MIN_TOPUP.toLocaleString("en-IN")} and ₹${MAX_TOPUP.toLocaleString("en-IN")}.`,
+      });
+      return;
+    }
     let [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user.id));
     if (!customer) {
       [customer] = await db.insert(customersTable).values({ userId: req.user.id }).returning();
@@ -454,8 +513,19 @@ router.post("/customers/me/referral/apply", async (req, res) => {
       return;
     }
 
-    const REFEREE_REWARD = 25;
-    const REFERRER_REWARD = 50;
+    // Read configurable reward amounts from platform settings (fall back to defaults)
+    const settingRows = await db.select()
+      .from(platformSettingsTable)
+      .where(eq(platformSettingsTable.key, "referral_referee_reward"));
+    const referrerSettingRows = await db.select()
+      .from(platformSettingsTable)
+      .where(eq(platformSettingsTable.key, "referral_referrer_reward"));
+
+    const refereeDefault = DEFAULT_SETTINGS.find(s => s.key === "referral_referee_reward")?.value ?? "25";
+    const referrerDefault = DEFAULT_SETTINGS.find(s => s.key === "referral_referrer_reward")?.value ?? "50";
+    const REFEREE_REWARD = parseFloat(settingRows[0]?.value ?? refereeDefault);
+    const REFERRER_REWARD = parseFloat(referrerSettingRows[0]?.value ?? referrerDefault);
+
     const refereeBalance = parseFloat(String(referee.walletBalance ?? "0"));
     const referrerBalance = parseFloat(String(referrer.walletBalance ?? "0"));
 
@@ -485,6 +555,8 @@ router.post("/customers/me/referral/apply", async (req, res) => {
       await tx.insert(referralsTable).values({
         referrerId: referrer.id,
         refereeId: referee.id,
+        referrerReward: REFERRER_REWARD.toFixed(2),
+        refereeReward: REFEREE_REWARD.toFixed(2),
       });
     });
 

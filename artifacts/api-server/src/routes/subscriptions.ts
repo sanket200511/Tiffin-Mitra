@@ -157,6 +157,7 @@ router.get("/subscriptions", async (req, res) => {
 
       const subscriptions = rows.map(r => ({
         ...r.sub,
+        totalAmount:  r.sub.walletBalance ?? undefined,
         vendorName:   r.vendorName   ?? undefined,
         planName:     r.planName     ?? undefined,
         planType:     r.planType     ?? undefined,
@@ -184,10 +185,12 @@ router.get("/subscriptions", async (req, res) => {
       .from(customerSubscriptionsTable)
       .leftJoin(vendorsTable,           eq(customerSubscriptionsTable.vendorId, vendorsTable.id))
       .leftJoin(subscriptionPlansTable, eq(customerSubscriptionsTable.planId,   subscriptionPlansTable.id))
-      .where(eq(customerSubscriptionsTable.customerId, customer.id));
+      .where(eq(customerSubscriptionsTable.customerId, customer.id))
+      .orderBy(desc(customerSubscriptionsTable.createdAt));
 
     const subscriptions = rows.map(r => ({
       ...r.sub,
+      totalAmount: r.sub.walletBalance ?? undefined,
       vendorName: r.vendorName ?? undefined,
       planName:   r.planName   ?? undefined,
       planType:   r.planType   ?? undefined,
@@ -318,6 +321,7 @@ router.post("/subscriptions", async (req, res) => {
       deliveryAddress,
       deliverySlot: deliverySlot || null,
       status: "active",
+      walletBalance: chargeAmount.toFixed(2),
     }).returning();
 
     if (deliveryDates.length > 0) {

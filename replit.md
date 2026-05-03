@@ -51,12 +51,15 @@ The `useAuth` hook from `@workspace/replit-auth-web` returns:
 - `subscription_plans` — plan definitions (daily/weekly/monthly/trial types)
 - `customer_subscriptions` — active subscriptions with skip days support
 - `orders` — individual delivery orders (status pipeline: pending→accepted→preparing→packed→picked_up→delivered)
-- `customers` — customer profiles (wallet, loyalty points, GPS coordinates)
+- `customers` — customer profiles (wallet, loyalty points, GPS coordinates, referral_code, referred_by_code)
 - `wallet_transactions` — wallet credit/debit history
+- `referrals` — tracks completed referral pairs (referrer_id, referee_id, referrer_reward, referee_reward)
 - `reviews` — vendor reviews with tags and vendor responses
 - `peer_deliveries` — peer delivery requests and assignments
 - `payout_requests` — vendor earnings withdrawal requests (UPI/bank)
 - `notifications` — in-app notifications for all roles (userId, type, title, body, isRead)
+- `vendor_holidays` — vendor holiday/closure dates that skip order generation
+- `platform_settings` — admin-configurable key-value settings (commission rate, referral rewards, wallet limits)
 
 ## Backend Routes
 
@@ -70,17 +73,29 @@ All routes mounted at `/api`:
 - `/vendors/:id/stats` — vendor stats (4 parallel queries)
 - `/subscriptions` — customer subscription management (create generates all delivery orders)
 - `/orders` — order listing and status updates (refunds on cancel)
-- `/customers/me` — customer profile
+- `/customers/me` — customer profile (GET/PATCH)
 - `/customers/wallet` — wallet balance and transactions
-- `/customers/wallet/topup` — add funds to wallet
+- `/customers/wallet/topup` — add funds (validates against platform_settings min/max)
 - `/customers/:id/wallet-credit` — admin credit/debit
 - `/customers/upcoming-deliveries` — 7-day delivery calendar
-- `/reviews` — review listing and creation
-- `/analytics/*` — revenue trends, popular dishes, platform overview
+- `/customers/me/referral` — get referral code, stats, and referral history
+- `/customers/me/referral/apply` — apply a referral code (rewards from platform_settings)
+- `/customers` — admin-only: list all customers with subscription/order stats
+- `/customers/:id` — admin-only: detailed customer profile with transactions
+- `/reviews` — review listing and creation; PATCH `/:id/response` for vendor replies
+- `/analytics/vendor/:id/revenue` — revenue trend (7d/30d/90d)
+- `/analytics/vendor/:id/dishes` — popular dishes by order count
+- `/analytics/vendor/:id/subscriptions/health` — subscription status breakdown
+- `/analytics/platform/revenue` — platform GMV/commission trend (admin)
+- `/analytics/platform/overview` — KPI summary (admin)
 - `/deliveries` — delivery tracking
-- `/peer-deliveries` — peer delivery CRUD
+- `/peer-deliveries` — peer delivery CRUD (open/accept/advance/cancel)
 - `/payouts` — vendor payout requests; admin status updates
 - `/notifications` — list, mark-read, mark-all-read, delete notifications
+- `/vendors/:id/holidays` — vendor holiday management (GET/POST/DELETE)
+- `/vendors/:id/holidays/all` — all holidays for a vendor (for calendar view)
+- `/admin/settings` — GET all platform settings; PATCH to update individual keys
+- `/orders/today-summary/:vendorId` — today's order pipeline summary for sidebar badge
 
 ## Notification System
 
@@ -105,34 +120,45 @@ Polls every 30 seconds. Popover shows last 50 notifications with per-item dismis
 ## Frontend Pages
 
 **Customer:**
-- `/` — Landing page (hero, how it works, featured vendors)
-- `/explore` — Browse/search vendors (sort, diet/cuisine filters, active chips)
-- `/vendors/:vendorId` — Vendor detail with plans, menu, reviews
-- `/subscribe/:planId` — Subscription checkout (wallet deduct + bulk order creation)
-- `/my-subscriptions` — Subscription dashboard with skip-a-day and cancel
-- `/orders` — Order history with status badges
-- `/orders/:id/track` — Live order tracking (5s poll, status pipeline)
-- `/wallet` — Wallet balance, quick top-up, transaction history
-- `/profile` — Profile settings + GPS location detect
-- `/peer-delivery` — Peer delivery board
+- `/` — Dashboard (authenticated) or marketing landing (guests)
+- `/explore` — Browse/search vendors (sort, diet/cuisine/city filters)
+- `/vendors/:vendorId` — Vendor detail with plans, menu, reviews tabs
+- `/subscribe/:vendorId/:planId` — Subscription checkout (wallet deduct + loyalty + bulk order creation)
+- `/my-subscriptions` — Subscription dashboard with pause/cancel/skip-a-day
+- `/orders` — Order history (upcoming tab + searchable history table)
+- `/orders/:id/track` — Live order tracking (5 s poll, 6-stage pipeline)
+- `/wallet` — Wallet balance, quick top-up, transaction history, referral section (`#referral`)
+- `/profile` — Profile settings + GPS location detect + referral code
+- `/peer-delivery` — Peer delivery board (post requests, carry & earn)
+- `/how-it-works` — 7-step guide with FAQ
+- `/about` — About page with team/values
+- `/contact` — Contact form page
+- `/privacy` — Privacy policy
 
 **Vendor:**
-- `/vendor/dashboard` — Stats, today's orders, setup checklist
+- `/vendor/onboarding` — First-time vendor onboarding form
+- `/vendor/dashboard` — Stats, today's orders quick-accept, setup checklist
 - `/vendor/menu` — Menu management (CRUD via slide-out sheet)
-- `/vendor/plans` — Subscription plan management
+- `/vendor/plans` — Subscription plan management (daily/weekly/monthly/trial)
 - `/vendor/orders` — Order pipeline (date filter, bulk accept, status dropdown)
-- `/vendor/analytics` — Revenue/subscription charts (Recharts)
+- `/vendor/delivery-sheet` — Printable daily delivery manifest grouped by slot
+- `/vendor/schedule` — Holiday/closure calendar (blocks order generation)
+- `/vendor/analytics` — Revenue/popular-dishes/subscription-health charts
 - `/vendor/earnings` — Earnings overview, payout request dialog (UPI/bank)
 - `/vendor/reviews` — Review management with vendor reply
 - `/vendor/profile` — Vendor profile editor
 
 **Admin:**
 - `/admin/overview` — Platform KPIs, vendor approval/rejection, commission editor
-- `/admin/vendors` — Full vendor table with filters
+- `/admin/vendors` — Full vendor table with status/commission filters
+- `/admin/vendors/:id` — Vendor detail: stats, orders, reviews, payouts tabs
 - `/admin/customers` — Customer table with wallet credit/debit
+- `/admin/customers/:id` — Customer detail: subscriptions, orders, wallet transactions
+- `/admin/subscriptions` — All subscriptions with status/search filters
 - `/admin/orders` — All orders with date/status filters
 - `/admin/payouts` — Payout request management with approve/reject dialogs
-- `/admin/analytics` — Platform revenue/subscription trend charts
+- `/admin/analytics` — Platform revenue/commission trend charts
+- `/admin/settings` — Configurable platform settings (commission, referral rewards, wallet limits)
 
 **Auth:**
 - `/login` — Email/password login + register (tabs)

@@ -259,6 +259,14 @@ export default function MySubscriptions() {
                             <span className="font-medium capitalize">{sub.planType.replace("_", " ")}</span>
                           </div>
                         )}
+                        {(sub as any).totalAmount && parseFloat((sub as any).totalAmount) > 0 && (
+                          <div className="flex justify-between border-b pb-2">
+                            <span className="text-muted-foreground">Amount Paid</span>
+                            <span className="font-medium text-green-700">
+                              ₹{parseFloat((sub as any).totalAmount).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex justify-between border-b pb-2">
                           <span className="text-muted-foreground">Period</span>
                           <span className="font-medium">
@@ -385,7 +393,7 @@ export default function MySubscriptions() {
                             </AlertDialogTitle>
                             <AlertDialogDescription>
                               Cancelling <strong>{sub.planName}</strong> from <strong>{sub.vendorName}</strong> will stop all future deliveries.
-                              This action cannot be undone. Any remaining wallet balance for this subscription will not be automatically refunded.
+                              Any pending or accepted orders will be automatically cancelled and refunded to your wallet. This action cannot be undone.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

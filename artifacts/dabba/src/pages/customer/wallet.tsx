@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
   Wallet, ArrowDownLeft, ArrowUpRight, Plus, IndianRupee,
-  Gift, TrendingUp, AlertCircle,
+  Gift, TrendingUp, AlertCircle, Copy, Check, Users, Share2,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 type WalletData = {
   balance: number;
   loyaltyPoints: number;
+  totalTransactions: number;
   transactions: {
     id: string;
     type: "credit" | "debit";
@@ -26,6 +27,16 @@ type WalletData = {
   }[];
 };
 
+type ReferralData = {
+  referralCode: string | null;
+  referredByCode: string | null;
+  referrals: { id: string; createdAt: string; referrerReward: string | null; refereeName: string | null }[];
+  totalEarned: number;
+  count: number;
+};
+
+type WalletLimits = { minTopup: number; maxTopup: number };
+
 const QUICK_AMOUNTS = [200, 500, 1000, 2000];
 
 export default function CustomerWallet() {
@@ -33,6 +44,8 @@ export default function CustomerWallet() {
   const queryClient = useQueryClient();
   const [customAmount, setCustomAmount] = useState("");
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [applyCode, setApplyCode] = useState("");
 
   const { data, isLoading } = useQuery<{ wallet: WalletData }>({
     queryKey: ["/api/customers/wallet"],
@@ -42,6 +55,28 @@ export default function CustomerWallet() {
       return res.json();
     },
   });
+
+  const { data: referralData, isLoading: referralLoading } = useQuery<ReferralData>({
+    queryKey: ["/api/customers/me/referral"],
+    queryFn: async () => {
+      const res = await fetch("/api/customers/me/referral", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load referral data");
+      return res.json();
+    },
+  });
+
+  const { data: limitsData } = useQuery<WalletLimits>({
+    queryKey: ["/api/customers/wallet/limits"],
+    queryFn: async () => {
+      const res = await fetch("/api/customers/wallet/limits");
+      if (!res.ok) return { minTopup: 100, maxTopup: 100000 };
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const minTopup = limitsData?.minTopup ?? 100;
+  const maxTopup = limitsData?.maxTopup ?? 100000;
 
   const topup = useMutation({
     mutationFn: async (amount: number) => {
@@ -68,11 +103,54 @@ export default function CustomerWallet() {
     },
   });
 
+  const applyReferral = useMutation({
+    mutationFn: async (code: string) => {
+      const res = await fetch("/api/customers/me/referral/apply", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Failed to apply code");
+      return body;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Referral code applied!",
+        description: `₹${data.refereeReward} has been credited to your wallet.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers/me/referral"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers/wallet"] });
+      setApplyCode("");
+    },
+    onError: (err: any) => {
+      toast({ variant: "destructive", title: "Could not apply code", description: err.message });
+    },
+  });
+
   const effectiveAmount = selectedAmount ?? (customAmount ? parseFloat(customAmount) : null);
 
   const handleTopup = () => {
     if (!effectiveAmount || effectiveAmount <= 0) return;
+    if (effectiveAmount < minTopup) {
+      toast({ variant: "destructive", title: "Amount too low", description: `Minimum top-up is ₹${minTopup.toLocaleString("en-IN")}.` });
+      return;
+    }
+    if (effectiveAmount > maxTopup) {
+      toast({ variant: "destructive", title: "Amount too high", description: `Maximum top-up is ₹${maxTopup.toLocaleString("en-IN")}.` });
+      return;
+    }
     topup.mutate(effectiveAmount);
+  };
+
+  const handleCopyCode = () => {
+    if (referralData?.referralCode) {
+      navigator.clipboard.writeText(referralData.referralCode).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
+    }
   };
 
   const wallet = data?.wallet;
@@ -167,10 +245,10 @@ export default function CustomerWallet() {
             <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               type="number"
-              placeholder="Enter amount (₹50 – ₹50,000)"
+              placeholder={`Enter amount (₹${minTopup.toLocaleString("en-IN")} – ₹${maxTopup.toLocaleString("en-IN")})`}
               className="pl-9"
-              min={50}
-              max={50000}
+              min={minTopup}
+              max={maxTopup}
               value={customAmount}
               onChange={(e) => { setCustomAmount(e.target.value); setSelectedAmount(null); }}
             />
@@ -197,12 +275,131 @@ export default function CustomerWallet() {
         </CardContent>
       </Card>
 
+      {/* Referral section */}
+      <Card id="referral" className="shadow-sm border-primary/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Share2 className="w-5 h-5 text-primary" /> Refer &amp; Earn
+          </CardTitle>
+          <CardDescription>
+            Share your referral code with friends. You earn ₹50 per successful referral — they get ₹25 to start!
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {referralLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-14 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : (
+            <>
+              {/* Your referral code */}
+              {referralData?.referralCode && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Your referral code</p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-primary/5 border border-primary/20 rounded-lg px-4 py-3 font-mono font-bold text-xl tracking-widest text-primary text-center">
+                      {referralData.referralCode}
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="shrink-0 h-12 w-12"
+                      onClick={handleCopyCode}
+                    >
+                      {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Stats row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-muted/40 rounded-lg p-4 text-center">
+                  <Users className="w-5 h-5 mx-auto mb-1 text-primary" />
+                  <p className="text-2xl font-bold font-serif">{referralData?.count ?? 0}</p>
+                  <p className="text-xs text-muted-foreground">Friends referred</p>
+                </div>
+                <div className="bg-muted/40 rounded-lg p-4 text-center">
+                  <Gift className="w-5 h-5 mx-auto mb-1 text-green-600" />
+                  <p className="text-2xl font-bold font-serif">
+                    ₹{(referralData?.totalEarned ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Total earned</p>
+                </div>
+              </div>
+
+              {/* Referral history */}
+              {(referralData?.referrals?.length ?? 0) > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Referral history</p>
+                  <div className="space-y-2">
+                    {referralData!.referrals.map(r => (
+                      <div key={r.id} className="flex items-center justify-between py-2 border-b last:border-0 text-sm">
+                        <div>
+                          <span className="font-medium">{r.refereeName || "A friend"}</span>
+                          <span className="text-muted-foreground text-xs ml-2">
+                            {format(new Date(r.createdAt), "MMM d, yyyy")}
+                          </span>
+                        </div>
+                        <Badge variant="outline" className="border-green-200 text-green-700 bg-green-50 font-semibold">
+                          +₹{parseFloat(String(r.referrerReward ?? 0)).toFixed(0)}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Apply someone's referral code */}
+              {!referralData?.referredByCode && (
+                <div className="space-y-2 pt-2 border-t">
+                  <p className="text-sm font-medium">Have a friend's referral code?</p>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter referral code"
+                      className="font-mono uppercase"
+                      value={applyCode}
+                      onChange={e => setApplyCode(e.target.value.toUpperCase())}
+                      maxLength={8}
+                    />
+                    <Button
+                      variant="outline"
+                      disabled={applyCode.length < 4 || applyReferral.isPending}
+                      onClick={() => applyReferral.mutate(applyCode)}
+                      className="shrink-0"
+                    >
+                      {applyReferral.isPending ? "Applying..." : "Apply"}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">You can only apply a referral code once.</p>
+                </div>
+              )}
+
+              {referralData?.referredByCode && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-green-50 border border-green-200 rounded-lg p-3">
+                  <Check className="w-4 h-4 text-green-600 shrink-0" />
+                  <span>You joined with referral code <strong className="font-mono text-green-700">{referralData.referredByCode}</strong> and received a welcome bonus!</span>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Transaction history */}
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <TrendingUp className="w-5 h-5 text-primary" /> Transaction History
-          </CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <TrendingUp className="w-5 h-5 text-primary" /> Transaction History
+            </CardTitle>
+            {wallet?.totalTransactions != null && wallet.totalTransactions > 100 && (
+              <span className="text-xs text-muted-foreground">
+                Showing last 100 of {wallet.totalTransactions}
+              </span>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -226,7 +423,7 @@ export default function CustomerWallet() {
             </div>
           ) : (
             <div className="space-y-1">
-              {[...wallet.transactions].reverse().map((tx) => {
+              {wallet.transactions.map((tx) => {
                 const isCredit = tx.type === "credit";
                 return (
                   <div key={tx.id} className="flex items-center gap-3 py-3 border-b last:border-0">

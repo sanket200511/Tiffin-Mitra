@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { vendorsTable, reviewsTable } from "@workspace/db";
+import { vendorsTable, reviewsTable, customersTable } from "@workspace/db";
 import { eq, ilike, and, desc, count, gte, sql } from "drizzle-orm";
 import { notifyUser } from "../lib/notify";
 

@@ -43,6 +43,7 @@ export default function VendorReviews() {
     mutationFn: async ({ reviewId, response }: { reviewId: string; response: string }) => {
       const res = await fetch(`/api/reviews/${reviewId}/response`, {
         method: "PATCH",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ response }),
       });

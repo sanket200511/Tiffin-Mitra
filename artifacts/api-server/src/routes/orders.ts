@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, ordersTable, vendorsTable, customersTable, walletTransactionsTable, customerSubscriptionsTable, subscriptionPlansTable, DEFAULT_SETTINGS, platformSettingsTable } from "@workspace/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 import { notifyUser } from "../lib/notify";
 
 const router = Router();
@@ -66,7 +66,8 @@ router.get("/orders", async (req, res) => {
       .from(ordersTable)
       .leftJoin(vendorsTable, eq(ordersTable.vendorId, vendorsTable.id))
       .leftJoin(customersTable, eq(ordersTable.customerId, customersTable.id))
-      .where(conditions.length > 0 ? and(...conditions) : sql`1=1`);
+      .where(conditions.length > 0 ? and(...conditions) : sql`1=1`)
+      .orderBy(desc(ordersTable.scheduledDate), desc(ordersTable.createdAt));
 
     const orders = rows.map(r => ({
       ...r.order,

@@ -39,7 +39,7 @@ type Order = {
 
 type Review = {
   id: string; rating: number; comment: string | null; createdAt: string;
-  reviewerName: string | null; vendorReply: string | null;
+  customerName: string | null; vendorResponse: string | null;
 };
 
 type Payout = {
@@ -123,9 +123,9 @@ export default function AdminVendorDetail() {
   });
 
   const { data: reviewsData, isLoading: reviewsLoading } = useQuery<{ reviews: Review[] }>({
-    queryKey: ["/api/vendors", vendorId, "reviews"],
+    queryKey: ["/api/reviews", { vendorId }],
     queryFn: async () => {
-      const res = await fetch(`/api/vendors/${vendorId}/reviews`, { credentials: "include" });
+      const res = await fetch(`/api/reviews?vendorId=${vendorId}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch reviews");
       return res.json();
     },
@@ -425,10 +425,10 @@ export default function AdminVendorDetail() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-bold flex items-center justify-center">
-                        {(review.reviewerName ?? "?")[0].toUpperCase()}
+                        {(review.customerName ?? "?")[0].toUpperCase()}
                       </div>
                       <div>
-                        <p className="text-sm font-medium">{review.reviewerName ?? "Anonymous"}</p>
+                        <p className="text-sm font-medium">{review.customerName ?? "Anonymous"}</p>
                         <p className="text-xs text-muted-foreground">
                           {formatDistanceToNow(new Date(review.createdAt), { addSuffix: true })}
                         </p>
@@ -439,10 +439,10 @@ export default function AdminVendorDetail() {
                   {review.comment && (
                     <p className="text-sm text-muted-foreground leading-relaxed">{review.comment}</p>
                   )}
-                  {review.vendorReply && (
+                  {review.vendorResponse && (
                     <div className="ml-4 pl-4 border-l-2 border-primary/20 text-sm text-muted-foreground">
                       <span className="font-medium text-foreground">Vendor reply: </span>
-                      {review.vendorReply}
+                      {review.vendorResponse}
                     </div>
                   )}
                 </CardContent>

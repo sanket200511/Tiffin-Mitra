@@ -17,6 +17,7 @@ export function Footer() {
               <li><Link href="/explore" className="hover:text-primary transition-colors">Explore Tiffins</Link></li>
               <li><Link href="/explore?planType=trial" className="hover:text-primary transition-colors">Trial Plans</Link></li>
               <li><Link href="/how-it-works" className="hover:text-primary transition-colors">How it works</Link></li>
+              <li><Link href="/wallet#referral" className="hover:text-primary transition-colors">Refer &amp; Earn</Link></li>
             </ul>
           </div>
           <div>

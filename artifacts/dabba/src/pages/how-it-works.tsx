@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ChefHat, CalendarDays, Clock, Wallet, PauseCircle, Star, ArrowRight, CheckCircle2 } from "lucide-react";
+import { ChefHat, CalendarDays, Clock, Wallet, PauseCircle, Star, ArrowRight, CheckCircle2, Gift } from "lucide-react";
 
 const steps = [
   {
@@ -45,6 +45,13 @@ const steps = [
     description:
       "After each week, leave a review for your chef. Your feedback helps maintain quality across the platform and helps other customers make great choices.",
   },
+  {
+    number: "07",
+    icon: Gift,
+    title: "Refer Friends & Earn",
+    description:
+      "Share your unique Dabba referral code with friends. When they join and subscribe, you earn ₹50 added instantly to your wallet — they get ₹25 as a welcome bonus.",
+  },
 ];
 
 const faqs = [
@@ -68,6 +75,10 @@ const faqs = [
     q: "What areas do you serve?",
     a: "Dabba is expanding city by city. Check the Explore page to see kitchens active in your area.",
   },
+  {
+    q: "Is there a referral program?",
+    a: "Yes! Every Dabba customer gets a unique referral code. Share it with a friend — when they join and make their first subscription, you earn ₹50 in your wallet and they get ₹25 as a welcome bonus. Find your code under Wallet → Refer & Earn.",
+  },
 ];
 
 export default function HowItWorks() {
@@ -79,7 +90,7 @@ export default function HowItWorks() {
         <div className="container relative z-10 max-w-3xl">
           <p className="text-primary font-medium mb-3 tracking-wide uppercase text-sm">How it works</p>
           <h1 className="text-4xl md:text-6xl font-serif font-bold leading-tight mb-6">
-            Ghar ka khana, delivered in six simple steps.
+            Ghar ka khana, delivered in seven simple steps.
           </h1>
           <p className="text-lg text-muted-foreground mb-8">
             Dabba connects you to home kitchens that cook the way your mother did — with real ingredients, real care, and no shortcuts.

@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useGetVendorStats, useGetTodayOrderSummary, useGetMyVendorProfile, useListOrders } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,9 +9,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   IndianRupee, ShoppingBag, Users, Star, ArrowRight,
-  CheckCircle2, Clock, AlertCircle, UtensilsCrossed, CalendarDays, CircleDashed,
+  CheckCircle2, Clock, AlertCircle, UtensilsCrossed, CalendarDays, CircleDashed, Zap,
 } from "lucide-react";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
   pending:   { color: "bg-yellow-100 text-yellow-800 border-yellow-200", label: "Pending" },
@@ -26,19 +27,19 @@ const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
 // ─── Setup checklist card ─────────────────────────────────────────────────────
 function SetupChecklist({ vendorId }: { vendorId: string }) {
   const { data: menuData } = useQuery({
-    queryKey: ["/api/menus/setup-check", vendorId],
+    queryKey: ["/api/vendors/menus/setup-check", vendorId],
     queryFn: () =>
-      fetch(`/api/menus?vendorId=${vendorId}`, { credentials: "include" }).then(r => r.json()),
+      fetch(`/api/vendors/${vendorId}/menus`, { credentials: "include" }).then(r => r.json()),
     staleTime: 60_000,
   });
   const { data: plansData } = useQuery({
-    queryKey: ["/api/plans/setup-check", vendorId],
+    queryKey: ["/api/vendors/plans/setup-check", vendorId],
     queryFn: () =>
-      fetch(`/api/plans?vendorId=${vendorId}`, { credentials: "include" }).then(r => r.json()),
+      fetch(`/api/vendors/${vendorId}/plans`, { credentials: "include" }).then(r => r.json()),
     staleTime: 60_000,
   });
 
-  const hasMenuItems = (menuData?.items?.length ?? 0) > 0;
+  const hasMenuItems = (menuData?.menuItems?.length ?? 0) > 0;
   const hasPlans     = (plansData?.plans?.length ?? 0) > 0;
 
   if (hasMenuItems && hasPlans) return null;
@@ -119,6 +120,9 @@ function SetupChecklist({ vendorId }: { vendorId: string }) {
 // ─── Main dashboard ───────────────────────────────────────────────────────────
 export default function VendorDashboard() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
 
   const { data: profileData, isLoading: profileLoading } = useGetMyVendorProfile();
   const vendor   = profileData?.vendor;
@@ -144,6 +148,26 @@ export default function VendorDashboard() {
     { query: { enabled: !!vendorId, queryKey: ["/api/orders/recent", vendorId] } }
   );
   const recentOrders = (recentOrdersData?.orders || []).slice(0, 5);
+
+  const handleQuickAccept = async (orderId: string) => {
+    setAcceptingId(orderId);
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "accepted" }),
+      });
+      if (!res.ok) throw new Error("Failed to accept");
+      toast({ title: "Order accepted" });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/today-summary", vendorId] });
+    } catch {
+      toast({ variant: "destructive", title: "Could not accept order", description: "Please try from the Orders page." });
+    } finally {
+      setAcceptingId(null);
+    }
+  };
 
   if (profileLoading) {
     return (
@@ -281,21 +305,38 @@ export default function VendorDashboard() {
           {/* Recent Orders */}
           <Card className="shadow-sm flex-1">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-lg">Recent Orders</CardTitle>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/vendor/orders" className="text-primary">
-                  View All <ArrowRight className="ml-1 w-4 h-4" />
-                </Link>
-              </Button>
+              <div>
+                <CardTitle className="text-lg">Recent Orders</CardTitle>
+                {summary && (summary.pendingCount ?? 0) > 0 && (
+                  <p className="text-xs text-amber-700 mt-0.5 font-medium">
+                    {summary.pendingCount ?? 0} order{(summary.pendingCount ?? 0) !== 1 ? "s" : ""} waiting for your acceptance
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {summary && (summary.pendingCount ?? 0) > 1 && (
+                  <Button size="sm" variant="outline" className="h-7 text-xs border-amber-300 text-amber-700 hover:bg-amber-50" asChild>
+                    <Link href="/vendor/orders?status=pending">
+                      <Zap className="w-3 h-3 mr-1" /> Manage Pending
+                    </Link>
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/vendor/orders" className="text-primary">
+                    View All <ArrowRight className="ml-1 w-4 h-4" />
+                  </Link>
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="overflow-x-auto">
-              <Table className="min-w-[400px]">
+              <Table className="min-w-[500px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Customer</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Meal</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="w-24"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -306,11 +347,12 @@ export default function VendorDashboard() {
                         <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                         <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                        <TableCell><Skeleton className="h-7 w-16 rounded-md" /></TableCell>
                       </TableRow>
                     ))
                   ) : recentOrders.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                         No orders yet. Once customers subscribe, orders will appear here.
                       </TableCell>
                     </TableRow>
@@ -328,6 +370,19 @@ export default function VendorDashboard() {
                             <Badge variant="outline" className={`text-xs border ${config.color}`}>
                               {config.label}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {order.status === "pending" && (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="h-7 text-xs"
+                                disabled={acceptingId === order.id}
+                                onClick={() => handleQuickAccept(order.id)}
+                              >
+                                {acceptingId === order.id ? "..." : "Accept"}
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       );

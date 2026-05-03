@@ -12,9 +12,8 @@ router.get("/sitemap.xml", async (req, res) => {
       .from(vendorsTable)
       .where(eq(vendorsTable.status, "approved"));
 
-    const domain = process.env.REPLIT_DOMAINS
-      ? `https://${process.env.REPLIT_DOMAINS.split(",")[0].trim()}`
-      : "https://dabba.replit.app";
+    // APP_URL: set this to your production domain, e.g. https://dabba.example.com
+    const domain = process.env.APP_URL ?? "https://dabba.app";
 
     const today = new Date().toISOString().split("T")[0];
 

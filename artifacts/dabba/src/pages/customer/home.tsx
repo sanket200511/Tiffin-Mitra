@@ -10,7 +10,7 @@ import {
   Bike, BookOpen, FileText, Package, CreditCard,
   AlertTriangle, ShoppingBag, Clock, Gift,
 } from "lucide-react";
-import { useAuth } from "@workspace/replit-auth-web";
+import { useAuth } from "@/lib/auth-context";
 import {
   useListVendors,
   useGetWalletBalance,

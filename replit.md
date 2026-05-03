@@ -15,7 +15,6 @@ pnpm monorepo with:
 - `lib/api-spec` — OpenAPI 3.1 spec (contract-first)
 - `lib/api-client-react` — Orval-generated React Query hooks + Zod schemas
 - `lib/api-zod` — Orval-generated Zod validation schemas
-- `lib/replit-auth-web` — useAuth hook (custom email/password, no Replit dependency)
 
 ## Authentication
 
@@ -34,12 +33,13 @@ Role-based routing: `super_admin`, `vendor`, `customer`. If no role set after re
 
 ### useAuth hook
 
-The `useAuth` hook from `@workspace/replit-auth-web` returns:
+Provided by `artifacts/dabba/src/lib/auth-context.tsx` via `<AuthProvider>` (wraps the entire App). Auth state is fetched once at startup and shared via React context — no per-component fetches.
+
 ```ts
 { user, isLoading, isAuthenticated, login, logout, refetch }
 ```
 - `login()` — navigates to `/login`
-- `logout()` — calls `POST /api/auth/logout`, then navigates to `/`
+- `logout()` — calls `POST /api/auth/logout`, clears user state, navigates to `/`
 - `refetch()` — re-fetches user from `/api/auth/user` (use after login/register/role change)
 
 ## Database Tables

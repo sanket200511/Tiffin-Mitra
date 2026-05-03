@@ -40,24 +40,26 @@ app.use(
   }),
 );
 
-const allowedOrigins = process.env.REPLIT_DOMAINS
-  ? process.env.REPLIT_DOMAINS.split(",").map(d => `https://${d.trim()}`)
-  : [];
+// ALLOWED_ORIGINS: comma-separated list of allowed origins for CORS.
+// Example: ALLOWED_ORIGINS=https://app.example.com,https://www.example.com
+// In development (NODE_ENV != production) localhost is always allowed.
+const allowedOrigins = new Set(
+  (process.env.ALLOWED_ORIGINS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
+);
 
 app.use(
   cors({
     credentials: true,
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      const isReplit =
-        origin.includes(".replit.dev") ||
-        origin.includes(".repl.co") ||
-        origin.includes(".replit.app");
+      const isDev = process.env.NODE_ENV !== "production";
       const isLocalhost =
         origin.startsWith("http://localhost") ||
         origin.startsWith("http://127.0.0.1");
-      const isAllowed = allowedOrigins.includes(origin);
-      if (isReplit || isLocalhost || isAllowed) {
+      if ((isDev && isLocalhost) || allowedOrigins.has(origin)) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));

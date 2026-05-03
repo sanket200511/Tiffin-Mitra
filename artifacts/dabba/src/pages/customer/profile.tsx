@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { User, Phone, MapPin, Wallet, Gift, ChevronRight, Navigation, Loader2, CheckCircle2, Copy, Share2, Users, IndianRupee } from "lucide-react";
 
 import { useGetMyCustomerProfile, useUpdateMyCustomerProfile } from "@workspace/api-client-react";
-import { useAuth } from "@workspace/replit-auth-web";
+import { useAuth } from "@/lib/auth-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";

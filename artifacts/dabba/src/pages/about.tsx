@@ -1,6 +1,8 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Heart, Users, ChefHat, ArrowRight, Leaf, Shield } from "lucide-react";
+import { useListVendors } from "@workspace/api-client-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const values = [
   {
@@ -36,10 +38,13 @@ const team = [
 ];
 
 export default function About() {
+  const { data: vendorsData, isLoading: vendorsLoading } = useListVendors();
+  const vendorCount = vendorsData?.vendors?.length ?? 0;
+
   return (
     <div className="min-h-screen">
       {/* Hero */}
-      <section className="bg-primary/5 py-20 md:py-28 relative overflow-hidden">
+      <section className="bg-primary/5 py-16 md:py-24 relative overflow-hidden">
         <div className="absolute right-0 top-0 w-1/3 h-full bg-primary/10 -skew-x-12 transform translate-x-20 rounded-l-[100px] hidden md:block" />
         <div className="container relative z-10 max-w-3xl">
           <p className="text-primary font-medium mb-3 tracking-wide uppercase text-sm">Our story</p>
@@ -53,7 +58,7 @@ export default function About() {
       </section>
 
       {/* Mission */}
-      <section className="py-20 bg-background">
+      <section className="py-14 bg-background">
         <div className="container max-w-4xl">
           <div className="grid md:grid-cols-2 gap-16 items-center">
             <div>
@@ -70,16 +75,22 @@ export default function About() {
             </div>
             <div className="bg-primary/5 rounded-2xl p-8 space-y-6 border border-primary/10">
               <div>
-                <div className="text-5xl font-bold font-serif text-primary mb-2">500+</div>
-                <div className="text-muted-foreground font-medium">Home kitchens onboarded</div>
+                {vendorsLoading ? (
+                  <Skeleton className="h-14 w-24 mb-2" />
+                ) : (
+                  <div className="text-5xl font-bold font-serif text-primary mb-2">
+                    {vendorCount > 0 ? `${vendorCount}` : "Growing"}
+                  </div>
+                )}
+                <div className="text-muted-foreground font-medium">Home kitchens live on the platform</div>
               </div>
               <div>
-                <div className="text-5xl font-bold font-serif text-primary mb-2">10k+</div>
-                <div className="text-muted-foreground font-medium">Tiffins delivered</div>
+                <div className="text-5xl font-bold font-serif text-primary mb-2">Daily</div>
+                <div className="text-muted-foreground font-medium">Fresh tiffins cooked and delivered</div>
               </div>
               <div>
-                <div className="text-5xl font-bold font-serif text-primary mb-2">12</div>
-                <div className="text-muted-foreground font-medium">Cities and growing</div>
+                <div className="text-5xl font-bold font-serif text-primary mb-2">Zero</div>
+                <div className="text-muted-foreground font-medium">Reheated meals — ever</div>
               </div>
             </div>
           </div>
@@ -87,7 +98,7 @@ export default function About() {
       </section>
 
       {/* Values */}
-      <section className="py-20 bg-muted/30">
+      <section className="py-14 bg-muted/30">
         <div className="container max-w-4xl">
           <h2 className="text-3xl font-serif font-bold text-center mb-12">What we believe in</h2>
           <div className="grid sm:grid-cols-2 gap-8">
@@ -108,7 +119,7 @@ export default function About() {
       </section>
 
       {/* For vendors */}
-      <section className="py-20 bg-background">
+      <section className="py-14 bg-background">
         <div className="container max-w-4xl">
           <div className="bg-primary text-primary-foreground rounded-2xl p-8 md:p-12 flex flex-col md:flex-row gap-8 items-center">
             <div className="flex-1 space-y-4">

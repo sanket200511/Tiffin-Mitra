@@ -341,7 +341,7 @@ function MarketingHome() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero */}
-      <section className="relative bg-primary/5 py-20 md:py-32 overflow-hidden">
+      <section className="relative bg-primary/5 py-14 md:py-24 overflow-hidden">
         <div className="absolute right-0 top-0 w-1/3 h-full bg-primary/10 -skew-x-12 transform rounded-l-[100px] hidden md:block" />
         <div className="container relative z-10">
           <div className="max-w-2xl space-y-6">
@@ -366,7 +366,7 @@ function MarketingHome() {
       </section>
 
       {/* Carry & Earn */}
-      <section className="py-14 border-y bg-gradient-to-r from-primary/5 via-background to-background">
+      <section className="py-10 border-y bg-gradient-to-r from-primary/5 via-background to-background">
         <div className="container">
           <div className="max-w-5xl mx-auto">
             <div className="bg-card rounded-2xl border shadow-sm p-7 md:p-10 flex flex-col md:flex-row gap-8 items-center">
@@ -413,9 +413,9 @@ function MarketingHome() {
       </section>
 
       {/* How it works */}
-      <section className="py-20 bg-background">
+      <section className="py-14 bg-background">
         <div className="container">
-          <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
+          <div className="text-center max-w-2xl mx-auto mb-10 space-y-4">
             <h2 className="text-3xl md:text-4xl font-serif font-bold">How Dabba Works</h2>
             <p className="text-muted-foreground">Simple, transparent, and built for your daily convenience.</p>
           </div>
@@ -438,9 +438,9 @@ function MarketingHome() {
       </section>
 
       {/* Featured Vendors */}
-      <section className="py-20 bg-muted/30">
+      <section className="py-14 bg-muted/30">
         <div className="container">
-          <div className="flex justify-between items-end mb-12">
+          <div className="flex justify-between items-end mb-8">
             <div className="space-y-2">
               <h2 className="text-3xl md:text-4xl font-serif font-bold">Featured Kitchens</h2>
               <p className="text-muted-foreground">Highest rated tiffin services in your city</p>
@@ -504,7 +504,7 @@ function MarketingHome() {
       </section>
 
       {/* Trust / Why Dabba */}
-      <section className="py-20 bg-background">
+      <section className="py-14 bg-background">
         <div className="container">
           <div className="bg-primary text-primary-foreground rounded-2xl p-8 md:p-12">
             <div className="grid md:grid-cols-2 gap-12 items-center">

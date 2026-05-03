@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, payoutRequestsTable, vendorsTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { notifyUser, notifyAllAdmins } from "../lib/notify";
 
 const router = Router();
@@ -13,9 +13,12 @@ router.get("/payouts", async (req, res) => {
   }
   try {
     if (req.user.role === "super_admin") {
-      const { status } = req.query as Record<string, string>;
+      const { status, vendorId: vendorIdFilter } = req.query as Record<string, string>;
+      const conditions: ReturnType<typeof eq>[] = [];
+      if (status) conditions.push(eq(payoutRequestsTable.status, status as "pending" | "processing" | "paid" | "rejected"));
+      if (vendorIdFilter) conditions.push(eq(payoutRequestsTable.vendorId, vendorIdFilter));
       const payouts = await db.select().from(payoutRequestsTable)
-        .where(status ? eq(payoutRequestsTable.status, status as "pending" | "processing" | "paid" | "rejected") : undefined)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
         .orderBy(desc(payoutRequestsTable.createdAt));
       res.json({ payouts });
       return;

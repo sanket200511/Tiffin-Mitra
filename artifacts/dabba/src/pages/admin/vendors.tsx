@@ -23,7 +23,7 @@ type Vendor = {
   cuisineType: string | null;
   city: string | null;
   status: "pending" | "approved" | "rejected" | "suspended";
-  fssaiNumber: string | null;
+  fssaiLicense: string | null;
   commissionRate: string | null;
   createdAt: string;
 };

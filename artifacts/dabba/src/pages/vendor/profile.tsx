@@ -19,9 +19,10 @@ const formSchema = z.object({
   city: z.string().min(2, "City is required"),
   address: z.string().min(10, "Provide a complete address"),
   cuisineType: z.string().min(2, "Primary cuisine type is required"),
+  fssaiLicense: z.string().optional(),
   logoUrl: z.string().url().optional().or(z.literal("")),
   coverImageUrl: z.string().url().optional().or(z.literal("")),
-  deliveryZones: z.string().optional(), // We'll parse this to an array
+  deliveryZones: z.string().optional(),
 });
 
 export default function VendorProfile() {
@@ -56,6 +57,7 @@ export default function VendorProfile() {
       city: "",
       address: "",
       cuisineType: "",
+      fssaiLicense: "",
       logoUrl: "",
       coverImageUrl: "",
       deliveryZones: "",
@@ -70,6 +72,7 @@ export default function VendorProfile() {
         city: vendor.city || "",
         address: vendor.address || "",
         cuisineType: vendor.cuisineType || "",
+        fssaiLicense: vendor.fssaiLicense || "",
         logoUrl: vendor.logoUrl || "",
         coverImageUrl: vendor.coverImageUrl || "",
         deliveryZones: vendor.deliveryZones ? vendor.deliveryZones.join(", ") : "",
@@ -80,7 +83,6 @@ export default function VendorProfile() {
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     if (!vendor?.id) return;
     
-    // Parse comma-separated zones into array
     const zones = values.deliveryZones 
       ? values.deliveryZones.split(",").map(z => z.trim()).filter(z => z.length > 0)
       : [];
@@ -89,6 +91,7 @@ export default function VendorProfile() {
       vendorId: vendor.id,
       data: {
         ...values,
+        fssaiLicense: values.fssaiLicense || undefined,
         logoUrl: values.logoUrl || undefined,
         coverImageUrl: values.coverImageUrl || undefined,
         deliveryZones: zones
@@ -210,6 +213,21 @@ export default function VendorProfile() {
                         />
                       </div>
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="fssaiLicense"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>FSSAI License Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="14-digit FSSAI license number" {...field} />
+                    </FormControl>
+                    <FormDescription>Your Food Safety and Standards Authority of India registration number.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

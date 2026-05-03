@@ -74,7 +74,7 @@ router.patch("/customers/me", async (req, res) => {
     return;
   }
   try {
-    const { name, phone, defaultDeliveryAddress, landmark, city, latitude, longitude, avatarUrl } = req.body as {
+    const { name, phone, defaultDeliveryAddress, landmark, city, latitude, longitude } = req.body as {
       name?: string;
       phone?: string;
       defaultDeliveryAddress?: string;
@@ -82,7 +82,6 @@ router.patch("/customers/me", async (req, res) => {
       city?: string;
       latitude?: number;
       longitude?: number;
-      avatarUrl?: string;
     };
 
     const updates: Record<string, unknown> = {};
@@ -93,7 +92,6 @@ router.patch("/customers/me", async (req, res) => {
     if (city !== undefined) updates.city = String(city).trim().slice(0, 100);
     if (latitude !== undefined && typeof latitude === "number") updates.latitude = latitude.toFixed(7);
     if (longitude !== undefined && typeof longitude === "number") updates.longitude = longitude.toFixed(7);
-    if (avatarUrl !== undefined) updates.avatarUrl = String(avatarUrl).trim().slice(0, 500);
 
     let [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user.id));
     if (!customer) {

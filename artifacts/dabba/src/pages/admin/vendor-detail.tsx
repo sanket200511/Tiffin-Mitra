@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 type Vendor = {
   id: string; name: string; cuisineType: string | null; city: string | null;
   address: string | null; description: string | null; status: string;
-  fssaiNumber: string | null; commissionRate: string | null;
+  fssaiLicense: string | null; commissionRate: string | null;
   rating: string | null; reviewCount: number | null;
   subscriptionTier: string | null; createdAt: string;
 };
@@ -43,8 +43,9 @@ type Review = {
 };
 
 type Payout = {
-  id: string; amount: string; status: string; method: string | null;
-  methodDetails: string | null; adminNote: string | null; createdAt: string;
+  id: string; vendorId: string; amount: string; status: string;
+  upiId: string | null; bankAccount: string | null; ifscCode: string | null;
+  accountName: string | null; adminNotes: string | null; createdAt: string;
 };
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -133,9 +134,9 @@ export default function AdminVendorDetail() {
   });
 
   const { data: payoutsData, isLoading: payoutsLoading } = useQuery<{ payouts: Payout[] }>({
-    queryKey: ["/api/payouts", "admin"],
+    queryKey: ["/api/payouts", "admin", vendorId],
     queryFn: async () => {
-      const res = await fetch("/api/payouts", { credentials: "include" });
+      const res = await fetch(`/api/payouts?vendorId=${vendorId}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch payouts");
       return res.json();
     },
@@ -165,7 +166,7 @@ export default function AdminVendorDetail() {
   const stats = statsData?.stats;
   const orders = ordersData?.orders ?? [];
   const reviews = reviewsData?.reviews ?? [];
-  const vendorPayouts = (payoutsData?.payouts ?? []).filter((p: any) => p.vendorId === vendorId);
+  const vendorPayouts = payoutsData?.payouts ?? [];
 
   if (vendorLoading) {
     return (
@@ -223,8 +224,8 @@ export default function AdminVendorDetail() {
               {vendor.city && (
                 <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{vendor.city}</span>
               )}
-              {vendor.fssaiNumber && (
-                <span className="flex items-center gap-1 font-mono text-xs">FSSAI: {vendor.fssaiNumber}</span>
+              {vendor.fssaiLicense && (
+                <span className="flex items-center gap-1 font-mono text-xs">FSSAI: {vendor.fssaiLicense}</span>
               )}
               <span className="flex items-center gap-1">
                 <Percent className="w-3 h-3" />{commissionRate.toFixed(1)}% commission
@@ -491,14 +492,18 @@ export default function AdminVendorDetail() {
                         <TableCell className="font-mono font-medium">
                           ₹{parseFloat(payout.amount).toLocaleString("en-IN")}
                         </TableCell>
-                        <TableCell className="text-sm capitalize text-muted-foreground">
-                          {payout.method ?? "—"}{payout.methodDetails ? ` (${payout.methodDetails})` : ""}
+                        <TableCell className="text-sm text-muted-foreground">
+                          {payout.upiId
+                            ? <span>UPI: {payout.upiId}</span>
+                            : payout.bankAccount
+                              ? <span>Bank: {payout.bankAccount}{payout.ifscCode ? ` / ${payout.ifscCode}` : ""}</span>
+                              : "—"}
                         </TableCell>
                         <TableCell>
                           <Badge variant={psc.variant} className="text-xs">{psc.label}</Badge>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                          {payout.adminNote ?? "—"}
+                          {payout.adminNotes ?? "—"}
                         </TableCell>
                       </TableRow>
                     );

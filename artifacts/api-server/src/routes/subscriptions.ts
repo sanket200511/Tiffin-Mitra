@@ -55,9 +55,9 @@ router.post("/vendors/:vendorId/plans", async (req, res) => {
     return;
   }
   try {
-    const { name, description, planType, price, mealTypes, isActive } = req.body;
+    const { name, description, planType, price, mealTypes, dietType, mealsPerDay, isActive } = req.body;
     const [plan] = await db.insert(subscriptionPlansTable)
-      .values({ name, description, planType, price, mealTypes, isActive, vendorId: req.params.vendorId })
+      .values({ name, description, planType, price, mealTypes, dietType, mealsPerDay, isActive, vendorId: req.params.vendorId })
       .returning();
     res.status(201).json({ plan });
   } catch (err) {
@@ -77,13 +77,15 @@ router.patch("/vendors/:vendorId/plans/:planId", async (req, res) => {
     return;
   }
   try {
-    const { name, description, planType, price, mealTypes, isActive } = req.body;
+    const { name, description, planType, price, mealTypes, dietType, mealsPerDay, isActive } = req.body;
     const updates: Record<string, unknown> = {};
     if (name !== undefined) updates.name = name;
     if (description !== undefined) updates.description = description;
     if (planType !== undefined) updates.planType = planType;
     if (price !== undefined) updates.price = price;
     if (mealTypes !== undefined) updates.mealTypes = mealTypes;
+    if (dietType !== undefined) updates.dietType = dietType;
+    if (mealsPerDay !== undefined) updates.mealsPerDay = mealsPerDay;
     if (isActive !== undefined) updates.isActive = isActive;
 
     const [plan] = await db.update(subscriptionPlansTable)

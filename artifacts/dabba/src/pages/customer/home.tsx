@@ -14,7 +14,7 @@ export default function Home() {
       {/* Hero Section */}
       <section className="relative bg-primary/5 py-20 md:py-32 overflow-hidden">
         {/* Decorative skewed panel */}
-        <div className="absolute right-0 top-0 w-1/3 h-full bg-primary/10 -skew-x-12 transform translate-x-20 rounded-l-[100px] hidden md:block" />
+        <div className="absolute right-0 top-0 w-1/3 h-full bg-primary/10 -skew-x-12 transform rounded-l-[100px] hidden md:block" />
 
         <div className="container relative z-10">
           <div className="max-w-2xl space-y-6">

@@ -4,7 +4,6 @@ import helmet from "helmet";
 import compression from "compression";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
-import rateLimit from "express-rate-limit";
 import { authMiddleware } from "./middlewares/authMiddleware";
 import router from "./routes";
 import { logger } from "./lib/logger";
@@ -65,43 +64,6 @@ app.use(
     },
   }),
 );
-
-// ─── Rate limiting ────────────────────────────────────────────────────────────
-
-// Global limiter: 300 requests per minute per IP
-const globalLimiter = rateLimit({
-  windowMs: 60_000,
-  max: 300,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many requests. Please slow down." },
-  skip: (req) => req.method === "OPTIONS",
-});
-
-// Strict limiter for auth endpoints: 20 attempts per 15 minutes per IP
-const authLimiter = rateLimit({
-  windowMs: 15 * 60_000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many authentication attempts. Please try again later." },
-});
-
-// Wallet top-up: 10 per minute per IP to prevent abuse
-const walletLimiter = rateLimit({
-  windowMs: 60_000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many wallet requests. Please slow down." },
-});
-
-app.use("/api", globalLimiter);
-// Auth limiter only on write/sensitive endpoints — not on GET /api/auth/user
-app.use("/api/auth/login", authLimiter);
-app.use("/api/auth/register", authLimiter);
-app.use("/api/auth/logout", authLimiter);
-app.use("/api/customers/wallet/topup", walletLimiter);
 
 // ─── Body parsing & auth ──────────────────────────────────────────────────────
 

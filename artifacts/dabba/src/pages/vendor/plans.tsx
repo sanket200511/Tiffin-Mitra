@@ -196,7 +196,7 @@ export default function VendorPlans() {
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingPlan ? "Edit Plan" : "Create Subscription Plan"}</DialogTitle>
             <DialogDescription>
@@ -204,7 +204,7 @@ export default function VendorPlans() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-1">
               <FormField
                 control={form.control}
                 name="name"

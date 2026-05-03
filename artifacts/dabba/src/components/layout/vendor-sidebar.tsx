@@ -12,16 +12,19 @@ import {
   Store,
   LogOut,
   Menu,
-  X,
+  Star,
+  IndianRupee,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/vendor/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/vendor/orders", label: "Orders", icon: ShoppingBag },
   { href: "/vendor/menu", label: "Menu", icon: UtensilsCrossed },
   { href: "/vendor/plans", label: "Plans", icon: CalendarDays },
-  { href: "/vendor/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/vendor/earnings", label: "Earnings", icon: IndianRupee },
   { href: "/vendor/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/vendor/reviews", label: "Reviews", icon: Star },
   { href: "/vendor/profile", label: "Profile", icon: Store },
 ];
 

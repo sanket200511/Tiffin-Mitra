@@ -11,7 +11,19 @@ router.get("/orders", async (req, res) => {
     const conditions: ReturnType<typeof eq>[] = [];
     if (status) conditions.push(eq(ordersTable.status, status as "pending" | "accepted" | "preparing" | "packed" | "picked_up" | "delivered" | "cancelled"));
     if (date) conditions.push(eq(ordersTable.scheduledDate, date));
-    if (vendorId) conditions.push(eq(ordersTable.vendorId, vendorId));
+
+    if (vendorId) {
+      // Vendor view: filter by vendorId
+      conditions.push(eq(ordersTable.vendorId, vendorId));
+    } else if (req.isAuthenticated()) {
+      // Customer view: filter by their customer record
+      const [customer] = await db.select().from(customersTable).where(eq(customersTable.userId, req.user!.id));
+      if (customer) {
+        conditions.push(eq(ordersTable.customerId, customer.id));
+      } else {
+        return res.json({ orders: [] });
+      }
+    }
 
     const orders = conditions.length > 0
       ? await db.select().from(ordersTable).where(and(...conditions))

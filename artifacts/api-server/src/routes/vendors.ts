@@ -7,16 +7,16 @@ const router = Router();
 
 router.get("/vendors", async (req, res) => {
   try {
-    const { city, cuisine, search } = req.query as Record<string, string>;
-    let query = db.select().from(vendorsTable).where(eq(vendorsTable.status, "approved"));
+    const { city, cuisine, search, includeAll } = req.query as Record<string, string>;
 
-    const conditions = [eq(vendorsTable.status, "approved")];
+    const conditions: ReturnType<typeof eq>[] = [];
+    if (!includeAll) conditions.push(eq(vendorsTable.status, "approved"));
     if (city) conditions.push(eq(vendorsTable.city, city));
     if (cuisine) conditions.push(like(vendorsTable.cuisineType, `%${cuisine}%`));
     if (search) conditions.push(like(vendorsTable.name, `%${search}%`));
 
     const vendors = await db.select().from(vendorsTable)
-      .where(and(...conditions))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(vendorsTable.featured), desc(vendorsTable.createdAt));
     res.json({ vendors });
   } catch (err) {
@@ -100,6 +100,13 @@ router.get("/vendors/:vendorId/stats", async (req, res) => {
     const todayOrders = orders.filter(o => o.scheduledDate === today);
     const deliveredToday = todayOrders.filter(o => o.status === "delivered");
 
+    // Monthly revenue = orders from the current calendar month
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    const monthStartStr = monthStart.toISOString().split("T")[0];
+    const monthOrders = orders.filter(o => o.scheduledDate >= monthStartStr);
+    const monthlyRevenue = monthOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount as string), 0);
+
     res.json({
       stats: {
         totalRevenue,
@@ -107,7 +114,7 @@ router.get("/vendors/:vendorId/stats", async (req, res) => {
         activeSubscriptions: Number(activeSubscriptions?.count ?? 0),
         averageRating: 4.5,
         todayOrders: todayOrders.length,
-        monthlyRevenue: totalRevenue * 0.1,
+        monthlyRevenue,
         pendingOrders: todayOrders.filter(o => o.status === "pending").length,
         completedOrdersToday: deliveredToday.length,
       }

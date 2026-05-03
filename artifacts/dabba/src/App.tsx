@@ -21,12 +21,15 @@ import MySubscriptions from "@/pages/customer/subscriptions";
 import Orders from "@/pages/customer/orders";
 import Profile from "@/pages/customer/profile";
 
+import VendorOnboarding from "@/pages/vendor/onboarding";
 import VendorDashboard from "@/pages/vendor/dashboard";
 import VendorMenu from "@/pages/vendor/menu";
 import VendorPlans from "@/pages/vendor/plans";
 import VendorOrders from "@/pages/vendor/orders";
 import VendorAnalytics from "@/pages/vendor/analytics";
 import VendorProfile from "@/pages/vendor/profile";
+import VendorReviews from "@/pages/vendor/reviews";
+import VendorEarnings from "@/pages/vendor/earnings";
 
 import AdminOverview from "@/pages/admin/overview";
 import Login from "@/pages/auth/login";
@@ -88,7 +91,7 @@ function ProtectedRoute({ component: Component, allowedRole, layout: Layout }: {
 }
 
 function Router() {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -126,6 +129,11 @@ function Router() {
         <ProtectedRoute component={Profile} allowedRole="customer" layout={CustomerLayout} />
       </Route>
 
+      {/* Vendor Onboarding (no sidebar) */}
+      <Route path="/vendor/onboarding">
+        <ProtectedRoute component={VendorOnboarding} allowedRole="vendor" />
+      </Route>
+
       {/* Vendor Routes */}
       <Route path="/vendor/dashboard">
         <ProtectedRoute component={VendorDashboard} allowedRole="vendor" layout={VendorLayout} />
@@ -141,6 +149,12 @@ function Router() {
       </Route>
       <Route path="/vendor/analytics">
         <ProtectedRoute component={VendorAnalytics} allowedRole="vendor" layout={VendorLayout} />
+      </Route>
+      <Route path="/vendor/earnings">
+        <ProtectedRoute component={VendorEarnings} allowedRole="vendor" layout={VendorLayout} />
+      </Route>
+      <Route path="/vendor/reviews">
+        <ProtectedRoute component={VendorReviews} allowedRole="vendor" layout={VendorLayout} />
       </Route>
       <Route path="/vendor/profile">
         <ProtectedRoute component={VendorProfile} allowedRole="vendor" layout={VendorLayout} />

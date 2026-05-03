@@ -136,4 +136,43 @@ router.patch("/auth/role", async (req: Request, res: Response) => {
   }
 });
 
+// ─── Admin Setup ──────────────────────────────────────────────────────────────
+// POST /auth/make-admin — elevates the current logged-in user to super_admin.
+// Requires a setup key. Default key: "dabba-admin-2024" (override with ADMIN_SETUP_KEY env var).
+router.post("/auth/make-admin", async (req: Request, res: Response) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "You must be logged in first" });
+    return;
+  }
+
+  const { setupKey } = req.body as { setupKey?: string };
+  const expectedKey = process.env.ADMIN_SETUP_KEY || "dabba-admin-2024";
+
+  if (!setupKey || setupKey !== expectedKey) {
+    res.status(403).json({ error: "Invalid setup key" });
+    return;
+  }
+
+  try {
+    const [user] = await db.update(usersTable)
+      .set({ role: "super_admin", updatedAt: new Date() })
+      .where(eq(usersTable.id, req.user!.id))
+      .returning();
+
+    const sid = getSessionId(req);
+    if (sid) {
+      const session = await getSession(sid);
+      if (session) {
+        session.user.role = "super_admin";
+        await updateSession(sid, session);
+      }
+    }
+
+    res.json({ message: "You are now a super admin", user: { id: user.id, email: user.email, role: user.role } });
+  } catch (err) {
+    req.log.error({ err }, "Make admin error");
+    res.status(500).json({ error: "Failed to update role" });
+  }
+});
+
 export default router;

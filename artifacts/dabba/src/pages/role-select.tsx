@@ -28,7 +28,7 @@ export default function RoleSelect() {
       }
       await refetch();
       if (role === "customer") setLocation("/");
-      else setLocation("/vendor/dashboard");
+      else setLocation("/vendor/onboarding");
     } catch {
       toast({ variant: "destructive", title: "Error", description: "Could not connect to server" });
     } finally {
@@ -82,7 +82,7 @@ export default function RoleSelect() {
               </div>
               <CardTitle className="text-2xl font-serif">I run a tiffin service</CardTitle>
               <CardDescription className="text-base">
-                Manage your menu, track subscriptions, view analytics, and grow your business.
+                Set up your kitchen, manage your menu, track subscriptions, and grow your business.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex justify-center">
@@ -93,7 +93,7 @@ export default function RoleSelect() {
                 disabled={!!loading}
                 data-testid="button-select-vendor"
               >
-                {loading === "vendor" ? "Setting up..." : "Continue as Partner"}
+                {loading === "vendor" ? "Setting up..." : "Set Up My Kitchen"}
               </Button>
             </CardContent>
           </Card>

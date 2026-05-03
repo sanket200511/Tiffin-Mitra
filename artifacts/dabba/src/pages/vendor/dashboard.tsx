@@ -3,31 +3,12 @@ import { useLocation, Link } from "wouter";
 import { useGetVendorStats, useGetTodayOrderSummary, useGetMyVendorProfile, useListOrders } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { IndianRupee, ShoppingBag, Users, Star, ArrowRight, CheckCircle2, Clock, Zap, TrendingUp, AlertCircle } from "lucide-react";
+import { IndianRupee, ShoppingBag, Users, Star, ArrowRight, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 
-const TIER_DETAILS: Record<string, { label: string; color: string; perks: string[] }> = {
-  basic: {
-    label: "Basic",
-    color: "bg-slate-100 text-slate-700 border-slate-200",
-    perks: ["Up to 10 menu items", "Standard listing", "Basic analytics"],
-  },
-  pro: {
-    label: "Pro",
-    color: "bg-blue-100 text-blue-700 border-blue-200",
-    perks: ["Unlimited menu items", "Priority listing", "Full analytics", "Lower commission (8%)"],
-  },
-  enterprise: {
-    label: "Enterprise",
-    color: "bg-purple-100 text-purple-700 border-purple-200",
-    perks: ["Everything in Pro", "Featured placement", "Lowest commission (5%)", "Dedicated support"],
-  },
-};
-
-const NEXT_TIER: Record<string, string | null> = { basic: "pro", pro: "enterprise", enterprise: null };
 
 const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
   pending: { color: "bg-yellow-100 text-yellow-800 border-yellow-200", label: "Pending" },
@@ -70,10 +51,6 @@ export default function VendorDashboard() {
   );
   const recentOrders = (recentOrdersData?.orders || []).slice(0, 5);
 
-  const tier = vendor?.subscriptionTier || "basic";
-  const nextTier = NEXT_TIER[tier];
-  const tierDetails = TIER_DETAILS[tier];
-
   if (profileLoading) {
     return (
       <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
@@ -97,11 +74,6 @@ export default function VendorDashboard() {
             {isPending ? "Your kitchen is pending approval." : "Here's what's happening in your kitchen today."}
           </p>
         </div>
-        {vendor && (
-          <Badge variant="outline" className={`text-sm px-3 py-1 ${tierDetails?.color}`}>
-            {tierDetails?.label} Plan
-          </Badge>
-        )}
       </div>
 
       {/* Pending approval banner */}
@@ -270,37 +242,6 @@ export default function VendorDashboard() {
             </CardContent>
           </Card>
 
-          {/* Plan upgrade CTA */}
-          {nextTier && (
-            <Card className="shadow-sm border-primary/20 bg-primary/5">
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center shrink-0">
-                    <Zap className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-base mb-1">
-                      Upgrade to {TIER_DETAILS[nextTier].label}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Unlock {TIER_DETAILS[nextTier].perks[0].toLowerCase()} and more to grow your kitchen faster.
-                    </p>
-                    <ul className="space-y-1 mb-4">
-                      {TIER_DETAILS[nextTier].perks.map(perk => (
-                        <li key={perk} className="flex items-center gap-2 text-sm">
-                          <TrendingUp className="w-3.5 h-3.5 text-primary shrink-0" />
-                          {perk}
-                        </li>
-                      ))}
-                    </ul>
-                    <Button size="sm" className="w-full sm:w-auto">
-                      Upgrade to {TIER_DETAILS[nextTier].label} <ArrowRight className="ml-2 w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
     </div>

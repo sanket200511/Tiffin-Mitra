@@ -3,6 +3,7 @@ import { useGetVendorStats, useGetVendorRevenueTrend, useGetMyVendorProfile } fr
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { IndianRupee, TrendingUp, Percent, Wallet, ArrowDownRight, ArrowUpRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,17 +12,6 @@ import {
 } from "recharts";
 import { format, parseISO } from "date-fns";
 
-const TIER_COLORS: Record<string, string> = {
-  basic: "bg-slate-100 text-slate-700 border-slate-200",
-  pro: "bg-blue-100 text-blue-700 border-blue-200",
-  enterprise: "bg-purple-100 text-purple-700 border-purple-200",
-};
-
-const TIER_NEXT_RATE: Record<string, { tier: string; rate: number } | null> = {
-  basic: { tier: "Pro", rate: 8 },
-  pro: { tier: "Enterprise", rate: 5 },
-  enterprise: null,
-};
 
 export default function VendorEarnings() {
   const [period, setPeriod] = useState<"7d" | "30d" | "90d">("30d");
@@ -29,8 +19,6 @@ export default function VendorEarnings() {
   const { data: profileData, isLoading: profileLoading } = useGetMyVendorProfile();
   const vendor = profileData?.vendor;
   const vendorId = vendor?.id;
-  const tier = vendor?.subscriptionTier || "basic";
-
   // Commission rate comes from the database — not hardcoded
   const commissionRate = vendor?.commissionRate
     ? parseFloat(String(vendor.commissionRate))
@@ -60,8 +48,6 @@ export default function VendorEarnings() {
     Net: parseFloat((point.revenue * (1 - commissionRate / 100)).toFixed(2)),
   }));
 
-  const nextTierInfo = TIER_NEXT_RATE[tier];
-
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
       <div className="flex items-start gap-3">
@@ -74,8 +60,8 @@ export default function VendorEarnings() {
             <p className="text-muted-foreground mt-1">Your revenue, commission deductions, and net payouts.</p>
           </div>
           {vendor && (
-            <Badge variant="outline" className={`shrink-0 text-sm px-3 py-1.5 ${TIER_COLORS[tier]}`}>
-              {tier.charAt(0).toUpperCase() + tier.slice(1)} — {commissionRate}% commission
+            <Badge variant="outline" className="shrink-0 text-sm px-3 py-1.5 bg-slate-100 text-slate-700 border-slate-200">
+              {commissionRate}% commission
             </Badge>
           )}
         </div>
@@ -208,29 +194,6 @@ export default function VendorEarnings() {
         </CardContent>
       </Card>
 
-      {/* Tier Upgrade Nudge — only shown if not on highest tier */}
-      {nextTierInfo && (
-        <Card className="shadow-sm border-primary/20 bg-primary/5">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
-                <Percent className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-bold text-base mb-1">Lower your commission rate</h3>
-                <p className="text-sm text-muted-foreground mb-2">
-                  You're on the <strong>{tier.charAt(0).toUpperCase() + tier.slice(1)}</strong> tier at <strong>{commissionRate}%</strong> commission.
-                  Upgrade to <strong>{nextTierInfo.tier}</strong> to reduce it to <strong>{nextTierInfo.rate}%</strong> and keep more of your earnings.
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  On your current monthly revenue of ₹{monthlyGross.toLocaleString("en-IN", { maximumFractionDigits: 0 })},
-                  that's an extra ₹{(monthlyGross * (commissionRate - nextTierInfo.rate) / 100).toLocaleString("en-IN", { maximumFractionDigits: 0 })} per month in your pocket.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

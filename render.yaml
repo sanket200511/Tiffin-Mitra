@@ -1,0 +1,45 @@
+services:
+  # ----------------------------------------------------------------------------
+  # Backend: API Server
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: dabba-api
+    env: node
+    plan: free
+    rootDir: .
+    buildCommand: pnpm install && pnpm --filter @workspace/db build && pnpm --filter @workspace/api-server build
+    startCommand: pnpm --filter @workspace/api-server start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 8080
+      - key: DATABASE_URL
+        # Use Internal Database URL for better performance
+        value: postgresql://postgres_sanket_user:1qV7FEO9pnYWL9tLBOBOKu3vHdZ4or1f@dpg-d7s59gi8qa3s73dtee0g-a/postgres_sanket?search_path=dabba
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: GOOGLE_CLIENT_ID
+        sync: false # Set this in Render Dashboard
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false # Set this in Render Dashboard
+      - key: GOOGLE_REDIRECT_URI
+        fromValue: https://dabba-api.onrender.com/api/auth/google/callback
+      - key: FRONTEND_URL
+        fromValue: https://dabba-app.onrender.com
+
+  # ----------------------------------------------------------------------------
+  # Frontend: Dabba App
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: dabba-app
+    env: node
+    plan: free
+    rootDir: .
+    buildCommand: pnpm install && pnpm --filter @workspace/dabba build
+    startCommand: pnpm --filter @workspace/dabba start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        fromValue: https://dabba-api.onrender.com

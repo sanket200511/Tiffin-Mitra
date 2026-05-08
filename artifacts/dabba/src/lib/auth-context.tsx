@@ -20,7 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUser = useCallback(async () => {
     try {
-      const res = await fetch("/api/auth/user", { credentials: "include" });
+      const res = await fetch("http://localhost:8080/api/auth/user", { credentials: "include" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as { user?: AuthUser | null } | null;
       setUser(data?.user ?? null);
@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+      await fetch("http://localhost:8080/api/auth/logout", { method: "POST", credentials: "include" });
     } catch {
       // ignore network errors on logout
     }

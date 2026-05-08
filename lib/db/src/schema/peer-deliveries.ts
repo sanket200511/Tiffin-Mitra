@@ -1,11 +1,12 @@
 import { pgTable, text, timestamp, numeric, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { dabbaSchema } from "./schema";
 
-export const p2pStatusEnum = pgEnum("p2p_status", ["open", "accepted", "in_transit", "delivered", "cancelled"]);
-export const p2pCategoryEnum = pgEnum("p2p_category", ["books", "documents", "food", "medicine", "gift", "other"]);
+export const p2pStatusEnum = dabbaSchema.enum("dabba_p2p_status", ["open", "accepted", "in_transit", "delivered", "cancelled"]);
+export const p2pCategoryEnum = dabbaSchema.enum("dabba_p2p_category", ["books", "documents", "food", "medicine", "gift", "other"]);
 
-export const peerDeliveriesTable = pgTable("peer_deliveries", {
+export const peerDeliveriesTable = dabbaSchema.table("peer_deliveries", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   // The person who needs the item delivered
   requesterId: text("requester_id").notNull(),

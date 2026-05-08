@@ -3,6 +3,8 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { GetCurrentAuthUserResponse } from "@workspace/api-zod";
+import { generateState, generateCodeVerifier } from "arctic";
+import { google } from "../lib/oauth";
 import {
   clearSession,
   createSession,
@@ -83,6 +85,10 @@ router.post("/auth/login", async (req: Request, res: Response) => {
     const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase()));
     if (!user) {
       res.status(401).json({ error: "Invalid email or password" });
+      return;
+    }
+    if (!user.passwordHash) {
+      res.status(401).json({ error: "This account uses Google Login. Please sign in with Google." });
       return;
     }
 
@@ -180,6 +186,132 @@ router.post("/auth/make-admin", async (req: Request, res: Response) => {
   } catch (err) {
     req.log.error({ err }, "Make admin error");
     res.status(500).json({ error: "Failed to update role" });
+  }
+});
+
+// Google OAuth redirect
+router.get("/auth/google", async (_req: Request, res: Response) => {
+  const state = generateState();
+  const codeVerifier = generateCodeVerifier();
+  const url = google.createAuthorizationURL(state, codeVerifier, ["openid", "profile", "email"]);
+
+  res.cookie("google_oauth_state", state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 600 * 1000, // 10 minutes
+  });
+
+  res.cookie("google_code_verifier", codeVerifier, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 600 * 1000, // 10 minutes
+  });
+
+  res.redirect(url.toString());
+});
+
+// Google OAuth callback
+router.get("/auth/google/callback", async (req: Request, res: Response) => {
+  const code = req.query.code?.toString();
+  const state = req.query.state?.toString();
+  const storedState = req.cookies?.google_oauth_state;
+  const codeVerifier = req.cookies?.google_code_verifier;
+
+  if (!code || !state || !storedState || !codeVerifier || state !== storedState) {
+    res.status(400).json({ error: "Invalid OAuth state or code" });
+    return;
+  }
+
+  try {
+    const tokens = await google.validateAuthorizationCode(code, codeVerifier);
+    const googleUserResponse = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+      headers: {
+        Authorization: `Bearer ${tokens.accessToken()}`,
+      },
+    });
+    const googleUser = (await googleUserResponse.json()) as {
+      sub: string;
+      email: string;
+      given_name?: string;
+      family_name?: string;
+      picture?: string;
+      email_verified: boolean;
+    };
+
+    if (!googleUser.email_verified) {
+      res.status(400).json({ error: "Google email not verified" });
+      return;
+    }
+
+    // Upsert user
+    const [existingByGoogle] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.googleId, googleUser.sub));
+
+    let user = existingByGoogle;
+
+    if (!user) {
+      // Check if email already exists
+      const [existingByEmail] = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.email, googleUser.email.toLowerCase()));
+
+      if (existingByEmail) {
+        // Link google account to existing email
+        [user] = await db
+          .update(usersTable)
+          .set({
+            googleId: googleUser.sub,
+            profileImageUrl: googleUser.picture || existingByEmail.profileImageUrl,
+            updatedAt: new Date(),
+          })
+          .where(eq(usersTable.id, existingByEmail.id))
+          .returning();
+      } else {
+        // Create new user
+        [user] = await db
+          .insert(usersTable)
+          .values({
+            email: googleUser.email.toLowerCase(),
+            googleId: googleUser.sub,
+            firstName: googleUser.given_name || null,
+            lastName: googleUser.family_name || null,
+            profileImageUrl: googleUser.picture || null,
+            role: "customer", // Default role
+          })
+          .returning();
+      }
+    }
+
+    // Create session
+    const sid = await createSession({
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        profileImageUrl: user.profileImageUrl,
+        role: user.role ?? null,
+      },
+    });
+    setSessionCookie(res, sid);
+
+    // Clear oauth cookies
+    res.clearCookie("google_oauth_state");
+    res.clearCookie("google_code_verifier");
+
+    // Redirect to frontend (e.g., home or dashboard)
+    const frontendUrl = process.env.FRONTEND_URL || "/";
+    res.redirect(frontendUrl);
+  } catch (err) {
+    req.log.error({ err }, "Google OAuth error");
+    res.status(500).json({ error: "Authentication failed" });
   }
 });
 

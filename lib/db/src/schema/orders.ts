@@ -1,10 +1,11 @@
-import { pgTable, text, timestamp, numeric, pgEnum, date, index } from "drizzle-orm/pg-core";
+import { text, timestamp, numeric, date, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { dabbaSchema } from "./schema";
 
-export const orderStatusEnum = pgEnum("order_status", ["pending", "accepted", "preparing", "packed", "picked_up", "delivered", "cancelled"]);
+export const orderStatusEnum = dabbaSchema.enum("dabba_order_status", ["pending", "paid", "confirmed", "preparing", "out_for_delivery", "delivered", "cancelled"]);
 
-export const ordersTable = pgTable("orders", {
+export const ordersTable = dabbaSchema.table("orders", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   customerId: text("customer_id").notNull(),
   vendorId: text("vendor_id").notNull(),

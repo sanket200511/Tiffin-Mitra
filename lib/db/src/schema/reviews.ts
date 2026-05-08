@@ -1,8 +1,9 @@
 import { pgTable, text, timestamp, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { dabbaSchema } from "./schema";
 
-export const reviewsTable = pgTable("reviews", {
+export const reviewsTable = dabbaSchema.table("reviews", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   customerId: text("customer_id").notNull(),
   vendorId: text("vendor_id").notNull(),

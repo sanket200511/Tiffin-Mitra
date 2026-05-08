@@ -1,11 +1,12 @@
-import { pgTable, text, timestamp, numeric, integer, boolean, pgEnum } from "drizzle-orm/pg-core";
+import { text, timestamp, numeric, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { dabbaSchema } from "./schema";
 
-export const mealTypeEnum = pgEnum("meal_type", ["breakfast", "lunch", "dinner", "snacks"]);
-export const dietTypeEnum = pgEnum("diet_type", ["veg", "non_veg", "jain", "diabetic_friendly"]);
+export const mealTypeEnum = dabbaSchema.enum("dabba_meal_type", ["breakfast", "lunch", "dinner", "snacks"]);
+export const dietTypeEnum = dabbaSchema.enum("dabba_diet_type", ["veg", "non_veg", "jain", "diabetic_friendly"]);
 
-export const menuItemsTable = pgTable("menu_items", {
+export const menuItemsTable = dabbaSchema.table("menu_items", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   vendorId: text("vendor_id").notNull(),
   name: text("name").notNull(),

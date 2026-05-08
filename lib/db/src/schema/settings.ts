@@ -1,6 +1,7 @@
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { text, timestamp } from "drizzle-orm/pg-core";
+import { dabbaSchema } from "./schema";
 
-export const platformSettingsTable = pgTable("platform_settings", {
+export const platformSettingsTable = dabbaSchema.table("platform_settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
   label: text("label"),

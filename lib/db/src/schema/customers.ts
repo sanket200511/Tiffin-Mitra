@@ -1,8 +1,9 @@
-import { pgTable, text, timestamp, numeric, integer } from "drizzle-orm/pg-core";
+import { dabbaSchema } from "./schema";
+import { text, timestamp, numeric, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const customersTable = pgTable("customers", {
+export const customersTable = dabbaSchema.table("customers", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull().unique(),
   name: text("name"),
@@ -20,7 +21,7 @@ export const customersTable = pgTable("customers", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const referralsTable = pgTable("referrals", {
+export const referralsTable = dabbaSchema.table("referrals", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   referrerId: text("referrer_id").notNull(),
   refereeId: text("referee_id").notNull(),
@@ -30,7 +31,7 @@ export const referralsTable = pgTable("referrals", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const walletTransactionsTable = pgTable("wallet_transactions", {
+export const walletTransactionsTable = dabbaSchema.table("wallet_transactions", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   customerId: text("customer_id").notNull(),
   type: text("type").notNull(), // credit | debit

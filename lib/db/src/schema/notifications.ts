@@ -1,6 +1,7 @@
-import { pgTable, text, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
+import { text, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
+import { dabbaSchema } from "./schema";
 
-export const notificationsTable = pgTable("notifications", {
+export const notificationsTable = dabbaSchema.table("notifications", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   type: text("type").notNull(),

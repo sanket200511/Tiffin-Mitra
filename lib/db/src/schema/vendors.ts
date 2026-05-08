@@ -1,11 +1,12 @@
-import { pgTable, text, timestamp, numeric, integer, boolean, pgEnum } from "drizzle-orm/pg-core";
+import { text, timestamp, numeric, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { dabbaSchema } from "./schema";
 
-export const vendorStatusEnum = pgEnum("vendor_status", ["pending", "approved", "suspended", "rejected"]);
-export const vendorTierEnum = pgEnum("vendor_tier", ["basic", "pro", "enterprise"]);
+export const vendorStatusEnum = dabbaSchema.enum("dabba_vendor_status", ["pending", "approved", "suspended", "rejected"]);
+export const vendorTierEnum = dabbaSchema.enum("dabba_vendor_tier", ["basic", "pro", "enterprise"]);
 
-export const vendorsTable = pgTable("vendors", {
+export const vendorsTable = dabbaSchema.table("vendors", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   ownerUserId: text("owner_user_id").notNull(),
   name: text("name").notNull(),

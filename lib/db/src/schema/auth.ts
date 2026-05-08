@@ -1,9 +1,10 @@
 import { sql } from "drizzle-orm";
 import { index, jsonb, pgEnum, pgTable, timestamp, varchar } from "drizzle-orm/pg-core";
+import { dabbaSchema } from "./schema";
 
-export const userRoleEnum = pgEnum("user_role", ["super_admin", "vendor", "customer"]);
+export const userRoleEnum = dabbaSchema.enum("dabba_user_role", ["super_admin", "vendor", "customer"]);
 
-export const sessionsTable = pgTable(
+export const sessionsTable = dabbaSchema.table(
   "sessions",
   {
     sid: varchar("sid").primaryKey(),
@@ -13,10 +14,11 @@ export const sessionsTable = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-export const usersTable = pgTable("users", {
+export const usersTable = dabbaSchema.table("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique().notNull(),
-  passwordHash: varchar("password_hash").notNull(),
+  passwordHash: varchar("password_hash"),
+  googleId: varchar("google_id").unique(),
   role: userRoleEnum("role"),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),

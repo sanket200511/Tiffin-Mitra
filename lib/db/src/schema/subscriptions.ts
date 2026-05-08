@@ -1,11 +1,12 @@
-import { pgTable, text, timestamp, numeric, integer, boolean, pgEnum, date, index } from "drizzle-orm/pg-core";
+import { text, timestamp, numeric, integer, boolean, date, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { dabbaSchema } from "./schema";
 
-export const planTypeEnum = pgEnum("plan_type", ["daily", "weekly", "monthly", "weekday", "trial_3day", "trial_7day", "custom"]);
-export const subscriptionStatusEnum = pgEnum("subscription_status", ["active", "paused", "cancelled", "expired"]);
+export const planTypeEnum = dabbaSchema.enum("dabba_plan_type", ["daily", "weekly", "monthly", "weekday", "trial_3day", "trial_7day", "custom"]);
+export const subscriptionStatusEnum = dabbaSchema.enum("dabba_subscription_status", ["active", "paused", "cancelled", "expired"]);
 
-export const subscriptionPlansTable = pgTable("subscription_plans", {
+export const subscriptionPlansTable = dabbaSchema.table("subscription_plans", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   vendorId: text("vendor_id").notNull(),
   name: text("name").notNull(),
@@ -22,7 +23,7 @@ export const subscriptionPlansTable = pgTable("subscription_plans", {
   index("subscription_plans_vendor_id_idx").on(table.vendorId),
 ]);
 
-export const customerSubscriptionsTable = pgTable("customer_subscriptions", {
+export const customerSubscriptionsTable = dabbaSchema.table("customer_subscriptions", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   customerId: text("customer_id").notNull(),
   planId: text("plan_id").notNull(),

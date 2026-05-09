@@ -389,47 +389,99 @@ function MarketingHome() {
         <meta property="og:type" content="website" />
       </Helmet>
       {/* Hero */}
-      <section className="relative bg-primary/5 min-h-[70vh] md:min-h-[85vh] flex items-center overflow-hidden">
-        {/* Modern accent background shape - more fluid on large screens */}
-        <div className="absolute right-[-5%] top-[-10%] w-[50%] h-[120%] bg-primary/10 rounded-[100px] rotate-[15deg] hidden lg:block pointer-events-none" />
-        
-        <div className="container relative z-10 py-14 md:py-20">
-          <div className="max-w-3xl space-y-8 animate-in fade-in slide-in-from-left-6 duration-1000">
-            <div className="space-y-4">
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 px-3 py-1 text-sm font-medium">
-                #1 Home Food Platform in India
-              </Badge>
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif font-bold text-foreground leading-[1.1] tracking-tight">
-                The warmth of <span className="text-primary italic">ghar ka khana</span>, delivered.
-              </h1>
-            </div>
-            
-            <p className="text-lg md:text-xl text-muted-foreground max-w-xl leading-relaxed">
-              Discover authentic home-cooked tiffins from your neighborhood's best chefs. 
-              Wholesome, hygienic, and full of love—just like mom makes it.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <Button asChild size="lg" className="h-14 px-10 text-lg shadow-lg shadow-primary/20 hover:shadow-xl transition-all">
-                <Link href="/explore">
-                  Explore Tiffins <ArrowRight className="ml-2 w-5 h-5" />
-                </Link>
-              </Button>
-              <Button variant="outline" size="lg" className="h-14 px-10 text-lg border-2" asChild>
-                <Link href="/role-select">Become a Partner</Link>
-              </Button>
+      <section className="relative bg-primary/5 min-h-[75vh] flex items-center overflow-hidden">
+        {/* Decorative blob */}
+        <div className="absolute right-0 top-0 w-[45%] h-full bg-primary/8 rounded-l-[80px] hidden lg:block pointer-events-none" />
+
+        <div className="container relative z-10 py-16 md:py-20">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+
+            {/* Left: Text content */}
+            <div className="space-y-8">
+              <div className="space-y-4">
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 px-3 py-1 text-sm font-medium">
+                  #1 Home Food Platform in India
+                </Badge>
+                <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold text-foreground leading-[1.1] tracking-tight">
+                  The warmth of{" "}<span className="text-primary italic">ghar ka khana</span>, delivered.
+                </h1>
+              </div>
+
+              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
+                Discover authentic home-cooked tiffins from your neighborhood's best chefs.
+                Wholesome, hygienic, and full of love—just like mom makes it.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button asChild size="lg" className="h-14 px-10 text-lg shadow-lg shadow-primary/20 hover:shadow-xl transition-all">
+                  <Link href="/explore">
+                    Explore Tiffins <ArrowRight className="ml-2 w-5 h-5" />
+                  </Link>
+                </Button>
+                <Button variant="outline" size="lg" className="h-14 px-10 text-lg border-2" asChild>
+                  <Link href="/role-select">Become a Partner</Link>
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-6 pt-2 text-sm text-muted-foreground border-t border-primary/10">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-primary" />
+                  <span>No minimum order</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-primary" />
+                  <span>Pause anytime</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-primary" />
+                  <span>Free delivery</span>
+                </div>
+              </div>
             </div>
 
-            <div className="flex items-center gap-6 pt-6 text-sm text-muted-foreground border-t border-primary/10 w-fit">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-primary" />
-                <span>No minimum order</span>
+            {/* Right: Visual card (desktop only) */}
+            <div className="hidden lg:flex flex-col gap-4 items-center justify-center">
+              <div className="w-full max-w-sm bg-card rounded-2xl border shadow-xl p-6 space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                    <ChefHat className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">Priya's Home Kitchen</p>
+                    <p className="text-xs text-muted-foreground">North Indian · Pune</p>
+                  </div>
+                  <div className="ml-auto flex items-center gap-1 text-xs font-medium bg-yellow-50 text-yellow-700 px-2 py-1 rounded-full border border-yellow-200">
+                    <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                    4.9
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  {[
+                    { label: "Lunch", price: "₹120", tag: "Daily" },
+                    { label: "Dinner", price: "₹130", tag: "Daily" },
+                    { label: "Both", price: "₹220", tag: "Save 15%" },
+                  ].map(item => (
+                    <div key={item.label} className="bg-muted/50 rounded-xl p-3">
+                      <p className="text-xs text-muted-foreground">{item.label}</p>
+                      <p className="font-bold text-base">{item.price}</p>
+                      <p className="text-[10px] text-primary font-medium">{item.tag}</p>
+                    </div>
+                  ))}
+                </div>
+                <Button className="w-full" size="sm">Subscribe Now</Button>
               </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-primary" />
-                <span>Pause anytime</span>
+              <div className="flex gap-4 w-full max-w-sm">
+                <div className="flex-1 bg-card rounded-xl border shadow-sm p-4 text-center">
+                  <p className="text-2xl font-bold font-serif text-primary">500+</p>
+                  <p className="text-xs text-muted-foreground mt-1">Home Kitchens</p>
+                </div>
+                <div className="flex-1 bg-card rounded-xl border shadow-sm p-4 text-center">
+                  <p className="text-2xl font-bold font-serif text-primary">10k+</p>
+                  <p className="text-xs text-muted-foreground mt-1">Happy Customers</p>
+                </div>
               </div>
             </div>
+
           </div>
         </div>
       </section>
@@ -437,7 +489,7 @@ function MarketingHome() {
       {/* Carry & Earn */}
       <section className="py-10 border-y bg-gradient-to-r from-primary/5 via-background to-background">
         <div className="container">
-          <div className="max-w-5xl mx-auto">
+          <div>
             <div className="bg-card rounded-2xl border shadow-sm p-7 md:p-10 flex flex-col md:flex-row gap-8 items-center">
               <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center shrink-0">
                 <Bike className="w-10 h-10 text-primary" />

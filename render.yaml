@@ -45,7 +45,7 @@ services:
     env: static
     rootDir: .
     buildCommand: pnpm install && pnpm --filter @workspace/dabba build
-    staticPublishPath: artifacts/dabba/dist
+    staticPublishPath: artifacts/dabba/dist/public
     routes:
       - type: rewrite
         source: /*

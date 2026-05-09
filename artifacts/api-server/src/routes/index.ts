@@ -15,11 +15,13 @@ import notificationsRouter from "./notifications";
 import holidaysRouter from "./holidays";
 import settingsRouter from "./settings";
 import sitemapRouter from "./sitemap";
+import mediaRouter from "./media";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
+router.use(mediaRouter);
 router.use(vendorRouter);
 router.use(menuRouter);
 router.use(subscriptionRouter);

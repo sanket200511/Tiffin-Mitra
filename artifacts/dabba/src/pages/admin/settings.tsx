@@ -71,6 +71,7 @@ const GROUPS: SettingGroup[] = [
       "feature_loyalty_redemption_enabled",
       "feature_peer_delivery_enabled",
       "feature_referral_enabled",
+      "feature_require_email_verification",
     ],
     type: "mixed",
   },
@@ -83,6 +84,7 @@ const BOOLEAN_KEYS = new Set([
   "feature_loyalty_redemption_enabled",
   "feature_peer_delivery_enabled",
   "feature_referral_enabled",
+  "feature_require_email_verification",
 ]);
 
 const UNIT: Record<string, string> = {

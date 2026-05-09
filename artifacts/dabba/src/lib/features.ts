@@ -35,6 +35,9 @@ export const DEFAULT_FEATURES = {
 
   /** Customer referral program. */
   REFERRAL_PROGRAM: true,
+
+  /** Require OTP Email Verification. Disabled = Testing Mode. */
+  REQUIRE_EMAIL_VERIFICATION: false,
 } as const;
 
 export type FeatureKey = keyof typeof DEFAULT_FEATURES;
@@ -58,5 +61,6 @@ export function useFeatures() {
     LOYALTY_REDEMPTION: config.feature_loyalty_redemption_enabled ?? DEFAULT_FEATURES.LOYALTY_REDEMPTION,
     PEER_DELIVERY: config.feature_peer_delivery_enabled ?? DEFAULT_FEATURES.PEER_DELIVERY,
     REFERRAL_PROGRAM: config.feature_referral_enabled ?? DEFAULT_FEATURES.REFERRAL_PROGRAM,
+    REQUIRE_EMAIL_VERIFICATION: config.feature_require_email_verification ?? DEFAULT_FEATURES.REQUIRE_EMAIL_VERIFICATION,
   };
 }

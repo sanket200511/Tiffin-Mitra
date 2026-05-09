@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { Router, type IRouter, type Request, type Response } from "express";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, platformSettingsTable, DEFAULT_SETTINGS } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { GetCurrentAuthUserResponse } from "@workspace/api-zod";
 import { generateState, generateCodeVerifier } from "arctic";
@@ -62,24 +62,37 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     const verificationExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
+    const [setting] = await db.select().from(platformSettingsTable).where(eq(platformSettingsTable.key, "feature_require_email_verification"));
+    const defaultSetting = DEFAULT_SETTINGS.find(s => s.key === "feature_require_email_verification")?.value ?? "false";
+    const requireVerification = (setting?.value ?? defaultSetting) === "true";
+
     const [user] = await db.insert(usersTable).values({
       email: email.toLowerCase(),
       passwordHash,
       firstName: firstName || null,
       lastName: lastName || null,
-      emailVerified: false,
+      emailVerified: !requireVerification, // Instantly verified if testing mode
       verificationCode,
       verificationExpires,
     }).returning();
 
-    // Send verification email
-    req.log.info({ email: user.email, code: verificationCode }, "Verification code generated");
-    await sendVerificationEmail(user.email, verificationCode);
+    if (requireVerification) {
+      // Send verification email
+      req.log.info({ email: user.email, code: verificationCode }, "Verification code generated");
+      await sendVerificationEmail(user.email, verificationCode);
 
-    res.status(201).json({ 
-      message: "Registration successful! Please check your email for the verification code.",
-      email: user.email 
-    });
+      res.status(201).json({ 
+        message: "Registration successful! Please check your email for the verification code.",
+        email: user.email 
+      });
+    } else {
+      // Bypass email verification
+      res.status(201).json({ 
+        message: "Registration successful!",
+        email: user.email,
+        requiresVerification: false
+      });
+    }
   } catch (err) {
     req.log.error({ err }, "Registration error");
     res.status(500).json({ error: "Registration failed" });

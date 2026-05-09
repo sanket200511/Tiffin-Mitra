@@ -124,4 +124,10 @@ export const DEFAULT_SETTINGS: Array<{
     label: "Referral Program Enabled",
     description: "Allow customers to refer friends and earn wallet credits.",
   },
+  {
+    key: "feature_require_email_verification",
+    value: "false",
+    label: "Require Email Verification (Production Mode)",
+    description: "When enabled, users must enter an OTP sent to their email to complete registration. When disabled (Testing Mode), accounts are instantly verified.",
+  },
 ];

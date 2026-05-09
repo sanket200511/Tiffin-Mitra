@@ -111,13 +111,19 @@ export default function Login() {
         credentials: "include",
         body: JSON.stringify(values),
       });
-      const data = await res.json() as { error?: string, email?: string };
+      const data = await res.json() as { error?: string, email?: string, requiresVerification?: boolean };
       if (!res.ok) {
         toast({ variant: "destructive", title: "Registration failed", description: data.error || "Could not create account" });
         return;
       }
-      // Redirect to verification page after registration
-      setLocation(`/auth/verify?email=${encodeURIComponent(data.email || values.email)}`);
+      
+      if (data.requiresVerification === false) {
+        toast({ title: "Account created successfully", description: "Email verification is disabled. You can now log in." });
+        // The user stays on this page and can click the Login tab
+      } else {
+        // Redirect to verification page after registration
+        setLocation(`/auth/verify?email=${encodeURIComponent(data.email || values.email)}`);
+      }
     } catch {
       toast({ variant: "destructive", title: "Error", description: "Could not connect to server" });
     } finally {

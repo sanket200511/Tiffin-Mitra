@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 
 const rawPort = process.env.PORT ?? "3000";
@@ -17,6 +18,26 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    VitePWA({
+      registerType: "autoUpdate",
+      includeAssets: ["favicon.svg", "opengraph.jpg"],
+      manifest: {
+        name: "Dabba",
+        short_name: "Dabba",
+        description: "The warmth of ghar ka khana, delivered.",
+        theme_color: "#FF3C00",
+        background_color: "#ffffff",
+        display: "standalone",
+        icons: [
+          {
+            src: "/favicon.svg",
+            sizes: "192x192 512x512",
+            type: "image/svg+xml",
+            purpose: "any maskable"
+          }
+        ]
+      }
+    }),
   ],
   resolve: {
     alias: {

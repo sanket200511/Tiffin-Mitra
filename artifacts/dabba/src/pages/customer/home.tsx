@@ -436,49 +436,90 @@ function MarketingHome() {
               </div>
             </div>
 
-            {/* Right: Visual card (desktop only) */}
+            {/* Right: Visual card (desktop only) — Dynamically showing the first featured vendor */}
             <div className="hidden lg:flex flex-col gap-6 items-end justify-center w-full">
-              <div className="w-[420px] max-w-full space-y-5">
-                <div className="w-full bg-card rounded-2xl border shadow-xl p-6 space-y-5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                      <ChefHat className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm">Chanda's Home Kitchen</p>
-                      <p className="text-xs text-muted-foreground">Maharastrian Thali · Nagpur</p>
-                    </div>
-                    <div className="ml-auto flex items-center gap-1 text-xs font-medium bg-yellow-50 text-yellow-700 px-2 py-1 rounded-full border border-yellow-200">
-                      <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                      4.9
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 text-center">
-                    {[
-                      { label: "Lunch", price: "₹120", tag: "Daily" },
-                      { label: "Dinner", price: "₹130", tag: "Daily" },
-                      { label: "Both", price: "₹220", tag: "Save 15%" },
-                    ].map(item => (
-                      <div key={item.label} className="bg-muted/50 rounded-xl p-3">
-                        <p className="text-xs text-muted-foreground">{item.label}</p>
-                        <p className="font-bold text-base">{item.price}</p>
-                        <p className="text-[10px] text-primary font-medium">{item.tag}</p>
+              {(() => {
+                const featuredVendor = vendors.find(v => (v as any).featured);
+                const displayVendor = featuredVendor || {
+                  name: "Chanda's Home Kitchen",
+                  cuisineType: "Maharastrian Thali",
+                  city: "Nagpur",
+                  rating: 4.9,
+                  logoUrl: null,
+                  coverImageUrl: null,
+                  id: "demo"
+                };
+
+                return (
+                  <div className="w-[420px] max-w-full space-y-5">
+                    <div className="w-full bg-card rounded-2xl border shadow-xl p-6 space-y-5 relative overflow-hidden">
+                      {/* Decorative background for the featured card */}
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16" />
+
+                      <div className="flex items-center gap-3 relative z-10">
+                        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden">
+                          {displayVendor.logoUrl ? (
+                            <img src={displayVendor.logoUrl} alt={displayVendor.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <ChefHat className="w-5 h-5 text-primary" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">{displayVendor.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {displayVendor.cuisineType} · {displayVendor.city}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs font-medium bg-yellow-50 text-yellow-700 px-2 py-1 rounded-full border border-yellow-200 shrink-0">
+                          <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                          {displayVendor.rating ? parseFloat(String(displayVendor.rating)).toFixed(1) : "5.0"}
+                        </div>
                       </div>
-                    ))}
+
+                      <div className="grid grid-cols-3 gap-3 text-center relative z-10">
+                        {[
+                          { label: "Lunch", price: "₹120", tag: "Daily" },
+                          { label: "Dinner", price: "₹130", tag: "Daily" },
+                          { label: "Both", price: "₹220", tag: "Save 15%" },
+                        ].map(item => (
+                          <div key={item.label} className="bg-muted/50 rounded-xl p-3 border border-transparent hover:border-primary/20 transition-colors">
+                            <p className="text-xs text-muted-foreground">{item.label}</p>
+                            <p className="font-bold text-base">{item.price}</p>
+                            <p className="text-[10px] text-primary font-medium">{item.tag}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <Button className="w-full shadow-md shadow-primary/10" size="sm" asChild>
+                        <Link href={displayVendor.id === "demo" ? "/explore" : `/vendors/${displayVendor.id}`}>
+                          Subscribe Now
+                        </Link>
+                      </Button>
+
+                      {featuredVendor && (
+                        <div className="absolute top-2 right-2 flex items-center gap-1 bg-primary text-primary-foreground text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">
+                          Featured
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-4 w-full">
+                      <div className="flex-1 bg-card rounded-xl border shadow-sm p-4 text-center group hover:border-primary/30 transition-colors">
+                        <p className="text-2xl font-bold font-serif text-primary">
+                          {vendors.length > 0 ? `${vendors.length}+` : "50+"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">Home Kitchens</p>
+                      </div>
+                      <div className="flex-1 bg-card rounded-xl border shadow-sm p-4 text-center group hover:border-primary/30 transition-colors">
+                        <p className="text-2xl font-bold font-serif text-primary">
+                          {vendors.length > 0 ? `${vendors.length * 20}+` : "1000+"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">Happy Customers</p>
+                      </div>
+                    </div>
                   </div>
-                  <Button className="w-full" size="sm">Subscribe Now</Button>
-                </div>
-                <div className="flex gap-4 w-full">
-                  <div className="flex-1 bg-card rounded-xl border shadow-sm p-4 text-center">
-                    <p className="text-2xl font-bold font-serif text-primary">500+</p>
-                    <p className="text-xs text-muted-foreground mt-1">Home Kitchens</p>
-                  </div>
-                  <div className="flex-1 bg-card rounded-xl border shadow-sm p-4 text-center">
-                    <p className="text-2xl font-bold font-serif text-primary">10k+</p>
-                    <p className="text-xs text-muted-foreground mt-1">Happy Customers</p>
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
             </div>
 
           </div>

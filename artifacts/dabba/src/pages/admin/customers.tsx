@@ -27,6 +27,7 @@ type AdminCustomer = {
   activeSubscriptions: number;
   totalOrders: number;
   totalSpend: number;
+  totalDisputes: number;
 };
 
 export default function AdminCustomers() {
@@ -220,6 +221,7 @@ export default function AdminCustomers() {
               <TableHead>Active Subs</TableHead>
               <TableHead>Orders</TableHead>
               <TableHead>Total Spend</TableHead>
+              <TableHead>Risk Level</TableHead>
               <TableHead>Joined</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -277,6 +279,15 @@ export default function AdminCustomers() {
                   </TableCell>
                   <TableCell className="font-medium">
                     ₹{customer.totalSpend.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                  </TableCell>
+                  <TableCell>
+                    {(() => {
+                      const rate = customer.totalOrders > 0 ? (customer.totalDisputes / customer.totalOrders) : 0;
+                      if (rate > 0.2) return <Badge variant="destructive" className="text-[10px] px-1 h-5">High Risk</Badge>;
+                      if (rate > 0.1) return <Badge variant="outline" className="bg-amber-50 border-amber-300 text-amber-700 text-[10px] px-1 h-5">Medium Risk</Badge>;
+                      if (customer.totalDisputes > 0) return <Badge variant="outline" className="bg-blue-50 border-blue-300 text-blue-700 text-[10px] px-1 h-5">Low Risk</Badge>;
+                      return <span className="text-muted-foreground text-xs">—</span>;
+                    })()}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     <div className="flex items-center gap-1.5">

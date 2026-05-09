@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, customersTable, walletTransactionsTable, customerSubscriptionsTable, ordersTable, subscriptionPlansTable, vendorsTable, referralsTable, platformSettingsTable, DEFAULT_SETTINGS } from "@workspace/db";
+import { db, customersTable, walletTransactionsTable, customerSubscriptionsTable, ordersTable, subscriptionPlansTable, vendorsTable, referralsTable, platformSettingsTable, DEFAULT_SETTINGS, disputesTable } from "@workspace/db";
 import { eq, sql, desc, count } from "drizzle-orm";
 
 const router = Router();
@@ -10,7 +10,7 @@ router.get("/customers", async (req, res) => {
     return;
   }
   try {
-    const [customers, subStats, orderStats] = await Promise.all([
+    const [customers, subStats, orderStats, disputeStats] = await Promise.all([
       db.select().from(customersTable),
       db
         .select({
@@ -28,10 +28,18 @@ router.get("/customers", async (req, res) => {
         })
         .from(ordersTable)
         .groupBy(ordersTable.customerId),
+      db
+        .select({
+          customerId: disputesTable.customerId,
+          total: sql<number>`count(*)::int`,
+        })
+        .from(disputesTable)
+        .groupBy(disputesTable.customerId),
     ]);
 
     const subMap = Object.fromEntries(subStats.map(s => [s.customerId, s]));
     const orderMap = Object.fromEntries(orderStats.map(o => [o.customerId, o]));
+    const disputeMap = Object.fromEntries(disputeStats.map((d: any) => [d.customerId, d]));
 
     const enriched = customers.map(c => ({
       ...c,
@@ -39,6 +47,7 @@ router.get("/customers", async (req, res) => {
       activeSubscriptions: subMap[c.id]?.active ?? 0,
       totalOrders: orderMap[c.id]?.total ?? 0,
       totalSpend: Number(orderMap[c.id]?.totalSpend ?? 0),
+      totalDisputes: disputeMap[c.id]?.total ?? 0,
     }));
 
     res.json({ customers: enriched });

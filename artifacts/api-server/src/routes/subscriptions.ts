@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { db, subscriptionPlansTable, customerSubscriptionsTable, vendorsTable, ordersTable, walletTransactionsTable, customersTable, vendorHolidaysTable, usersTable } from "@workspace/db";
-import { eq, and, inArray, desc, lt, gte, lte } from "drizzle-orm";
+import { eq, and, inArray, desc, lt, gte, lte, ne } from "drizzle-orm";
 import { notifyUser } from "../lib/notify";
+import { resumeSubscription } from "../lib/subscription-helpers";
 
 const router = Router();
 
@@ -406,14 +407,19 @@ router.patch("/subscriptions/:subscriptionId", async (req, res) => {
       return;
     }
 
-    const [existing] = await db.select({ sub: customerSubscriptionsTable, vendor: vendorsTable })
+    const [existing] = await db.select({ 
+      sub: customerSubscriptionsTable, 
+      vendor: vendorsTable,
+      plan: subscriptionPlansTable 
+    })
       .from(customerSubscriptionsTable)
       .leftJoin(vendorsTable, eq(customerSubscriptionsTable.vendorId, vendorsTable.id))
+      .leftJoin(subscriptionPlansTable, eq(customerSubscriptionsTable.planId, subscriptionPlansTable.id))
       .where(and(
         eq(customerSubscriptionsTable.id, req.params.subscriptionId),
         eq(customerSubscriptionsTable.customerId, customer.id)
       ));
-    if (!existing || !existing.sub) {
+    if (!existing || !existing.sub || !existing.plan) {
       res.status(404).json({ error: "Subscription not found" });
       return;
     }
@@ -430,6 +436,15 @@ router.patch("/subscriptions/:subscriptionId", async (req, res) => {
     if (status && !validTransitions[sub.status]?.includes(status)) {
       res.status(400).json({ error: `Cannot transition subscription from '${sub.status}' to '${status}'.` });
       return;
+    }
+
+    if (status === "active" && sub.status === "paused") {
+      const today = new Date();
+      const endDt = new Date(sub.endDate);
+      if (today > endDt) {
+        res.status(400).json({ error: "This subscription has already reached its end date and cannot be resumed." });
+        return;
+      }
     }
 
     // ── Handle Vacation Pause Logic ────────────────────────────────────────
@@ -494,6 +509,18 @@ router.patch("/subscriptions/:subscriptionId", async (req, res) => {
           description: `Escrow Refund: subscription paused starting ${actualPauseStartDate} (${pendingOrders.length} meal(s))`,
         });
       }
+    }
+
+    // ── Handle Resume Logic (Re-pay and Re-create Orders) ───────────────────
+    if (status === "active" && sub.status === "paused") {
+      const result = await resumeSubscription(sub.id);
+      if (!result.success) {
+        res.status(400).json({ error: result.error });
+        return;
+      }
+      // Note: resumeSubscription already updates the DB and returns.
+      // We still proceed to the final update below to ensure everything is in sync, 
+      // though resumeSubscription already did the heavy lifting.
     }
 
     if (status === "cancelled") {

@@ -1,6 +1,9 @@
 import "./env";
 import app from "./app";
 import { logger } from "./lib/logger";
+import { initTasks } from "./lib/tasks";
+
+initTasks();
 
 const rawPort = process.env["PORT"];
 

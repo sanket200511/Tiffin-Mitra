@@ -55,7 +55,7 @@ export function setSessionCookie(res: Response, sid: string) {
   res.cookie(SESSION_COOKIE, sid, {
     httpOnly: true,
     secure: isProd,
-    sameSite: "lax",
+    sameSite: isProd ? "none" : "lax",
     path: "/",
     maxAge: SESSION_TTL,
   });

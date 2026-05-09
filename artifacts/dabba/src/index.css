@@ -228,10 +228,24 @@
     }
   }
 
-  @media (min-width: 1280px) {
+  @media (min-width: 1024px) {
     .container {
       padding-left: 4rem !important;
       padding-right: 4rem !important;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .container {
+      padding-left: 6rem !important;
+      padding-right: 6rem !important;
+    }
+  }
+
+  @media (min-width: 1536px) {
+    .container {
+      padding-left: 8rem !important;
+      padding-right: 8rem !important;
     }
   }
 }

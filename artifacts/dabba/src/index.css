@@ -215,25 +215,25 @@
   .container {
     width: 100%;
     margin-inline: auto;
-    padding-inline: 1rem;
-    max-width: 1536px;
+    padding-inline: 1.25rem;
+    max-width: 1280px;
   }
 
   @media (min-width: 640px) {
-    .container {
-      padding-inline: 1.5rem;
-    }
-  }
-
-  @media (min-width: 1280px) {
     .container {
       padding-inline: 2rem;
     }
   }
 
-  @media (min-width: 1536px) {
+  @media (min-width: 1024px) {
     .container {
       padding-inline: 2.5rem;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .container {
+      padding-inline: 3rem;
     }
   }
 }

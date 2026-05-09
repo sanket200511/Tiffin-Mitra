@@ -40,8 +40,9 @@ services:
   # ----------------------------------------------------------------------------
   # Frontend: Dabba App
   # ----------------------------------------------------------------------------
-  - type: static
+  - type: web
     name: dabba-app
+    env: static
     plan: free
     rootDir: .
     buildCommand: pnpm install && pnpm --filter @workspace/dabba build

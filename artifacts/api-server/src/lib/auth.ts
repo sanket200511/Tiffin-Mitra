@@ -1,7 +1,6 @@
 import crypto from "crypto";
 import { type Request, type Response } from "express";
-import { db, sessionsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import redis from "./redis";
 import type { AuthUser } from "../middlewares/authMiddleware";
 
 export const SESSION_COOKIE = "sid";
@@ -13,40 +12,29 @@ export interface SessionData {
 
 export async function createSession(data: SessionData): Promise<string> {
   const sid = crypto.randomBytes(32).toString("hex");
-  await db.insert(sessionsTable).values({
-    sid,
-    sess: data as unknown as Record<string, unknown>,
-    expire: new Date(Date.now() + SESSION_TTL),
-  });
+  // Store session in Redis with TTL (in seconds)
+  await redis.setex(`sess:${sid}`, Math.floor(SESSION_TTL / 1000), JSON.stringify(data));
   return sid;
 }
 
 export async function getSession(sid: string): Promise<SessionData | null> {
-  const [row] = await db
-    .select()
-    .from(sessionsTable)
-    .where(eq(sessionsTable.sid, sid));
-
-  if (!row || row.expire < new Date()) {
-    if (row) await deleteSession(sid);
+  const data = await redis.get(`sess:${sid}`);
+  if (!data) return null;
+  
+  try {
+    return JSON.parse(data) as SessionData;
+  } catch (err) {
+    console.error("Failed to parse session data from Redis", err);
     return null;
   }
-
-  return row.sess as unknown as SessionData;
 }
 
 export async function updateSession(sid: string, data: SessionData): Promise<void> {
-  await db
-    .update(sessionsTable)
-    .set({
-      sess: data as unknown as Record<string, unknown>,
-      expire: new Date(Date.now() + SESSION_TTL),
-    })
-    .where(eq(sessionsTable.sid, sid));
+  await redis.setex(`sess:${sid}`, Math.floor(SESSION_TTL / 1000), JSON.stringify(data));
 }
 
 export async function deleteSession(sid: string): Promise<void> {
-  await db.delete(sessionsTable).where(eq(sessionsTable.sid, sid));
+  await redis.del(`sess:${sid}`);
 }
 
 export async function clearSession(res: Response, sid?: string): Promise<void> {

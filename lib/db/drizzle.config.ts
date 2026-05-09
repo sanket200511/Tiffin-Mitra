@@ -16,5 +16,4 @@ export default defineConfig({
   dbCredentials: {
     url: dbUrl,
   },
-  schemaFilter: ["dabba"],
 });

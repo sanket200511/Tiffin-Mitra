@@ -13,6 +13,7 @@ import {
   updateSession,
   getSession,
 } from "../lib/auth";
+import { sendVerificationEmail } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -71,8 +72,9 @@ router.post("/auth/register", async (req: Request, res: Response) => {
       verificationExpires,
     }).returning();
 
-    // Log the code for now (until we set up an email service)
+    // Send verification email
     req.log.info({ email: user.email, code: verificationCode }, "Verification code generated");
+    await sendVerificationEmail(user.email, verificationCode);
 
     res.status(201).json({ 
       message: "Registration successful! Please check your email for the verification code.",
@@ -414,6 +416,7 @@ router.post("/auth/resend-verification", async (req: Request, res: Response) => 
       .where(eq(usersTable.id, user.id));
 
     req.log.info({ email: user.email, code: verificationCode }, "Resent verification code");
+    await sendVerificationEmail(user.email, verificationCode);
 
     res.json({ message: "Verification code resent!" });
   } catch (err) {

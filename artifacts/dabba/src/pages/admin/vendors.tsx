@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
-  Store, Search, CheckCircle2, XCircle, Clock, ChefHat, MapPin, Percent, Pencil, ExternalLink,
+  Store, Search, CheckCircle2, XCircle, Clock, ChefHat, MapPin, Percent, Pencil, ExternalLink, Star,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +25,7 @@ type Vendor = {
   status: "pending" | "approved" | "rejected" | "suspended";
   fssaiLicense: string | null;
   commissionRate: string | null;
+  featured: boolean;
   createdAt: string;
 };
 
@@ -72,17 +73,20 @@ export default function AdminVendors() {
     },
   });
 
-  const updateCommission = useMutation({
-    mutationFn: async ({ vendorId, rate }: { vendorId: string; rate: number }) => {
+  const updateVendor = useMutation({
+    mutationFn: async ({ vendorId, rate, featured }: { vendorId: string; rate?: number; featured?: boolean }) => {
       const res = await fetch(`/api/vendors/${vendorId}`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ commissionRate: rate }),
+        body: JSON.stringify({ 
+          ...(rate !== undefined && { commissionRate: rate }),
+          ...(featured !== undefined && { featured })
+        }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error((body as any)?.error || "Failed to update commission");
+        throw new Error((body as any)?.error || "Failed to update vendor");
       }
       return res.json();
     },
@@ -104,7 +108,7 @@ export default function AdminVendors() {
       toast({ title: "Invalid rate", description: "Enter a value between 0 and 100.", variant: "destructive" });
       return;
     }
-    updateCommission.mutate({ vendorId: commissionDialog.id, rate });
+    updateVendor.mutate({ vendorId: commissionDialog.id, rate });
   };
 
   const openCommissionDialog = (v: Vendor) => {
@@ -128,6 +132,7 @@ export default function AdminVendors() {
     pending:  vendors.filter((v) => v.status === "pending").length,
     approved: vendors.filter((v) => v.status === "approved").length,
     rejected: vendors.filter((v) => v.status === "rejected").length,
+    featured: vendors.filter((v) => v.featured).length,
   };
 
   return (
@@ -165,6 +170,43 @@ export default function AdminVendors() {
         })}
       </div>
 
+      {/* Featured / Sponsored window */}
+      <Card className="border-primary/20 bg-primary/5 shadow-sm overflow-hidden">
+        <CardHeader className="bg-primary/10 py-3 px-6 border-b border-primary/10">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-serif font-bold flex items-center gap-2 text-primary">
+              <Star className="w-4 h-4 fill-primary" /> Sponsored & Featured Kitchens
+            </CardTitle>
+            <Badge variant="outline" className="bg-background text-xs font-mono">{counts.featured} Featured</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4">
+          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+            {vendors.filter(v => v.featured).length === 0 ? (
+              <div className="py-4 text-center w-full text-muted-foreground text-sm italic">
+                No kitchens are currently featured. Toggle the "Star" icon in the table below to sponsor a kitchen.
+              </div>
+            ) : (
+              vendors.filter(v => v.featured).map(v => (
+                <div key={v.id} className="min-w-[200px] max-w-[200px] border rounded-lg bg-card p-3 shadow-sm flex flex-col gap-2 relative">
+                  <Badge className="absolute -top-2 -right-2 bg-amber-500 hover:bg-amber-600 border-none px-1.5 h-5 text-[10px] uppercase tracking-tighter">Sponsored</Badge>
+                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                    <ChefHat className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm truncate">{v.name}</h4>
+                    <p className="text-[10px] text-muted-foreground truncate">{v.cuisineType} · {v.city}</p>
+                  </div>
+                  <Button variant="ghost" size="sm" className="w-full h-7 text-[10px] mt-1" asChild>
+                    <Link href={`/admin/vendors/${v.id}`}>Manage Details</Link>
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
@@ -201,6 +243,7 @@ export default function AdminVendors() {
               <TableHead>Commission</TableHead>
               <TableHead>Joined</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Featured</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -274,6 +317,17 @@ export default function AdminVendors() {
                     </TableCell>
                     <TableCell>
                       <Badge variant={sc.variant}>{sc.label}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className={`h-8 w-8 rounded-full transition-all ${vendor.featured ? "text-amber-500 bg-amber-50 hover:bg-amber-100" : "text-muted-foreground/30 hover:text-amber-400"}`}
+                        onClick={() => updateVendor.mutate({ vendorId: vendor.id, rate: parseFloat(vendor.commissionRate || "10"), featured: !vendor.featured })}
+                        title={vendor.featured ? "Remove from Featured" : "Mark as Featured/Sponsored"}
+                      >
+                        <Star className={`w-4 h-4 ${vendor.featured ? "fill-amber-500" : ""}`} />
+                      </Button>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -369,8 +423,8 @@ export default function AdminVendors() {
             <Button variant="outline" onClick={() => { setCommissionDialog(null); setNewRate(""); }}>
               Cancel
             </Button>
-            <Button onClick={handleCommissionSave} disabled={updateCommission.isPending}>
-              {updateCommission.isPending ? "Saving..." : "Save Rate"}
+            <Button onClick={handleCommissionSave} disabled={updateVendor.isPending}>
+              {updateVendor.isPending ? "Saving..." : "Save Rate"}
             </Button>
           </DialogFooter>
         </DialogContent>

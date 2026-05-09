@@ -143,6 +143,9 @@ export interface CreateVendorBody {
   cuisineType: string;
   fssaiLicense?: string;
   subscriptionTier?: CreateVendorBodySubscriptionTier;
+  deliveryZones?: string[];
+  logoUrl?: string;
+  coverImageUrl?: string;
 }
 
 export type UpdateVendorBodyStatus =

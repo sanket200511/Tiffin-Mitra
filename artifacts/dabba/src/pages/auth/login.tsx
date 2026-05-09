@@ -122,19 +122,19 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center bg-muted/30 px-4 py-4 overflow-hidden">
+    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center bg-muted/30 px-4 py-4 overflow-y-auto">
       <div className="w-full max-w-md">
-        <div className="text-center mb-4">
-          <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-2">
-            <ChefHat className="w-6 h-6 text-primary" />
+        <div className="text-center mb-6">
+          <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mb-3">
+            <ChefHat className="w-7 h-7 text-primary" />
           </div>
-          <h1 className="text-2xl font-serif font-bold text-primary">Dabba</h1>
+          <h1 className="text-3xl font-serif font-bold text-primary mb-1">Dabba</h1>
           <p className="text-sm text-muted-foreground">The warmth of ghar ka khana, delivered.</p>
         </div>
 
         <div className="bg-card border rounded-2xl shadow-xl p-6">
           <Tabs defaultValue="login">
-            <TabsList className="grid grid-cols-2 w-full mb-6" data-testid="auth-tabs">
+            <TabsList className="grid grid-cols-2 w-full mb-4" data-testid="auth-tabs">
               <TabsTrigger value="login" data-testid="tab-login">Sign in</TabsTrigger>
               <TabsTrigger value="register" data-testid="tab-register">Create account</TabsTrigger>
             </TabsList>
@@ -249,12 +249,12 @@ export default function Login() {
             </TabsContent>
           </Tabs>
 
-          <div className="relative my-4">
+          <div className="relative my-3">
             <div className="absolute inset-0 flex items-center">
               <Separator />
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground text-[10px]">Or continue with</span>
+            <div className="relative flex justify-center text-[10px] uppercase">
+              <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
             </div>
           </div>
 

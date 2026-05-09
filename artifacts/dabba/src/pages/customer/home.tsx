@@ -519,10 +519,10 @@ function MarketingHome() {
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-3">
-                  <Button variant="secondary" disabled className="cursor-not-allowed opacity-80">
+                  <Button disabled className="opacity-70 cursor-not-allowed shadow-none">
                     Send a Package
                   </Button>
-                  <Button variant="outline" disabled className="cursor-not-allowed opacity-80">
+                  <Button variant="outline" disabled className="opacity-70 cursor-not-allowed border-primary/30 text-primary">
                     Carry &amp; Earn
                   </Button>
                 </div>

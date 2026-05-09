@@ -9,7 +9,7 @@ import {
   Check, X, Crown, Layers3, Zap, Mail, ArrowLeft, Lock,
   BarChart3, UtensilsCrossed, CalendarDays, Headphones, Users, TrendingUp,
 } from "lucide-react";
-import { FEATURES } from "@/lib/features";
+import { useFeatures } from "@/lib/features";
 
 type PlanFeature = {
   label: string;
@@ -37,7 +37,7 @@ function FeatureCell({ value }: { value: boolean | string }) {
   return <span className="text-xs font-medium text-center block">{value}</span>;
 }
 
-const PLANS = [
+const getPlans = (features: any) => [
   {
     tier: "basic" as const,
     label: "Basic",
@@ -54,12 +54,12 @@ const PLANS = [
     tier: "pro" as const,
     label: "Pro",
     icon: Crown,
-    price: FEATURES.VENDOR_PRO_TIERS ? "Contact us" : "Coming Soon",
-    priceNote: FEATURES.VENDOR_PRO_TIERS ? "per month" : "Currently free for all",
+    price: features.VENDOR_PRO_TIERS ? "Contact us" : "Coming Soon",
+    priceNote: features.VENDOR_PRO_TIERS ? "per month" : "Currently free for all",
     description: "Unlock unlimited plans, advanced analytics and a featured listing.",
     color: "text-amber-600",
     bg: "bg-amber-50 border-amber-200",
-    cta: FEATURES.VENDOR_PRO_TIERS ? "Upgrade to Pro" : "Join Waitlist",
+    cta: features.VENDOR_PRO_TIERS ? "Upgrade to Pro" : "Join Waitlist",
     ctaDisabled: false,
     highlight: true,
   },
@@ -79,6 +79,9 @@ const PLANS = [
 
 export default function VendorUpgrade() {
   const { data: profileData, isLoading } = useGetMyVendorProfile();
+  const features = useFeatures();
+  const PLANS = getPlans(features);
+  
   const vendor = profileData?.vendor;
   const currentTier = vendor?.subscriptionTier ?? "basic";
 
@@ -113,7 +116,7 @@ export default function VendorUpgrade() {
         <p className="text-muted-foreground leading-relaxed">
           Unlock unlimited subscription plans, advanced analytics, and a featured
           listing so more customers discover your kitchen.
-          {!FEATURES.VENDOR_PRO_TIERS && (
+          {!features.VENDOR_PRO_TIERS && (
             <span className="block mt-2 text-primary font-medium">
               Pro features are currently free for all kitchens while we are in early access.
             </span>

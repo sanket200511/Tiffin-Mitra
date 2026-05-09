@@ -5,7 +5,7 @@ import {
   Wallet, ArrowDownLeft, ArrowUpRight, Plus, IndianRupee,
   Gift, TrendingUp, AlertCircle, Copy, Check, Users, Share2, Zap,
 } from "lucide-react";
-import { isEnabled } from "@/lib/features";
+import { useFeatures } from "@/lib/features";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,9 +40,13 @@ type WalletLimits = { minTopup: number; maxTopup: number };
 
 const QUICK_AMOUNTS = [200, 500, 1000, 2000];
 
-export default function CustomerWallet() {
+export default function Wallet() {
+  const [topupOpen, setTopupOpen] = useState(false);
+  const [topupAmount, setTopupAmount] = useState("");
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
+  const features = useFeatures();
+
   const [customAmount, setCustomAmount] = useState("");
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
@@ -228,7 +232,7 @@ export default function CustomerWallet() {
       </div>
 
       {/* Loyalty points redemption */}
-      {isEnabled("LOYALTY_REDEMPTION") && (
+      {features.LOYALTY_REDEMPTION && (
         <Card className="shadow-sm border-amber-200/60 bg-amber-50/30">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">

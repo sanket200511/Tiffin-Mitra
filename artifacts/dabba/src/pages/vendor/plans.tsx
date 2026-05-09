@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Plus, Edit, Trash2, CalendarDays, Check, ArrowUpRight } from "lucide-react";
 import { TierBadge } from "@/components/ui/tier-badge";
-import { FEATURES } from "@/lib/features";
+import { useFeatures } from "@/lib/features";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -51,6 +51,7 @@ const formSchema = z.object({
 export default function VendorPlans() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const features = useFeatures();
   
   const { data: profileData } = useGetMyVendorProfile();
   const vendorId = profileData?.vendor?.id;
@@ -152,7 +153,7 @@ export default function VendorPlans() {
           <p className="text-muted-foreground">Create and manage your tiffin service packages.</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {FEATURES.VENDOR_PRO_TIERS && vendorTier === "basic" && (
+          {features.VENDOR_PRO_TIERS && vendorTier === "basic" && (
             <Link href="/vendor/upgrade">
               <Button variant="outline" size="sm" className="gap-1.5 text-amber-600 border-amber-200 hover:bg-amber-50">
                 <ArrowUpRight className="w-3.5 h-3.5" />
@@ -167,7 +168,7 @@ export default function VendorPlans() {
       </div>
 
       {/* Tier info strip — only shown when pro tiers are enabled and vendor is on basic */}
-      {FEATURES.VENDOR_PRO_TIERS && vendorTier === "basic" && activePlansCount >= 3 && (
+      {features.VENDOR_PRO_TIERS && vendorTier === "basic" && activePlansCount >= 3 && (
         <div className="flex items-center justify-between gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
           <p className="text-amber-800">
             You have {activePlansCount} active plans. Basic kitchens can create up to 3.{" "}

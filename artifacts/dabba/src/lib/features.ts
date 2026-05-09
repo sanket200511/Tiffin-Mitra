@@ -18,49 +18,45 @@
  *   3. The admin can then toggle it via Admin → Settings.
  */
 
-export const FEATURES = {
-  /**
-   * Payment gateway (Razorpay / UPI).
-   * When true, the checkout flow will hit /api/payments/create-order and the
-   * Razorpay checkout SDK will be loaded.  Requires RAZORPAY_KEY_ID +
-   * RAZORPAY_KEY_SECRET env vars on the server.
-   */
+import { useQuery } from "@tanstack/react-query";
+
+export const DEFAULT_FEATURES = {
+  /** Payment gateway (Razorpay / UPI). */
   PAYMENT_GATEWAY: false,
 
-  /**
-   * Vendor pro-tier billing.
-   * When true:
-   *   - Basic vendors see an "Upgrade to Pro" banner on the Plans page.
-   *   - Plan creation is blocked when they hit max_plans_basic limit.
-   *   - The /vendor/upgrade page shows pricing (pulled from platform settings).
-   * When false:
-   *   - All vendors get the Pro-level limits (999 plans) for free.
-   *   - Upgrade page is accessible but shows "Coming Soon" pricing.
-   */
+  /** Vendor pro-tier billing. */
   VENDOR_PRO_TIERS: false,
 
-  /**
-   * Loyalty points redemption at checkout.
-   * Safe to keep true — the existing checkout flow already handles this.
-   */
+  /** Loyalty points redemption at checkout. */
   LOYALTY_REDEMPTION: true,
 
-  /**
-   * Peer-to-peer delivery marketplace.
-   * Disable to hide the Peer Delivery section from the customer nav/home.
-   */
+  /** Peer-to-peer delivery marketplace. */
   PEER_DELIVERY: true,
 
-  /**
-   * Customer referral program.
-   * Disable during DB migrations that touch the wallet / referral tables.
-   */
+  /** Customer referral program. */
   REFERRAL_PROGRAM: true,
 } as const;
 
-export type FeatureKey = keyof typeof FEATURES;
+export type FeatureKey = keyof typeof DEFAULT_FEATURES;
 
-/** Type-safe flag check used in components. */
-export function isEnabled(flag: FeatureKey): boolean {
-  return FEATURES[flag];
+export function useFeatures() {
+  const { data } = useQuery({
+    queryKey: ["/api/platform/config"],
+    queryFn: async () => {
+      const res = await fetch("/api/platform/config");
+      if (!res.ok) return { config: {} };
+      return res.json() as Promise<{ config: Record<string, boolean> }>;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const config = data?.config || {};
+
+  return {
+    PAYMENT_GATEWAY: config.feature_payment_gateway_enabled ?? DEFAULT_FEATURES.PAYMENT_GATEWAY,
+    VENDOR_PRO_TIERS: config.feature_vendor_pro_tiers_enabled ?? DEFAULT_FEATURES.VENDOR_PRO_TIERS,
+    LOYALTY_REDEMPTION: config.feature_loyalty_redemption_enabled ?? DEFAULT_FEATURES.LOYALTY_REDEMPTION,
+    PEER_DELIVERY: config.feature_peer_delivery_enabled ?? DEFAULT_FEATURES.PEER_DELIVERY,
+    REFERRAL_PROGRAM: config.feature_referral_enabled ?? DEFAULT_FEATURES.REFERRAL_PROGRAM,
+  };
 }

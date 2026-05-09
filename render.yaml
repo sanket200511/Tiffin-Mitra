@@ -46,6 +46,10 @@ services:
     rootDir: .
     buildCommand: pnpm install && pnpm --filter @workspace/dabba build
     staticPublishPath: artifacts/dabba/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: NODE_ENV
         value: production

@@ -85,7 +85,7 @@ export default function Login() {
         toast({ variant: "destructive", title: "Login failed", description });
         return;
       }
-      
+
       if (data.sid) {
         localStorage.setItem("dabba_sid", data.sid);
       }
@@ -195,7 +195,7 @@ export default function Login() {
                           <FormControl>
                             <div className="relative">
                               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                              <Input placeholder="Priya" className="pl-9" {...field} data-testid="input-first-name" />
+                              <Input placeholder="Chanda" className="pl-9" {...field} data-testid="input-first-name" />
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -209,7 +209,7 @@ export default function Login() {
                         <FormItem>
                           <FormLabel>Last name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Sharma" {...field} data-testid="input-last-name" />
+                            <Input placeholder="Kurve" {...field} data-testid="input-last-name" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -262,10 +262,10 @@ export default function Login() {
             </div>
           </div>
 
-          <Button 
-            variant="outline" 
-            type="button" 
-            className="w-full h-11" 
+          <Button
+            variant="outline"
+            type="button"
+            className="w-full h-11"
             onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || ""}/api/auth/google`}
             disabled={isSubmitting}
           >

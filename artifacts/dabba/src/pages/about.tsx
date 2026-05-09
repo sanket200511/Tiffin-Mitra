@@ -33,9 +33,9 @@ const values = [
 ];
 
 const team = [
-  { name: "Priya Sharma", role: "Co-founder & CEO", city: "Mumbai" },
-  { name: "Arjun Mehta", role: "Co-founder & CTO", city: "Bengaluru" },
-  { name: "Sunita Rao", role: "Head of Operations", city: "Pune" },
+  { name: "Sanket Kurve", role: "Co-founder & CEO", city: "Nagpur" },
+  // { name: "Arjun Mehta", role: "Co-founder & CTO", city: "Bengaluru" },
+  // { name: "Sunita Rao", role: "Head of Operations", city: "Pune" },
 ];
 
 export default function About() {

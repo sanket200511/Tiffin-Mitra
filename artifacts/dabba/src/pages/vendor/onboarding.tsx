@@ -132,11 +132,10 @@ export default function VendorOnboarding() {
             return (
               <div key={i} className="flex items-center gap-2 flex-1">
                 <div className={`flex items-center gap-2 ${i < STEPS.length - 1 ? "flex-1" : ""}`}>
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 border-2 transition-colors ${
-                    completed ? "bg-primary border-primary text-primary-foreground" :
-                    active ? "border-primary text-primary bg-primary/10" :
-                    "border-muted-foreground/30 text-muted-foreground/50"
-                  }`}>
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 border-2 transition-colors ${completed ? "bg-primary border-primary text-primary-foreground" :
+                      active ? "border-primary text-primary bg-primary/10" :
+                        "border-muted-foreground/30 text-muted-foreground/50"
+                    }`}>
                     {completed ? <CheckCircle2 className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
                   </div>
                   <div className="hidden sm:block">
@@ -171,7 +170,7 @@ export default function VendorOnboarding() {
                         <FormControl>
                           <div className="relative">
                             <Store className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input className="pl-9" placeholder="e.g. Priya's Home Kitchen" {...field} />
+                            <Input className="pl-9" placeholder="e.g. Chanda's Home Kitchen" {...field} />
                           </div>
                         </FormControl>
                         <FormMessage />

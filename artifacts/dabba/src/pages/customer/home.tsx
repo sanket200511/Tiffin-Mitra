@@ -245,42 +245,42 @@ function CustomerDashboard() {
           <div className="space-y-3">
             {ordersLoading
               ? Array.from({ length: 2 }).map((_, i) => (
-                  <Card key={i} className="shadow-sm">
-                    <CardContent className="p-4">
-                      <Skeleton className="h-12 w-full" />
-                    </CardContent>
-                  </Card>
-                ))
+                <Card key={i} className="shadow-sm">
+                  <CardContent className="p-4">
+                    <Skeleton className="h-12 w-full" />
+                  </CardContent>
+                </Card>
+              ))
               : todayOrders.slice(0, 5).map(order => (
-                  <Card key={order.id} className="shadow-sm hover:shadow-md transition-shadow">
-                    <CardContent className="p-4 flex items-center gap-4">
-                      <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
-                        <ChefHat className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{order.vendorName || "Kitchen"}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {order.mealType
-                            ? order.mealType.charAt(0).toUpperCase() + order.mealType.slice(1)
-                            : "Tiffin"}{" "}
-                          · ₹{Number(order.totalAmount).toLocaleString("en-IN")}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <Badge
-                          className={`${ORDER_STATUS_BADGE[order.status] || "bg-gray-100 text-gray-800"} border-0 text-xs font-medium`}
-                        >
-                          {ORDER_STATUS_LABEL[order.status] || order.status}
-                        </Badge>
-                        {order.status !== "delivered" && order.status !== "cancelled" && (
-                          <Button size="sm" variant="outline" asChild>
-                            <Link href={`/orders/${order.id}/track`}>Track</Link>
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                <Card key={order.id} className="shadow-sm hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 flex items-center gap-4">
+                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
+                      <ChefHat className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{order.vendorName || "Kitchen"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {order.mealType
+                          ? order.mealType.charAt(0).toUpperCase() + order.mealType.slice(1)
+                          : "Tiffin"}{" "}
+                        · ₹{Number(order.totalAmount).toLocaleString("en-IN")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <Badge
+                        className={`${ORDER_STATUS_BADGE[order.status] || "bg-gray-100 text-gray-800"} border-0 text-xs font-medium`}
+                      >
+                        {ORDER_STATUS_LABEL[order.status] || order.status}
+                      </Badge>
+                      {order.status !== "delivered" && order.status !== "cancelled" && (
+                        <Button size="sm" variant="outline" asChild>
+                          <Link href={`/orders/${order.id}/track`}>Track</Link>
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
           </div>
         </div>
       )}
@@ -299,26 +299,26 @@ function CustomerDashboard() {
           <div className="grid sm:grid-cols-2 gap-4">
             {subsLoading
               ? Array.from({ length: 2 }).map((_, i) => (
-                  <Card key={i} className="shadow-sm">
-                    <CardContent className="p-4">
-                      <Skeleton className="h-14 w-full" />
-                    </CardContent>
-                  </Card>
-                ))
+                <Card key={i} className="shadow-sm">
+                  <CardContent className="p-4">
+                    <Skeleton className="h-14 w-full" />
+                  </CardContent>
+                </Card>
+              ))
               : activeSubs.slice(0, 4).map(sub => (
-                  <Card key={sub.id} className="shadow-sm hover:shadow-md transition-shadow">
-                    <CardContent className="p-4 flex items-center gap-4">
-                      <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
-                        <ChefHat className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">{sub.vendorName || "Kitchen"}</p>
-                        <p className="text-xs text-muted-foreground truncate">{sub.planName}</p>
-                      </div>
-                      <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-                    </CardContent>
-                  </Card>
-                ))}
+                <Card key={sub.id} className="shadow-sm hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 flex items-center gap-4">
+                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
+                      <ChefHat className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate">{sub.vendorName || "Kitchen"}</p>
+                      <p className="text-xs text-muted-foreground truncate">{sub.planName}</p>
+                    </div>
+                    <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
+                  </CardContent>
+                </Card>
+              ))}
           </div>
         </div>
       )}
@@ -445,8 +445,8 @@ function MarketingHome() {
                       <ChefHat className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-semibold text-sm">Priya's Home Kitchen</p>
-                      <p className="text-xs text-muted-foreground">North Indian · Pune</p>
+                      <p className="font-semibold text-sm">Chanda's Home Kitchen</p>
+                      <p className="text-xs text-muted-foreground">Maharastrian Thali · Nagpur</p>
                     </div>
                     <div className="ml-auto flex items-center gap-1 text-xs font-medium bg-yellow-50 text-yellow-700 px-2 py-1 rounded-full border border-yellow-200">
                       <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
@@ -488,16 +488,18 @@ function MarketingHome() {
       {/* Carry & Earn */}
       <section className="py-10 border-y bg-gradient-to-r from-primary/5 via-background to-background">
         <div className="container">
-          <div>
-            <div className="bg-card rounded-2xl border shadow-sm p-7 md:p-10 flex flex-col md:flex-row gap-8 items-center">
+          <div className="max-w-6xl mx-auto">
+            <div className="bg-card rounded-2xl border shadow-sm p-7 md:p-10 flex flex-col md:flex-row gap-8 items-center relative overflow-hidden">
+              {/* Optional: Add a slight overlay to make it look 'disabled' or 'upcoming', but just clear badges is usually better */}
+              
               <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center shrink-0">
-                <Bike className="w-10 h-10 text-primary" />
+                <Bike className="w-10 h-10 text-primary/60" />
               </div>
               <div className="flex-1">
-                <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary text-xs font-semibold px-2.5 py-1 rounded-full mb-3">
-                  New Feature
+                <div className="inline-flex items-center gap-1.5 bg-secondary text-secondary-foreground border text-xs font-semibold px-2.5 py-1 rounded-full mb-3">
+                  <Clock className="w-3.5 h-3.5" /> Coming Soon
                 </div>
-                <h2 className="text-2xl md:text-3xl font-serif font-bold mb-2">
+                <h2 className="text-2xl md:text-3xl font-serif font-bold mb-2 text-foreground/90">
                   Carry &amp; Earn — Community Delivery
                 </h2>
                 <p className="text-muted-foreground mb-5 max-w-xl">
@@ -505,25 +507,23 @@ function MarketingHome() {
                   and someone already heading that way on their bike carries it for you —
                   a small earn for them, big convenience for you.
                 </p>
-                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-6">
+                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground/70 mb-6">
                   <span className="flex items-center gap-1.5">
-                    <BookOpen className="w-4 h-4 text-amber-600" /> Books &amp; Notes
+                    <BookOpen className="w-4 h-4 text-amber-600/60" /> Books &amp; Notes
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-blue-600" /> Documents
+                    <FileText className="w-4 h-4 text-blue-600/60" /> Documents
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <Package className="w-4 h-4 text-gray-600" /> Parcels up to 5 kg
+                    <Package className="w-4 h-4 text-gray-600/60" /> Parcels up to 5 kg
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-3">
-                  <Button asChild>
-                    <Link href="/peer-delivery">
-                      Send a Package <ArrowRight className="ml-2 w-4 h-4" />
-                    </Link>
+                  <Button variant="secondary" disabled className="cursor-not-allowed opacity-80">
+                    Send a Package
                   </Button>
-                  <Button variant="outline" asChild>
-                    <Link href="/peer-delivery">Carry &amp; Earn</Link>
+                  <Button variant="outline" disabled className="cursor-not-allowed opacity-80">
+                    Carry &amp; Earn
                   </Button>
                 </div>
               </div>
@@ -574,22 +574,22 @@ function MarketingHome() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {isLoading
               ? Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="space-y-3">
-                    <Skeleton className="w-full h-48 rounded-xl" />
-                    <Skeleton className="w-2/3 h-6" />
-                    <Skeleton className="w-1/2 h-4" />
-                  </div>
-                ))
+                <div key={i} className="space-y-3">
+                  <Skeleton className="w-full h-48 rounded-xl" />
+                  <Skeleton className="w-2/3 h-6" />
+                  <Skeleton className="w-1/2 h-4" />
+                </div>
+              ))
               : [...vendors]
-                  .filter(v => (v as any).status === "approved" || !(v as any).status)
-                  .sort((a, b) => {
-                    const aFeat = (a as any).featured ? 1 : 0;
-                    const bFeat = (b as any).featured ? 1 : 0;
-                    if (bFeat !== aFeat) return bFeat - aFeat;
-                    return parseFloat(String(b.rating ?? 0)) - parseFloat(String(a.rating ?? 0));
-                  })
-                  .slice(0, 3)
-                  .map(vendor => (
+                .filter(v => (v as any).status === "approved" || !(v as any).status)
+                .sort((a, b) => {
+                  const aFeat = (a as any).featured ? 1 : 0;
+                  const bFeat = (b as any).featured ? 1 : 0;
+                  if (bFeat !== aFeat) return bFeat - aFeat;
+                  return parseFloat(String(b.rating ?? 0)) - parseFloat(String(a.rating ?? 0));
+                })
+                .slice(0, 3)
+                .map(vendor => (
                   <Link key={vendor.id} href={`/vendors/${vendor.id}`} className="group block">
                     <div className="bg-card rounded-xl overflow-hidden border shadow-sm transition-all hover:shadow-md hover:border-primary/30">
                       <div className="h-48 bg-muted relative">

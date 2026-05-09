@@ -77,7 +77,7 @@ export default function Contact() {
                     <Label htmlFor="name">Your name</Label>
                     <Input
                       id="name"
-                      placeholder="Priya Sharma"
+                      placeholder="Chanda Kurve"
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                       required

@@ -28,6 +28,8 @@ services:
         value: https://dabba-app.onrender.com
       - key: RESEND_API_KEY
         sync: false # Set this in Render Dashboard
+      - key: RESEND_FROM_EMAIL
+        sync: false # Set to e.g. noreply@yourdomain.com once domain verified in Resend
       - key: CLOUDINARY_CLOUD_NAME
         sync: false # Set this in Render Dashboard
       - key: CLOUDINARY_API_KEY

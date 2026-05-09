@@ -14,6 +14,11 @@ const upload = multer({
 });
 
 router.post("/media/upload", upload.single("image"), async (req: Request, res: Response) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
   if (!req.file) {
     res.status(400).json({ error: "No image file provided" });
     return;

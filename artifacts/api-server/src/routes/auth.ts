@@ -26,6 +26,17 @@ router.get("/auth/make-me-admin-12345", async (req: Request, res: Response) => {
   }
   
   await db.update(usersTable).set({ role: "super_admin" }).where(eq(usersTable.id, req.user.id));
+
+  // Also update the active Redis session so the role takes effect immediately
+  const sid = getSessionId(req);
+  if (sid) {
+    const session = await getSession(sid);
+    if (session) {
+      session.user.role = "super_admin";
+      await updateSession(sid, session);
+    }
+  }
+
   res.send("<h1>👑 SUCCESS! You have been granted SUPER ADMIN powers!</h1><p>Go back to the app and refresh the page.</p>");
 });
 
@@ -229,20 +240,21 @@ router.get("/auth/google", async (_req: Request, res: Response) => {
   const codeVerifier = generateCodeVerifier();
   const url = google.createAuthorizationURL(state, codeVerifier, ["openid", "profile", "email"]);
 
+  const isProdOAuth = process.env.NODE_ENV === "production";
   res.cookie("google_oauth_state", state, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: isProdOAuth,
+    sameSite: isProdOAuth ? "none" : "lax",
     path: "/",
-    maxAge: 600 * 1000, // 10 minutes
+    maxAge: 600 * 1000,
   });
 
   res.cookie("google_code_verifier", codeVerifier, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: isProdOAuth,
+    sameSite: isProdOAuth ? "none" : "lax",
     path: "/",
-    maxAge: 600 * 1000, // 10 minutes
+    maxAge: 600 * 1000,
   });
 
   res.redirect(url.toString());

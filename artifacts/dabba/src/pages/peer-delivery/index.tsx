@@ -327,7 +327,7 @@ function PostRequestDialog({ onSuccess }: { onSuccess: () => void }) {
               <FormField control={form.control} name="city" render={({ field }) => (
                 <FormItem>
                   <FormLabel>City</FormLabel>
-                  <FormControl><Input placeholder="e.g. Pune" {...field} /></FormControl>
+                  <FormControl><Input placeholder="e.g. Nagpur" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />

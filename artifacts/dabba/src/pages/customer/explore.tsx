@@ -112,7 +112,7 @@ export default function Explore() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Cities</SelectItem>
-                  {["Mumbai","Delhi","Bangalore","Pune","Ahmedabad","Nagpur","Hyderabad","Chennai","Kolkata","Surat"].map(c => (
+                  {["Nagpur","Mumbai","Pune","Delhi","Bangalore","Ahmedabad","Hyderabad","Chennai","Kolkata","Surat"].map(c => (
                     <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
                 </SelectContent>

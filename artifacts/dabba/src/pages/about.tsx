@@ -77,7 +77,7 @@ export default function About() {
                 We do this by building a platform that makes it effortless for home chefs to run a subscription-based tiffin service, and equally effortless for customers to discover, subscribe, and manage their daily meals.
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                We're starting in metro cities and expanding to Tier-2 India — because great home cooking doesn't only happen in Mumbai.
+                We're starting in Nagpur and expanding to other cities — because great home cooking happens everywhere.
               </p>
             </div>
             <div className="bg-primary/5 rounded-2xl p-8 space-y-6 border border-primary/10">

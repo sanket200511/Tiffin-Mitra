@@ -209,7 +209,7 @@ export default function VendorOnboarding() {
                         <FormItem>
                           <FormLabel>City</FormLabel>
                           <FormControl>
-                            <Input placeholder="Mumbai" {...field} />
+                            <Input placeholder="Nagpur" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -233,7 +233,7 @@ export default function VendorOnboarding() {
                         <FormControl>
                           <div className="relative">
                             <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                            <Textarea className="pl-9 resize-none h-20" placeholder="Flat 4, Shivaji Nagar, Andheri West, Mumbai - 400053" {...field} />
+                            <Textarea className="pl-9 resize-none h-20" placeholder="Plot No. 31, Sheshnagar, Kharbi Road, Nagpur - 440024" {...field} />
                           </div>
                         </FormControl>
                         <FormMessage />

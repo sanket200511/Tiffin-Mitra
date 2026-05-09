@@ -389,7 +389,7 @@ function MarketingHome() {
         <meta property="og:type" content="website" />
       </Helmet>
       {/* Hero */}
-      <section className="relative bg-primary/5 min-h-[75vh] flex items-center overflow-hidden">
+      <section className="relative bg-primary/5 min-h-[calc(100vh-4rem)] flex items-center overflow-hidden">
         {/* Decorative blob */}
         <div className="absolute right-0 top-0 w-[45%] h-full bg-primary/8 rounded-l-[80px] hidden lg:block pointer-events-none" />
 

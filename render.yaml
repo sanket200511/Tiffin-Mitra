@@ -15,8 +15,7 @@ services:
       - key: PORT
         value: 8080
       - key: DATABASE_URL
-        # Use Internal Database URL for better performance
-        value: postgresql://sanket_postgres:s0Kl8yjT1RH1eAofymqo4S1C89HTqMG9@dpg-d7s59gi8qa3s73dtee0g-a/postgres_sanket?search_path=dabba
+        sync: false # Set the Internal Database URL in the Render Dashboard
       - key: SESSION_SECRET
         generateValue: true
       - key: GOOGLE_CLIENT_ID

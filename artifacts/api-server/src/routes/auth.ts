@@ -56,17 +56,28 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
+    
+    // Generate a 6-digit verification code
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
     const [user] = await db.insert(usersTable).values({
       email: email.toLowerCase(),
       passwordHash,
       firstName: firstName || null,
       lastName: lastName || null,
+      emailVerified: false,
+      verificationCode,
+      verificationExpires,
     }).returning();
 
-    const sid = await createSession({ user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, profileImageUrl: user.profileImageUrl, role: user.role ?? null } });
-    setSessionCookie(res, sid);
+    // Log the code for now (until we set up an email service)
+    req.log.info({ email: user.email, code: verificationCode }, "Verification code generated");
 
-    res.status(201).json({ user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, profileImageUrl: user.profileImageUrl, role: user.role ?? null } });
+    res.status(201).json({ 
+      message: "Registration successful! Please check your email for the verification code.",
+      email: user.email 
+    });
   } catch (err) {
     req.log.error({ err }, "Registration error");
     res.status(500).json({ error: "Registration failed" });
@@ -98,7 +109,16 @@ router.post("/auth/login", async (req: Request, res: Response) => {
       return;
     }
 
-    const sid = await createSession({ user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, profileImageUrl: user.profileImageUrl, role: user.role ?? null } });
+    if (!user.emailVerified) {
+      res.status(403).json({ 
+        error: "Email not verified", 
+        requiresVerification: true,
+        email: user.email 
+      });
+      return;
+    }
+
+    const sid = await createSession({ user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, profileImageUrl: user.profileImageUrl, role: user.role ?? null, emailVerified: user.emailVerified } });
     setSessionCookie(res, sid);
 
     res.json({ user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, profileImageUrl: user.profileImageUrl, role: user.role ?? null } });
@@ -269,6 +289,7 @@ router.get("/auth/google/callback", async (req: Request, res: Response) => {
           .set({
             googleId: googleUser.sub,
             profileImageUrl: googleUser.picture || existingByEmail.profileImageUrl,
+            emailVerified: true,
             updatedAt: new Date(),
           })
           .where(eq(usersTable.id, existingByEmail.id))
@@ -283,6 +304,7 @@ router.get("/auth/google/callback", async (req: Request, res: Response) => {
             firstName: googleUser.given_name || null,
             lastName: googleUser.family_name || null,
             profileImageUrl: googleUser.picture || null,
+            emailVerified: true,
             role: "customer", // Default role
           })
           .returning();
@@ -298,6 +320,7 @@ router.get("/auth/google/callback", async (req: Request, res: Response) => {
         lastName: user.lastName,
         profileImageUrl: user.profileImageUrl,
         role: user.role ?? null,
+        emailVerified: user.emailVerified,
       },
     });
     setSessionCookie(res, sid);
@@ -312,6 +335,90 @@ router.get("/auth/google/callback", async (req: Request, res: Response) => {
   } catch (err) {
     req.log.error({ err }, "Google OAuth error");
     res.status(500).json({ error: "Authentication failed" });
+  }
+});
+
+router.post("/auth/verify", async (req: Request, res: Response) => {
+  const { email, code } = req.body as { email?: string; code?: string };
+
+  if (!email || !code) {
+    res.status(400).json({ error: "Email and code are required" });
+    return;
+  }
+
+  try {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase()));
+    
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    if (user.emailVerified) {
+      res.status(400).json({ error: "Email already verified" });
+      return;
+    }
+
+    if (user.verificationCode !== code) {
+      res.status(400).json({ error: "Invalid verification code" });
+      return;
+    }
+
+    if (user.verificationExpires && user.verificationExpires < new Date()) {
+      res.status(400).json({ error: "Verification code expired" });
+      return;
+    }
+
+    // Mark as verified
+    await db.update(usersTable)
+      .set({ 
+        emailVerified: true, 
+        verificationCode: null, 
+        verificationExpires: null 
+      })
+      .where(eq(usersTable.id, user.id));
+
+    // Log the user in automatically after verification
+    const sid = await createSession({ user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, profileImageUrl: user.profileImageUrl, role: user.role ?? null, emailVerified: user.emailVerified } });
+    setSessionCookie(res, sid);
+
+    res.json({ 
+      success: true, 
+      user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, profileImageUrl: user.profileImageUrl, role: user.role ?? null } 
+    });
+  } catch (err) {
+    req.log.error({ err }, "Verification error");
+    res.status(500).json({ error: "Verification failed" });
+  }
+});
+
+router.post("/auth/resend-verification", async (req: Request, res: Response) => {
+  const { email } = req.body as { email?: string };
+  if (!email) {
+    res.status(400).json({ error: "Email is required" });
+    return;
+  }
+
+  try {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase()));
+    if (!user || user.emailVerified) {
+      res.status(400).json({ error: "Invalid request" });
+      return;
+    }
+
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationExpires = new Date(Date.now() + 15 * 60 * 1000);
+
+    await db.update(usersTable)
+      .set({ verificationCode, verificationExpires })
+      .where(eq(usersTable.id, user.id));
+
+    req.log.info({ email: user.email, code: verificationCode }, "Resent verification code");
+
+    res.json({ message: "Verification code resent!" });
+  } catch (err) {
+    req.log.error({ err }, "Resend error");
+    res.status(500).json({ error: "Failed to resend code" });
   }
 });
 

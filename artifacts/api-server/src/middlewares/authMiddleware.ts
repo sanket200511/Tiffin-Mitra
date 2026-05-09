@@ -8,6 +8,7 @@ export interface AuthUser {
   lastName: string | null;
   profileImageUrl: string | null;
   role: string | null;
+  emailVerified: boolean;
 }
 
 declare global {

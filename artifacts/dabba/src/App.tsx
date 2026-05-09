@@ -52,6 +52,7 @@ const AdminPayouts        = lazy(() => import("@/pages/admin/payouts"));
 const AdminAnalytics      = lazy(() => import("@/pages/admin/analytics"));
 
 const Login            = lazy(() => import("@/pages/auth/login"));
+const Verify           = lazy(() => import("@/pages/auth/verify"));
 const HowItWorks       = lazy(() => import("@/pages/how-it-works"));
 const About            = lazy(() => import("@/pages/about"));
 const Contact          = lazy(() => import("@/pages/contact"));
@@ -135,6 +136,7 @@ function Router() {
     <Suspense fallback={<PageLoader />}>
       <Switch>
         <Route path="/login" component={Login} />
+        <Route path="/auth/verify" component={Verify} />
         <Route path="/role-select" component={RoleSelect} />
 
         {/* Customer Routes */}

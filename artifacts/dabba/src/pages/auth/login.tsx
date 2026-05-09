@@ -72,8 +72,12 @@ export default function Login() {
         credentials: "include",
         body: JSON.stringify(values),
       });
-      const data = await res.json() as { user?: { role?: string | null }; error?: string };
+      const data = await res.json() as { user?: { role?: string | null }; error?: string, requiresVerification?: boolean, email?: string };
       if (!res.ok) {
+        if (res.status === 403 && data.requiresVerification) {
+          setLocation(`/auth/verify?email=${encodeURIComponent(data.email || values.email)}`);
+          return;
+        }
         const description =
           res.status === 429
             ? data.error || "Too many login attempts. Please wait a few minutes and try again."
@@ -103,13 +107,13 @@ export default function Login() {
         credentials: "include",
         body: JSON.stringify(values),
       });
-      const data = await res.json() as { error?: string };
+      const data = await res.json() as { error?: string, email?: string };
       if (!res.ok) {
         toast({ variant: "destructive", title: "Registration failed", description: data.error || "Could not create account" });
         return;
       }
-      await refetch();
-      setLocation("/role-select");
+      // Redirect to verification page after registration
+      setLocation(`/auth/verify?email=${encodeURIComponent(data.email || values.email)}`);
     } catch {
       toast({ variant: "destructive", title: "Error", description: "Could not connect to server" });
     } finally {

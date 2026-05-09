@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, jsonb, pgEnum, pgTable, timestamp, varchar } from "drizzle-orm/pg-core";
+import { index, jsonb, pgEnum, pgTable, timestamp, varchar, boolean } from "drizzle-orm/pg-core";
 import { dabbaSchema } from "./schema";
 
 export const userRoleEnum = dabbaSchema.enum("dabba_user_role", ["super_admin", "vendor", "customer"]);
@@ -23,6 +23,9 @@ export const usersTable = dabbaSchema.table("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  verificationCode: varchar("verification_code"),
+  verificationExpires: timestamp("verification_expires", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

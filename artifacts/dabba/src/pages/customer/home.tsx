@@ -389,25 +389,46 @@ function MarketingHome() {
         <meta property="og:type" content="website" />
       </Helmet>
       {/* Hero */}
-      <section className="relative bg-primary/5 py-14 md:py-24 overflow-hidden">
-        <div className="absolute right-0 top-0 w-1/3 h-full bg-primary/10 -skew-x-12 transform rounded-l-[100px] hidden md:block" />
-        <div className="container relative z-10">
-          <div className="max-w-2xl space-y-6">
-            <h1 className="text-4xl sm:text-5xl md:text-7xl font-serif font-bold text-foreground leading-tight">
-              The warmth of <span className="text-primary italic">ghar ka khana</span>, delivered.
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground">
-              Discover authentic home-cooked tiffins from your neighborhood's best chefs. Wholesome, hygienic, and full of love.
+      <section className="relative bg-primary/5 min-h-[70vh] md:min-h-[85vh] flex items-center overflow-hidden">
+        {/* Modern accent background shape - more fluid on large screens */}
+        <div className="absolute right-[-5%] top-[-10%] w-[50%] h-[120%] bg-primary/10 rounded-[100px] rotate-[15deg] hidden lg:block pointer-events-none" />
+        
+        <div className="container relative z-10 py-14 md:py-20">
+          <div className="max-w-3xl space-y-8 animate-in fade-in slide-in-from-left-6 duration-1000">
+            <div className="space-y-4">
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 px-3 py-1 text-sm font-medium">
+                #1 Home Food Platform in India
+              </Badge>
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif font-bold text-foreground leading-[1.1] tracking-tight">
+                The warmth of <span className="text-primary italic">ghar ka khana</span>, delivered.
+              </h1>
+            </div>
+            
+            <p className="text-lg md:text-xl text-muted-foreground max-w-xl leading-relaxed">
+              Discover authentic home-cooked tiffins from your neighborhood's best chefs. 
+              Wholesome, hygienic, and full of love—just like mom makes it.
             </p>
+            
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <Button asChild size="lg" className="h-12 px-8 text-base">
+              <Button asChild size="lg" className="h-14 px-10 text-lg shadow-lg shadow-primary/20 hover:shadow-xl transition-all">
                 <Link href="/explore">
                   Explore Tiffins <ArrowRight className="ml-2 w-5 h-5" />
                 </Link>
               </Button>
-              <Button variant="outline" size="lg" className="h-12 px-8 text-base" asChild>
+              <Button variant="outline" size="lg" className="h-14 px-10 text-lg border-2" asChild>
                 <Link href="/role-select">Become a Partner</Link>
               </Button>
+            </div>
+
+            <div className="flex items-center gap-6 pt-6 text-sm text-muted-foreground border-t border-primary/10 w-fit">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-primary" />
+                <span>No minimum order</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-primary" />
+                <span>Pause anytime</span>
+              </div>
             </div>
           </div>
         </div>

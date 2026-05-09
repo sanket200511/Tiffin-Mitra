@@ -87,15 +87,15 @@ export default function Verify() {
   }
 
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center bg-muted/30 p-4">
+    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center bg-muted/30 px-4 py-4 overflow-hidden">
       <div className="w-full max-w-md">
-        <div className="bg-card border rounded-2xl shadow-xl p-8">
-          <div className="text-center mb-8">
-            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-              <Mail className="w-8 h-8 text-primary" />
+        <div className="bg-card border rounded-2xl shadow-xl p-6">
+          <div className="text-center mb-4">
+            <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-2">
+              <Mail className="w-6 h-6 text-primary" />
             </div>
-            <h1 className="text-2xl font-serif font-bold text-primary mb-2">Verify your email</h1>
-            <p className="text-muted-foreground text-sm">
+            <h1 className="text-2xl font-serif font-bold text-primary">Verify your email</h1>
+            <p className="text-sm text-muted-foreground">
               We've sent a 6-digit verification code to <br />
               <span className="font-medium text-foreground">{email}</span>
             </p>

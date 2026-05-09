@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { index, jsonb, pgEnum, pgTable, timestamp, varchar, boolean } from "drizzle-orm/pg-core";
 import { dabbaSchema } from "./schema";
 
-export const userRoleEnum = dabbaSchema.enum("dabba_user_role", ["super_admin", "vendor", "customer"]);
+export const userRoleEnum = dabbaSchema.enum("app_user_role", ["super_admin", "vendor", "customer"]);
 
 export const sessionsTable = dabbaSchema.table(
   "sessions",

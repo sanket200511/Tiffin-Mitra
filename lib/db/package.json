@@ -9,6 +9,7 @@
   },
   "scripts": {
     "push": "dotenv -e ../../.env -- drizzle-kit push --config ./drizzle.config.ts",
+    "push:prod": "drizzle-kit push --config ./drizzle.config.ts",
     "push-force": "dotenv -e ../../.env -- drizzle-kit push --force --config ./drizzle.config.ts"
   },
   "dependencies": {

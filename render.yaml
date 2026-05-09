@@ -7,7 +7,7 @@ services:
     env: node
     plan: free
     rootDir: .
-    buildCommand: pnpm install && pnpm --filter @workspace/db build && pnpm --filter @workspace/api-server build
+    buildCommand: pnpm install && pnpm --filter @workspace/db push:prod && pnpm --filter @workspace/db build && pnpm --filter @workspace/api-server build
     startCommand: pnpm --filter @workspace/api-server start
     envVars:
       - key: NODE_ENV

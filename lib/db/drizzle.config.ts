@@ -1,5 +1,7 @@
 import { defineConfig } from "drizzle-kit";
 
+declare var process: any;
+
 // Prefer DATABASE_DIRECT_URL for migrations (bypasses pgBouncer pooler)
 // Fall back to DATABASE_URL if not set
 const dbUrl = process.env.DATABASE_DIRECT_URL || process.env.DATABASE_URL;

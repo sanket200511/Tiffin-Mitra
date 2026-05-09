@@ -16,7 +16,7 @@ services:
         value: 8080
       - key: DATABASE_URL
         # Use Internal Database URL for better performance
-        value: postgresql://postgres_sanket_user:1qV7FEO9pnYWL9tLBOBOKu3vHdZ4or1f@dpg-d7s59gi8qa3s73dtee0g-a/postgres_sanket?search_path=dabba
+        value: postgresql://sanket_postgres:s0Kl8yjT1RH1eAofymqo4S1C89HTqMG9@dpg-d7s59gi8qa3s73dtee0g-a/postgres_sanket?search_path=dabba
       - key: SESSION_SECRET
         generateValue: true
       - key: GOOGLE_CLIENT_ID
@@ -27,6 +27,8 @@ services:
         fromValue: https://dabba-api.onrender.com/api/auth/google/callback
       - key: FRONTEND_URL
         fromValue: https://dabba-app.onrender.com
+      - key: RESEND_API_KEY
+        sync: false # Set this in Render Dashboard
 
   # ----------------------------------------------------------------------------
   # Frontend: Dabba App

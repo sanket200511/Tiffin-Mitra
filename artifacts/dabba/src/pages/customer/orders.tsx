@@ -298,6 +298,9 @@ export default function Orders() {
     });
   };
 
+  const openReviewDialog = (order: Order) => {
+    setReviewingOrder(order);
+    setRating(0);
     setComment("");
   };
 
@@ -612,7 +615,6 @@ export default function Orders() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
       </Dialog>
 
       {/* Report Issue Dialog */}

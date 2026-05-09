@@ -114,6 +114,7 @@ export interface Vendor {
   featured?: boolean;
   commissionRate?: number;
   cutoffTime?: string;
+  pauseCutoffHour?: number;
   createdAt: string;
 }
 
@@ -175,6 +176,7 @@ export interface UpdateVendorBody {
   deliveryZones?: string[];
   fssaiLicense?: string;
   cutoffTime?: string;
+  pauseCutoffHour?: number;
 }
 
 export interface VendorStats {
@@ -409,6 +411,7 @@ export interface CustomerSubscription {
   /** @nullable */
   pauseReason?: string | null;
   skippedDays?: string[];
+  pauseCutoffHour?: number;
   createdAt: string;
 }
 
@@ -477,6 +480,7 @@ export interface Order {
   deliveryAddress?: string | null;
   /** @nullable */
   specialInstructions?: string | null;
+  deliveryProofUrl?: string | null;
   createdAt: string;
 }
 

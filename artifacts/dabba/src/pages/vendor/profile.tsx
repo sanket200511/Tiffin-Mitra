@@ -41,7 +41,7 @@ export default function VendorProfile() {
           description: "Your kitchen profile has been saved successfully.",
         });
       },
-      onError: (err) => {
+      onError: (err: any) => {
         toast({
           variant: "destructive",
           title: "Error",

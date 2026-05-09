@@ -21,6 +21,7 @@ import {
   Ban,
   AlertCircle,
   AlertTriangle,
+  Clock,
 } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";

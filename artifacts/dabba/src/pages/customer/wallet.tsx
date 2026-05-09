@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
-  Wallet, ArrowDownLeft, ArrowUpRight, Plus, IndianRupee,
+  Wallet as WalletIcon, ArrowDownLeft, ArrowUpRight, Plus, IndianRupee,
   Gift, TrendingUp, AlertCircle, Copy, Check, Users, Share2, Zap,
 } from "lucide-react";
 import { useFeatures } from "@/lib/features";
@@ -40,11 +40,11 @@ type WalletLimits = { minTopup: number; maxTopup: number };
 
 const QUICK_AMOUNTS = [200, 500, 1000, 2000];
 
-export default function Wallet() {
+export default function CustomerWallet() {
   const [topupOpen, setTopupOpen] = useState(false);
   const [topupAmount, setTopupAmount] = useState("");
   const { toast } = useToast();
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   const features = useFeatures();
 
   const [customAmount, setCustomAmount] = useState("");
@@ -196,7 +196,7 @@ export default function Wallet() {
         <Card className="bg-primary text-primary-foreground shadow-lg border-0">
           <CardContent className="p-6">
             <div className="flex items-center gap-2 mb-4 opacity-80">
-              <Wallet className="w-5 h-5" />
+              <WalletIcon className="w-5 h-5" />
               <span className="text-sm font-medium">Available Balance</span>
             </div>
             {isLoading ? (
@@ -496,7 +496,7 @@ export default function Wallet() {
             </div>
           ) : !wallet?.transactions?.length ? (
             <div className="text-center py-12 text-muted-foreground">
-              <Wallet className="w-10 h-10 mx-auto mb-3 opacity-20" />
+              <WalletIcon className="w-10 h-10 mx-auto mb-3 opacity-20" />
               <p className="text-sm">No transactions yet.</p>
               <p className="text-xs mt-1">Top up your wallet to get started.</p>
             </div>

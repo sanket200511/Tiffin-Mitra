@@ -45,6 +45,7 @@ import type {
   MobileTokenExchangeSuccess,
   OrderEnvelope,
   OrderListEnvelope,
+  PauseSubscriptionBody,
   PlatformOverviewEnvelope,
   PopularDishesEnvelope,
   RevenueTrendEnvelope,
@@ -2324,6 +2325,180 @@ export const useUpdateCustomerSubscription = <
   TContext
 > => {
   return useMutation(getUpdateCustomerSubscriptionMutationOptions(options));
+};
+
+/**
+ * @summary Pause an active subscription
+ */
+export const getPauseSubscriptionUrl = (subscriptionId: string) => {
+  return `/api/subscriptions/${subscriptionId}/pause`;
+};
+
+export const pauseSubscription = async (
+  subscriptionId: string,
+  pauseSubscriptionBody?: PauseSubscriptionBody,
+  options?: RequestInit,
+): Promise<SuccessEnvelope> => {
+  return customFetch<SuccessEnvelope>(getPauseSubscriptionUrl(subscriptionId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(pauseSubscriptionBody),
+  });
+};
+
+export const getPauseSubscriptionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pauseSubscription>>,
+    TError,
+    { subscriptionId: string; data: BodyType<PauseSubscriptionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof pauseSubscription>>,
+  TError,
+  { subscriptionId: string; data: BodyType<PauseSubscriptionBody> },
+  TContext
+> => {
+  const mutationKey = ["pauseSubscription"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof pauseSubscription>>,
+    { subscriptionId: string; data: BodyType<PauseSubscriptionBody> }
+  > = (props) => {
+    const { subscriptionId, data } = props ?? {};
+
+    return pauseSubscription(subscriptionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PauseSubscriptionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof pauseSubscription>>
+>;
+export type PauseSubscriptionMutationBody = BodyType<PauseSubscriptionBody>;
+export type PauseSubscriptionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Pause an active subscription
+ */
+export const usePauseSubscription = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pauseSubscription>>,
+    TError,
+    { subscriptionId: string; data: BodyType<PauseSubscriptionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof pauseSubscription>>,
+  TError,
+  { subscriptionId: string; data: BodyType<PauseSubscriptionBody> },
+  TContext
+> => {
+  return useMutation(getPauseSubscriptionMutationOptions(options));
+};
+
+/**
+ * @summary Resume a paused subscription
+ */
+export const getResumeSubscriptionUrl = (subscriptionId: string) => {
+  return `/api/subscriptions/${subscriptionId}/resume`;
+};
+
+export const resumeSubscription = async (
+  subscriptionId: string,
+  options?: RequestInit,
+): Promise<SuccessEnvelope> => {
+  return customFetch<SuccessEnvelope>(
+    getResumeSubscriptionUrl(subscriptionId),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getResumeSubscriptionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resumeSubscription>>,
+    TError,
+    { subscriptionId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof resumeSubscription>>,
+  TError,
+  { subscriptionId: string },
+  TContext
+> => {
+  const mutationKey = ["resumeSubscription"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof resumeSubscription>>,
+    { subscriptionId: string }
+  > = (props) => {
+    const { subscriptionId } = props ?? {};
+
+    return resumeSubscription(subscriptionId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResumeSubscriptionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resumeSubscription>>
+>;
+
+export type ResumeSubscriptionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Resume a paused subscription
+ */
+export const useResumeSubscription = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resumeSubscription>>,
+    TError,
+    { subscriptionId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof resumeSubscription>>,
+  TError,
+  { subscriptionId: string },
+  TContext
+> => {
+  return useMutation(getResumeSubscriptionMutationOptions(options));
 };
 
 /**

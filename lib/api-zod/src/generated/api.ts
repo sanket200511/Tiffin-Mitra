@@ -132,6 +132,7 @@ export const ListVendorsResponse = zod.object({
       deliveryZones: zod.array(zod.string()).optional(),
       featured: zod.boolean().optional(),
       commissionRate: zod.number().optional(),
+      cutoffTime: zod.string().optional(),
       createdAt: zod.coerce.date(),
     }),
   ),
@@ -176,6 +177,7 @@ export const GetMyVendorProfileResponse = zod.object({
     deliveryZones: zod.array(zod.string()).optional(),
     featured: zod.boolean().optional(),
     commissionRate: zod.number().optional(),
+    cutoffTime: zod.string().optional(),
     createdAt: zod.coerce.date(),
   }),
 });
@@ -206,6 +208,7 @@ export const GetVendorResponse = zod.object({
     deliveryZones: zod.array(zod.string()).optional(),
     featured: zod.boolean().optional(),
     commissionRate: zod.number().optional(),
+    cutoffTime: zod.string().optional(),
     createdAt: zod.coerce.date(),
   }),
 });
@@ -229,6 +232,7 @@ export const UpdateVendorBody = zod.object({
   subscriptionTier: zod.enum(["basic", "pro", "enterprise"]).optional(),
   deliveryZones: zod.array(zod.string()).optional(),
   fssaiLicense: zod.string().optional(),
+  cutoffTime: zod.string().optional(),
 });
 
 export const UpdateVendorResponse = zod.object({
@@ -250,6 +254,7 @@ export const UpdateVendorResponse = zod.object({
     deliveryZones: zod.array(zod.string()).optional(),
     featured: zod.boolean().optional(),
     commissionRate: zod.number().optional(),
+    cutoffTime: zod.string().optional(),
     createdAt: zod.coerce.date(),
   }),
 });
@@ -535,6 +540,8 @@ export const ListMySubscriptionsResponse = zod.object({
       deliveryAddress: zod.string(),
       deliverySlot: zod.string().nullish(),
       walletBalance: zod.number().optional(),
+      pausedUntil: zod.coerce.date().nullish(),
+      pauseReason: zod.string().nullish(),
       skippedDays: zod.array(zod.coerce.date()).optional(),
       createdAt: zod.coerce.date(),
     }),
@@ -574,6 +581,8 @@ export const GetCustomerSubscriptionResponse = zod.object({
     deliveryAddress: zod.string(),
     deliverySlot: zod.string().nullish(),
     walletBalance: zod.number().optional(),
+    pausedUntil: zod.coerce.date().nullish(),
+    pauseReason: zod.string().nullish(),
     skippedDays: zod.array(zod.coerce.date()).optional(),
     createdAt: zod.coerce.date(),
   }),
@@ -607,9 +616,38 @@ export const UpdateCustomerSubscriptionResponse = zod.object({
     deliveryAddress: zod.string(),
     deliverySlot: zod.string().nullish(),
     walletBalance: zod.number().optional(),
+    pausedUntil: zod.coerce.date().nullish(),
+    pauseReason: zod.string().nullish(),
     skippedDays: zod.array(zod.coerce.date()).optional(),
     createdAt: zod.coerce.date(),
   }),
+});
+
+/**
+ * @summary Pause an active subscription
+ */
+export const PauseSubscriptionParams = zod.object({
+  subscriptionId: zod.coerce.string(),
+});
+
+export const PauseSubscriptionBody = zod.object({
+  pausedUntil: zod.coerce.date().optional(),
+  reason: zod.string().optional(),
+});
+
+export const PauseSubscriptionResponse = zod.object({
+  success: zod.boolean(),
+});
+
+/**
+ * @summary Resume a paused subscription
+ */
+export const ResumeSubscriptionParams = zod.object({
+  subscriptionId: zod.coerce.string(),
+});
+
+export const ResumeSubscriptionResponse = zod.object({
+  success: zod.boolean(),
 });
 
 /**

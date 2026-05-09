@@ -11,7 +11,6 @@ import { Footer } from "@/components/layout/footer";
 import { VendorSidebar } from "@/components/layout/vendor-sidebar";
 import { AdminSidebar } from "@/components/layout/admin-sidebar";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import RoleSelect from "@/pages/role-select";
 
 // ─── Lazy-loaded pages ────────────────────────────────────────────────────────
@@ -277,7 +276,6 @@ function App() {
               <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
                 <Router />
               </WouterRouter>
-              <PwaInstallPrompt />
               <Toaster />
             </TooltipProvider>
           </QueryClientProvider>

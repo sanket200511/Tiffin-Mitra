@@ -427,11 +427,11 @@ router.patch("/subscriptions/:subscriptionId", async (req, res) => {
     }
 
     if (status === "cancelled") {
-      const refundableStatuses = ["pending", "accepted"] as const;
+      const refundableStatuses = ["pending", "accepted", "preparing", "packed", "paid", "confirmed"] as const;
       const pendingOrders = await db.select().from(ordersTable)
         .where(and(
           eq(ordersTable.subscriptionId, existing.id),
-          inArray(ordersTable.status, [...refundableStatuses])
+          inArray(ordersTable.status, [...refundableStatuses] as any)
         ));
 
       if (pendingOrders.length > 0) {
@@ -443,7 +443,7 @@ router.patch("/subscriptions/:subscriptionId", async (req, res) => {
           .set({ status: "cancelled", updatedAt: new Date() })
           .where(and(
             eq(ordersTable.subscriptionId, existing.id),
-            inArray(ordersTable.status, [...refundableStatuses])
+            inArray(ordersTable.status, [...refundableStatuses] as any)
           ));
 
         const currentBalance = parseFloat(customer.walletBalance as string ?? "0");

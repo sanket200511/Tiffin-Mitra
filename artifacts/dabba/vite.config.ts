@@ -1,8 +1,9 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
+
+import { VitePWA } from "vite-plugin-pwa";
 
 const rawPort = process.env.PORT ?? "3000";
 const port = Number(rawPort);
@@ -20,23 +21,35 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "opengraph.jpg"],
+      includeAssets: ["favicon.svg", "robots.txt", "apple-touch-icon.png"],
       manifest: {
-        name: "Dabba",
+        name: "Dabba - Ghar Ka Khana",
         short_name: "Dabba",
-        description: "The warmth of ghar ka khana, delivered.",
+        description: "The warmth of ghar ka khana, delivered directly to you.",
         theme_color: "#FF3C00",
         background_color: "#ffffff",
         display: "standalone",
         icons: [
           {
-            src: "/favicon.svg",
-            sizes: "192x192 512x512",
+            src: "favicon.svg",
+            sizes: "any",
             type: "image/svg+xml",
-            purpose: "any maskable"
-          }
-        ]
-      }
+            purpose: "any",
+          },
+          {
+            src: "favicon.svg",
+            sizes: "192x192",
+            type: "image/svg+xml",
+            purpose: "maskable",
+          },
+          {
+            src: "favicon.svg",
+            sizes: "512x512",
+            type: "image/svg+xml",
+            purpose: "any",
+          },
+        ],
+      },
     }),
   ],
   resolve: {

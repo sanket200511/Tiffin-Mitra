@@ -113,6 +113,7 @@ export interface Vendor {
   deliveryZones?: string[];
   featured?: boolean;
   commissionRate?: number;
+  cutoffTime?: string;
   createdAt: string;
 }
 
@@ -173,6 +174,7 @@ export interface UpdateVendorBody {
   subscriptionTier?: UpdateVendorBodySubscriptionTier;
   deliveryZones?: string[];
   fssaiLicense?: string;
+  cutoffTime?: string;
 }
 
 export interface VendorStats {
@@ -402,6 +404,10 @@ export interface CustomerSubscription {
   /** @nullable */
   deliverySlot?: string | null;
   walletBalance?: number;
+  /** @nullable */
+  pausedUntil?: string | null;
+  /** @nullable */
+  pauseReason?: string | null;
   skippedDays?: string[];
   createdAt: string;
 }
@@ -785,6 +791,11 @@ export const ListMenuItemsDietType = {
   jain: "jain",
   diabetic_friendly: "diabetic_friendly",
 } as const;
+
+export type PauseSubscriptionBody = {
+  pausedUntil?: string;
+  reason?: string;
+};
 
 export type ListOrdersParams = {
   status?: ListOrdersStatus;

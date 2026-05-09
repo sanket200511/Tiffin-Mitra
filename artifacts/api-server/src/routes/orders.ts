@@ -34,7 +34,7 @@ router.get("/orders", async (req, res) => {
     const isAdmin = req.user.role === "super_admin";
 
     const conditions: ReturnType<typeof eq>[] = [];
-    if (status) conditions.push(eq(ordersTable.status, status as "pending" | "accepted" | "preparing" | "packed" | "picked_up" | "delivered" | "cancelled"));
+    if (status) conditions.push(eq(ordersTable.status, status as "pending" | "paid" | "confirmed" | "accepted" | "preparing" | "packed" | "picked_up" | "out_for_delivery" | "delivered" | "cancelled"));
     if (date) conditions.push(eq(ordersTable.scheduledDate, date));
 
     if (vendorId) {
@@ -246,7 +246,7 @@ router.patch("/orders/:orderId", async (req, res) => {
 
     const [updated] = await db.update(ordersTable)
       .set({
-        status: newStatus as "pending" | "accepted" | "preparing" | "packed" | "picked_up" | "delivered" | "cancelled" | undefined,
+        status: newStatus as "pending" | "paid" | "confirmed" | "accepted" | "preparing" | "packed" | "picked_up" | "out_for_delivery" | "delivered" | "cancelled" | undefined,
         updatedAt: new Date()
       })
       .where(eq(ordersTable.id, req.params.orderId))

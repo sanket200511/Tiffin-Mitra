@@ -3,7 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { dabbaSchema } from "./schema";
 
-export const orderStatusEnum = dabbaSchema.enum("app_order_status", ["pending", "paid", "confirmed", "preparing", "out_for_delivery", "delivered", "cancelled"]);
+export const orderStatusEnum = dabbaSchema.enum("app_order_status", ["pending", "paid", "confirmed", "accepted", "preparing", "packed", "picked_up", "out_for_delivery", "delivered", "cancelled"]);
 
 export const ordersTable = dabbaSchema.table("orders", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

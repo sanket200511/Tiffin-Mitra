@@ -28,6 +28,14 @@ services:
         value: https://dabba-app.onrender.com
       - key: RESEND_API_KEY
         sync: false # Set this in Render Dashboard
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false # Set this in Render Dashboard
+      - key: CLOUDINARY_API_KEY
+        sync: false # Set this in Render Dashboard
+      - key: CLOUDINARY_API_SECRET
+        sync: false # Set this in Render Dashboard
+      - key: REDIS_URL
+        sync: false # Set this in Render Dashboard
 
   # ----------------------------------------------------------------------------
   # Frontend: Dabba App

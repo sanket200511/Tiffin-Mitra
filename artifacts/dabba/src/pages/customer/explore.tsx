@@ -75,7 +75,7 @@ export default function Explore() {
   const clearAll = () => { setSearch(""); setCity("all"); setCuisine("all"); setFeaturedOnly(false); setTopRatedOnly(false); };
 
   return (
-    <div className="container py-8 min-h-screen">
+    <div className="container mx-auto py-8 px-4 md:px-6 min-h-screen">
       <Helmet>
         <title>Explore Tiffins — Dabba</title>
         <meta name="description" content="Discover FSSAI-registered home kitchens near you. Browse cuisines, filter by city, and subscribe to fresh ghar ka khana delivered daily." />

@@ -83,7 +83,7 @@ function CustomerDashboard() {
   const firstName = displayName.split(" ")[0];
 
   return (
-    <div className="container py-8 md:py-12 max-w-5xl space-y-8 min-h-[70vh]">
+    <div className="container mx-auto py-8 md:py-12 px-4 md:px-6 max-w-5xl space-y-8 min-h-[70vh]">
 
       {/* Greeting */}
       <div>

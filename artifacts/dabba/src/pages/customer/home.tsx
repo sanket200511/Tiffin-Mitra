@@ -399,9 +399,6 @@ function MarketingHome() {
             {/* Left: Text content */}
             <div className="space-y-8">
               <div className="space-y-4">
-                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 px-3 py-1 text-sm font-medium">
-                  #1 Home Food Platform in India
-                </Badge>
                 <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold text-foreground leading-[1.1] tracking-tight">
                   The warmth of{" "}<span className="text-primary italic">ghar ka khana</span>, delivered.
                 </h1>
@@ -440,7 +437,35 @@ function MarketingHome() {
             </div>
 
             {/* Right: Visual card (desktop only) */}
-            <div className="hidden lg:flex flex-col gap-4 items-center justify-center">
+            <div className="hidden lg:flex flex-col gap-4 items-center justify-center relative">
+              <div className="relative w-full aspect-square max-w-md animate-in fade-in zoom-in-95 duration-1000 delay-200">
+                <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl -z-10 animate-pulse" />
+                <img 
+                  src="https://images.unsplash.com/photo-1585937421612-70a008356fbe?q=80&w=1000&auto=format&fit=crop" 
+                  alt="Delicious Indian Thali" 
+                  className="w-full h-full object-cover rounded-full shadow-2xl border-8 border-background/50 backdrop-blur-sm"
+                />
+                
+                {/* Floating tags */}
+                <div className="absolute -left-6 top-1/4 bg-card rounded-2xl p-3 shadow-xl border flex items-center gap-3 animate-in slide-in-from-left-8 duration-1000 delay-500">
+                  <div className="bg-green-100 p-2 rounded-xl text-green-600"><CheckCircle2 className="w-5 h-5" /></div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">Hygiene Rating</p>
+                    <p className="font-bold text-sm">Excellent</p>
+                  </div>
+                </div>
+
+                <div className="absolute -right-6 bottom-1/4 bg-card rounded-2xl p-3 shadow-xl border flex items-center gap-3 animate-in slide-in-from-right-8 duration-1000 delay-700">
+                  <div className="bg-orange-100 p-2 rounded-xl text-primary"><Star className="w-5 h-5 fill-primary" /></div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">Taste Score</p>
+                    <p className="font-bold text-sm">4.9/5.0</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 
+              Future Feature: Vendor Preview Card
               <div className="w-full max-w-sm bg-card rounded-2xl border shadow-xl p-6 space-y-5">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
@@ -470,16 +495,7 @@ function MarketingHome() {
                 </div>
                 <Button className="w-full" size="sm">Subscribe Now</Button>
               </div>
-              <div className="flex gap-4 w-full max-w-sm">
-                <div className="flex-1 bg-card rounded-xl border shadow-sm p-4 text-center">
-                  <p className="text-2xl font-bold font-serif text-primary">500+</p>
-                  <p className="text-xs text-muted-foreground mt-1">Home Kitchens</p>
-                </div>
-                <div className="flex-1 bg-card rounded-xl border shadow-sm p-4 text-center">
-                  <p className="text-2xl font-bold font-serif text-primary">10k+</p>
-                  <p className="text-xs text-muted-foreground mt-1">Happy Customers</p>
-                </div>
-              </div>
+              */}
             </div>
 
           </div>

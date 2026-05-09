@@ -43,7 +43,6 @@ services:
   - type: web
     name: dabba-app
     env: static
-    plan: free
     rootDir: .
     buildCommand: pnpm install && pnpm --filter @workspace/dabba build
     staticPublishPath: artifacts/dabba/dist

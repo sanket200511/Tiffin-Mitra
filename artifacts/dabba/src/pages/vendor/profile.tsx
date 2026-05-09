@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useGetMyVendorProfile, useUpdateVendor } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { ImageUpload } from "@/components/ImageUpload";
 
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
@@ -29,7 +30,7 @@ const formSchema = z.object({
 
 export default function VendorProfile() {
   const { toast } = useToast();
-  
+
   const { data, isLoading } = useGetMyVendorProfile();
   const vendor = data?.vendor;
 
@@ -86,12 +87,12 @@ export default function VendorProfile() {
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     if (!vendor?.id) return;
-    
-    const zones = values.deliveryZones 
+
+    const zones = values.deliveryZones
       ? values.deliveryZones.split(",").map(z => z.trim()).filter(z => z.length > 0)
       : [];
 
-    updateProfile.mutate({ 
+    updateProfile.mutate({
       vendorId: vendor.id,
       data: {
         ...values,
@@ -99,7 +100,7 @@ export default function VendorProfile() {
         logoUrl: values.logoUrl || undefined,
         coverImageUrl: values.coverImageUrl || undefined,
         deliveryZones: zones
-      } 
+      }
     });
   };
 
@@ -134,7 +135,7 @@ export default function VendorProfile() {
               <CardDescription>This is your public identity on the platform.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              
+
               <FormField
                 control={form.control}
                 name="name"
@@ -159,10 +160,10 @@ export default function VendorProfile() {
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Textarea 
-                        placeholder="Tell customers about your cooking style, specialities..." 
-                        className="resize-none h-24" 
-                        {...field} 
+                      <Textarea
+                        placeholder="Tell customers about your cooking style, specialities..."
+                        className="resize-none h-24"
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -211,9 +212,9 @@ export default function VendorProfile() {
                     <FormControl>
                       <div className="relative">
                         <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                        <Textarea 
-                          className="pl-9 min-h-[80px] resize-none" 
-                          {...field} 
+                        <Textarea
+                          className="pl-9 min-h-[80px] resize-none"
+                          {...field}
                         />
                       </div>
                     </FormControl>
@@ -252,7 +253,7 @@ export default function VendorProfile() {
                     <FormLabel>Delivery Zones</FormLabel>
                     <FormDescription>Enter localities you deliver to, separated by commas.</FormDescription>
                     <FormControl>
-                      <Input placeholder="e.g. Andheri West, Juhu, Vile Parle" {...field} />
+                      <Input placeholder="e.g. Nandanwan, Dharampeth, Manish Nagar" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -267,8 +268,8 @@ export default function VendorProfile() {
                     <FormLabel>Pause Cut-off Time</FormLabel>
                     <FormDescription>The latest time (daily) that a customer can pause their subscription for the next day.</FormDescription>
                     <FormControl>
-                      <Select 
-                        onValueChange={(val) => field.onChange(parseInt(val))} 
+                      <Select
+                        onValueChange={(val) => field.onChange(parseInt(val))}
                         value={field.value?.toString()}
                       >
                         <SelectTrigger>
@@ -276,7 +277,7 @@ export default function VendorProfile() {
                         </SelectTrigger>
                         <SelectContent>
                           {Array.from({ length: 24 }).map((_, i) => {
-                            const label = i === 0 ? "12 AM (Midnight)" : i < 12 ? `${i} AM` : i === 12 ? "12 PM (Noon)" : `${i-12} PM`;
+                            const label = i === 0 ? "12 AM (Midnight)" : i < 12 ? `${i} AM` : i === 12 ? "12 PM (Noon)" : `${i - 12} PM`;
                             return (
                               <SelectItem key={i} value={i.toString()}>
                                 {label} ({i.toString().padStart(2, '0')}:00)
@@ -298,38 +299,47 @@ export default function VendorProfile() {
               <CardTitle>Branding</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <FormField
-                control={form.control}
-                name="logoUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Logo Image URL</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input className="pl-9" placeholder="https://..." {...field} />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="coverImageUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cover Image URL</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input className="pl-9" placeholder="https://..." {...field} />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid gap-6">
+                <FormField
+                  control={form.control}
+                  name="logoUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <ImageUpload
+                          label="Kitchen Logo"
+                          description="A small square image for your kitchen logo."
+                          value={field.value}
+                          onChange={field.onChange}
+                          onRemove={() => field.onChange("")}
+                          aspectRatio="square"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="coverImageUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <ImageUpload
+                          label="Cover Image"
+                          description="A wide photo for your kitchen profile cover."
+                          value={field.value}
+                          onChange={field.onChange}
+                          onRemove={() => field.onChange("")}
+                          aspectRatio="video"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </CardContent>
           </Card>
 

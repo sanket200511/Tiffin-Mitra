@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { ChefHat, MapPin, Store, FileCheck, Image as ImageIcon, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ImageUpload } from "@/components/ImageUpload";
 
 const step1Schema = z.object({
   name: z.string().min(2, "Kitchen name must be at least 2 characters"),
@@ -92,8 +93,20 @@ export default function VendorOnboarding() {
         city: values.city,
         address: values.address,
         fssaiLicense: values.fssaiLicense || undefined,
+        deliveryZones: zones,
+        logoUrl: values.logoUrl || undefined,
+        coverImageUrl: values.coverImageUrl || undefined,
       }
     });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && (e.target as HTMLElement).tagName !== "TEXTAREA") {
+      e.preventDefault();
+      if (step < STEPS.length - 1) {
+        handleNext();
+      }
+    }
   };
 
   if (done) {
@@ -133,8 +146,8 @@ export default function VendorOnboarding() {
               <div key={i} className="flex items-center gap-2 flex-1">
                 <div className={`flex items-center gap-2 ${i < STEPS.length - 1 ? "flex-1" : ""}`}>
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 border-2 transition-colors ${completed ? "bg-primary border-primary text-primary-foreground" :
-                      active ? "border-primary text-primary bg-primary/10" :
-                        "border-muted-foreground/30 text-muted-foreground/50"
+                    active ? "border-primary text-primary bg-primary/10" :
+                      "border-muted-foreground/30 text-muted-foreground/50"
                     }`}>
                     {completed ? <CheckCircle2 className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
                   </div>
@@ -154,7 +167,7 @@ export default function VendorOnboarding() {
         <Progress value={((step) / STEPS.length) * 100} className="mb-6 h-1" />
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={form.handleSubmit(onSubmit)} onKeyDown={handleKeyDown}>
             <Card className="shadow-lg border-0 bg-card">
               <CardHeader>
                 <CardTitle className="text-xl font-serif">{STEPS[step].title}</CardTitle>
@@ -233,7 +246,7 @@ export default function VendorOnboarding() {
                         <FormControl>
                           <div className="relative">
                             <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                            <Textarea className="pl-9 resize-none h-20" placeholder="Plot No. 31, Sheshnagar, Kharbi Road, Nagpur - 440024" {...field} />
+                            <Textarea className="pl-9 resize-none h-20" placeholder="Add Your Kitchen Address Here" {...field} />
                           </div>
                         </FormControl>
                         <FormMessage />
@@ -244,7 +257,7 @@ export default function VendorOnboarding() {
                         <FormLabel>Delivery Areas <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
                         <FormDescription>Localities you deliver to, separated by commas.</FormDescription>
                         <FormControl>
-                          <Input placeholder="Andheri West, Juhu, Vile Parle" {...field} />
+                          <Input placeholder="Manish Nagar, Dharampeth, Nandanwan" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -256,44 +269,41 @@ export default function VendorOnboarding() {
                 {step === 2 && (
                   <>
                     <div className="p-4 bg-muted/40 rounded-lg text-sm text-muted-foreground mb-2">
-                      Paste direct image URLs (from Imgur, Cloudinary, etc.). You can update these later from your Profile page.
+                      Upload your kitchen's logo and a cover photo to make your profile stand out.
                     </div>
-                    <FormField control={form.control} name="logoUrl" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Logo Image URL <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input className="pl-9" placeholder="https://i.imgur.com/your-logo.png" {...field} />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <FormField control={form.control} name="coverImageUrl" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cover Image URL <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input className="pl-9" placeholder="https://i.imgur.com/your-cover.jpg" {...field} />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    {(form.watch("coverImageUrl") || form.watch("logoUrl")) && (
-                      <div className="relative rounded-xl overflow-hidden h-40 bg-muted border">
-                        {form.watch("coverImageUrl") && (
-                          <img src={form.watch("coverImageUrl")} alt="Cover preview" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.display = "none")} />
-                        )}
-                        {form.watch("logoUrl") && (
-                          <div className="absolute bottom-3 left-4 w-14 h-14 rounded-full border-2 border-background bg-card overflow-hidden shadow">
-                            <img src={form.watch("logoUrl")} alt="Logo preview" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.display = "none")} />
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    <div className="grid gap-6">
+                      <FormField control={form.control} name="logoUrl" render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <ImageUpload
+                              label="Kitchen Logo"
+                              description="A small square image (e.g. your logo)"
+                              value={field.value}
+                              onChange={field.onChange}
+                              onRemove={() => field.onChange("")}
+                              aspectRatio="square"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                      
+                      <FormField control={form.control} name="coverImageUrl" render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <ImageUpload
+                              label="Cover Image"
+                              description="A wide photo of your kitchen or signature dish"
+                              value={field.value}
+                              onChange={field.onChange}
+                              onRemove={() => field.onChange("")}
+                              aspectRatio="video"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                    </div>
                   </>
                 )}
               </CardContent>

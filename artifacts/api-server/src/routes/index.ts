@@ -16,6 +16,7 @@ import holidaysRouter from "./holidays";
 import settingsRouter from "./settings";
 import sitemapRouter from "./sitemap";
 import mediaRouter from "./media";
+import disputesRouter from "./disputes";
 
 const router: IRouter = Router();
 
@@ -36,5 +37,6 @@ router.use(notificationsRouter);
 router.use(holidaysRouter);
 router.use(settingsRouter);
 router.use(sitemapRouter);
+router.use(disputesRouter);
 
 export default router;

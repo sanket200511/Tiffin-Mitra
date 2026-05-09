@@ -16,7 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Camera, Upload } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -238,6 +239,14 @@ export default function Orders() {
   const [comment, setComment] = useState("");
   const [reviewed, setReviewed] = useState<Set<string>>(new Set());
 
+  // Dispute state
+  const [reportingOrder, setReportingOrder] = useState<Order | null>(null);
+  const [issueType, setIssueType] = useState<string>("");
+  const [issueDesc, setIssueDesc] = useState("");
+  const [issuePhoto, setIssuePhoto] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Cancel order state + mutation
   const [cancelingOrder, setCancelingOrder] = useState<Order | null>(null);
   const openCancelDialog = (order: Order) => setCancelingOrder(order);
@@ -289,10 +298,56 @@ export default function Orders() {
     });
   };
 
-  const openReviewDialog = (order: Order) => {
-    setReviewingOrder(order);
-    setRating(0);
     setComment("");
+  };
+
+  const handleDisputeSubmit = async () => {
+    if (!reportingOrder || !issueType || !issueDesc) return;
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/disputes", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: reportingOrder.id,
+          issueType,
+          description: issueDesc,
+          photoUrl: issuePhoto,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to submit issue");
+      toast({ title: "Issue reported", description: "Our team will review your report and get back to you soon." });
+      setReportingOrder(null);
+      setIssueType("");
+      setIssueDesc("");
+      setIssuePhoto(null);
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Error", description: err.message });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleIssuePhotoUpload = async (file: File) => {
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("image", file);
+    formData.append("folder", "disputes");
+    try {
+      const res = await fetch("/api/media/upload", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      const { url } = await res.json();
+      setIssuePhoto(url);
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Upload Error", description: err.message });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -450,16 +505,26 @@ export default function Orders() {
                                 <Star className="w-3 h-3 mr-1" /> Rate
                               </Button>
                             )}
-                            {order.status === "pending" && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
-                                onClick={() => openCancelDialog(order)}
-                              >
-                                <XCircle className="w-3 h-3 mr-1" /> Cancel
-                              </Button>
-                            )}
+                             {order.status === "pending" && (
+                               <Button
+                                 size="sm"
+                                 variant="ghost"
+                                 className="h-7 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                                 onClick={() => openCancelDialog(order)}
+                               >
+                                 <XCircle className="w-3 h-3 mr-1" /> Cancel
+                               </Button>
+                             )}
+                             {order.status === "delivered" && (
+                               <Button
+                                 size="sm"
+                                 variant="ghost"
+                                 className="h-7 text-xs text-muted-foreground hover:bg-muted"
+                                 onClick={() => setReportingOrder(order)}
+                               >
+                                 <AlertCircle className="w-3 h-3 mr-1" /> Report Issue
+                               </Button>
+                             )}
                             {order.status === "delivered" && reviewed.has(order.id) && (
                               <span className="text-xs text-muted-foreground flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3 text-green-500" /> Reviewed
@@ -544,6 +609,105 @@ export default function Orders() {
             <Button variant="outline" onClick={() => setReviewingOrder(null)}>Cancel</Button>
             <Button onClick={handleReviewSubmit} disabled={rating === 0 || createReview.isPending}>
               {createReview.isPending ? "Submitting..." : "Submit Review"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      </Dialog>
+
+      {/* Report Issue Dialog */}
+      <Dialog open={!!reportingOrder} onOpenChange={(open) => !open && setReportingOrder(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-destructive" />
+              Report an Issue
+            </DialogTitle>
+            <DialogDescription>
+              Tell us what went wrong with your order from <strong>{reportingOrder?.vendorName}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Issue Type</label>
+              <Select value={issueType} onValueChange={setIssueType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="What's the problem?" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="damaged">Item Damaged</SelectItem>
+                  <SelectItem value="missing_item">Missing Item(s)</SelectItem>
+                  <SelectItem value="poor_quality">Poor Food Quality</SelectItem>
+                  <SelectItem value="wrong_item">Wrong Item Delivered</SelectItem>
+                  <SelectItem value="not_delivered">Marked Delivered but Not Received</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description</label>
+              <Textarea 
+                placeholder="Please provide details about the issue..."
+                className="h-24 resize-none"
+                value={issueDesc}
+                onChange={e => setIssueDesc(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Photo Proof <span className="text-muted-foreground font-normal">(highly recommended)</span></label>
+              <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg bg-muted/30">
+                {isUploading ? (
+                  <div className="flex flex-col items-center gap-2 py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                    <p className="text-xs text-muted-foreground">Uploading...</p>
+                  </div>
+                ) : issuePhoto ? (
+                  <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
+                    <img src={issuePhoto} alt="Dispute Proof" className="w-full h-full object-contain" />
+                    <Button 
+                      variant="destructive" 
+                      size="icon" 
+                      className="absolute top-2 right-2 h-7 w-7"
+                      onClick={() => setIssuePhoto(null)}
+                    >
+                      <XCircle className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <Button variant="outline" size="sm" className="relative cursor-pointer" asChild>
+                      <span>
+                        <Camera className="w-4 h-4 mr-2" />
+                        Take Photo / Upload
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          capture="environment"
+                          className="absolute inset-0 opacity-0 cursor-pointer" 
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleIssuePhotoUpload(file);
+                          }}
+                        />
+                      </span>
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReportingOrder(null)} disabled={isSubmitting}>Cancel</Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDisputeSubmit} 
+              disabled={!issueType || !issueDesc || isSubmitting || isUploading}
+            >
+              {isSubmitting ? "Submitting..." : "Submit Report"}
             </Button>
           </DialogFooter>
         </DialogContent>

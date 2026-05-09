@@ -10,3 +10,4 @@ export * from "./payouts";
 export * from "./notifications";
 export * from "./holidays";
 export * from "./settings";
+export * from "./disputes";

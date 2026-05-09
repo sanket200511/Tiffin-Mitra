@@ -1,7 +1,7 @@
 import { pgTable, text, timestamp, numeric, pgEnum } from "drizzle-orm/pg-core";
 import { dabbaSchema } from "./schema";
 
-export const payoutRequestStatusEnum = dabbaSchema.enum("dabba_payout_request_status", [
+export const payoutRequestStatusEnum = dabbaSchema.enum("app_payout_request_status", [
   "pending", "processing", "paid", "rejected",
 ]);
 

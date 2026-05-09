@@ -3,8 +3,8 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { dabbaSchema } from "./schema";
 
-export const vendorStatusEnum = dabbaSchema.enum("dabba_vendor_status", ["pending", "approved", "suspended", "rejected"]);
-export const vendorTierEnum = dabbaSchema.enum("dabba_vendor_tier", ["basic", "pro", "enterprise"]);
+export const vendorStatusEnum = dabbaSchema.enum("app_vendor_status", ["pending", "approved", "suspended", "rejected"]);
+export const vendorTierEnum = dabbaSchema.enum("app_vendor_tier", ["basic", "pro", "enterprise"]);
 
 export const vendorsTable = dabbaSchema.table("vendors", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

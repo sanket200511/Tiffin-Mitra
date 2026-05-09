@@ -3,8 +3,8 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { dabbaSchema } from "./schema";
 
-export const p2pStatusEnum = dabbaSchema.enum("dabba_p2p_status", ["open", "accepted", "in_transit", "delivered", "cancelled"]);
-export const p2pCategoryEnum = dabbaSchema.enum("dabba_p2p_category", ["books", "documents", "food", "medicine", "gift", "other"]);
+export const p2pStatusEnum = dabbaSchema.enum("app_p2p_status", ["open", "accepted", "in_transit", "delivered", "cancelled"]);
+export const p2pCategoryEnum = dabbaSchema.enum("app_p2p_category", ["books", "documents", "food", "medicine", "gift", "other"]);
 
 export const peerDeliveriesTable = dabbaSchema.table("peer_deliveries", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

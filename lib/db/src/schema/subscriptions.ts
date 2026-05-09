@@ -3,8 +3,8 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { dabbaSchema } from "./schema";
 
-export const planTypeEnum = dabbaSchema.enum("dabba_plan_type", ["daily", "weekly", "monthly", "weekday", "trial_3day", "trial_7day", "custom"]);
-export const subscriptionStatusEnum = dabbaSchema.enum("dabba_subscription_status", ["active", "paused", "cancelled", "expired"]);
+export const planTypeEnum = dabbaSchema.enum("app_plan_type", ["daily", "weekly", "monthly", "weekday", "trial_3day", "trial_7day", "custom"]);
+export const subscriptionStatusEnum = dabbaSchema.enum("app_subscription_status", ["active", "paused", "cancelled", "expired"]);
 
 export const subscriptionPlansTable = dabbaSchema.table("subscription_plans", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

@@ -3,9 +3,14 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendVerificationEmail(email: string, code: string) {
+  // NOTE: On Resend free tier without a verified domain, onboarding@resend.dev
+  // can only deliver to the email address that OWNS the Resend account.
+  // To send to ANY email, verify a domain at resend.com/domains.
+  // Set RESEND_FROM_EMAIL env var to your verified "from" address once done.
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
   try {
     const { data, error } = await resend.emails.send({
-      from: "Dabba <onboarding@resend.dev>", // You can use your own domain later
+      from: `Dabba <${fromEmail}>`,
       to: [email],
       subject: "Verify your Dabba account",
       html: `

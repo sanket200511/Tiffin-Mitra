@@ -17,29 +17,6 @@ import { sendVerificationEmail } from "../lib/email";
 
 const router: IRouter = Router();
 
-// ============================================================================
-// SECRET ADMIN UPGRADE ROUTE (TEMPORARY WORKAROUND)
-// ============================================================================
-router.get("/auth/make-me-admin-12345", async (req: Request, res: Response) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).send("🚨 Error: You must log into the app first before using this secret link!");
-  }
-  
-  await db.update(usersTable).set({ role: "super_admin" }).where(eq(usersTable.id, req.user.id));
-
-  // Also update the active Redis session so the role takes effect immediately
-  const sid = getSessionId(req);
-  if (sid) {
-    const session = await getSession(sid);
-    if (session) {
-      session.user.role = "super_admin";
-      await updateSession(sid, session);
-    }
-  }
-
-  res.send("<h1>👑 SUCCESS! You have been granted SUPER ADMIN powers!</h1><p>Go back to the app and refresh the page.</p>");
-});
-
 router.get("/auth/user", (req: Request, res: Response) => {
   res.json(
     GetCurrentAuthUserResponse.parse({

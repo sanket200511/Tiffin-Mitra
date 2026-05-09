@@ -1,3 +1,6 @@
-import { pgSchema } from "drizzle-orm/pg-core";
+import { pgTable, pgEnum } from "drizzle-orm/pg-core";
 
-export const dabbaSchema = pgSchema("dabba");
+export const dabbaSchema = {
+  table: pgTable,
+  enum: pgEnum,
+};

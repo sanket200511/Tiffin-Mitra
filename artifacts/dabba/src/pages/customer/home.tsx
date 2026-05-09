@@ -437,65 +437,48 @@ function MarketingHome() {
             </div>
 
             {/* Right: Visual card (desktop only) */}
-            <div className="hidden lg:flex flex-col gap-4 items-center justify-center relative">
-              <div className="relative w-full aspect-square max-w-md animate-in fade-in zoom-in-95 duration-1000 delay-200">
-                <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl -z-10 animate-pulse" />
-                <img 
-                  src="https://images.unsplash.com/photo-1585937421612-70a008356fbe?q=80&w=1000&auto=format&fit=crop" 
-                  alt="Delicious Indian Thali" 
-                  className="w-full h-full object-cover rounded-full shadow-2xl border-8 border-background/50 backdrop-blur-sm"
-                />
-                
-                {/* Floating tags */}
-                <div className="absolute -left-6 top-1/4 bg-card rounded-2xl p-3 shadow-xl border flex items-center gap-3 animate-in slide-in-from-left-8 duration-1000 delay-500">
-                  <div className="bg-green-100 p-2 rounded-xl text-green-600"><CheckCircle2 className="w-5 h-5" /></div>
-                  <div>
-                    <p className="text-xs text-muted-foreground font-medium">Hygiene Rating</p>
-                    <p className="font-bold text-sm">Excellent</p>
-                  </div>
-                </div>
-
-                <div className="absolute -right-6 bottom-1/4 bg-card rounded-2xl p-3 shadow-xl border flex items-center gap-3 animate-in slide-in-from-right-8 duration-1000 delay-700">
-                  <div className="bg-orange-100 p-2 rounded-xl text-primary"><Star className="w-5 h-5 fill-primary" /></div>
-                  <div>
-                    <p className="text-xs text-muted-foreground font-medium">Taste Score</p>
-                    <p className="font-bold text-sm">4.9/5.0</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* 
-              Future Feature: Vendor Preview Card
-              <div className="w-full max-w-sm bg-card rounded-2xl border shadow-xl p-6 space-y-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                    <ChefHat className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm">Priya's Home Kitchen</p>
-                    <p className="text-xs text-muted-foreground">North Indian · Pune</p>
-                  </div>
-                  <div className="ml-auto flex items-center gap-1 text-xs font-medium bg-yellow-50 text-yellow-700 px-2 py-1 rounded-full border border-yellow-200">
-                    <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                    4.9
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  {[
-                    { label: "Lunch", price: "₹120", tag: "Daily" },
-                    { label: "Dinner", price: "₹130", tag: "Daily" },
-                    { label: "Both", price: "₹220", tag: "Save 15%" },
-                  ].map(item => (
-                    <div key={item.label} className="bg-muted/50 rounded-xl p-3">
-                      <p className="text-xs text-muted-foreground">{item.label}</p>
-                      <p className="font-bold text-base">{item.price}</p>
-                      <p className="text-[10px] text-primary font-medium">{item.tag}</p>
+            <div className="hidden lg:flex flex-col gap-6 items-end justify-center w-full">
+              <div className="w-[420px] max-w-full space-y-5">
+                <div className="w-full bg-card rounded-2xl border shadow-xl p-6 space-y-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                      <ChefHat className="w-5 h-5 text-primary" />
                     </div>
-                  ))}
+                    <div>
+                      <p className="font-semibold text-sm">Priya's Home Kitchen</p>
+                      <p className="text-xs text-muted-foreground">North Indian · Pune</p>
+                    </div>
+                    <div className="ml-auto flex items-center gap-1 text-xs font-medium bg-yellow-50 text-yellow-700 px-2 py-1 rounded-full border border-yellow-200">
+                      <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                      4.9
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    {[
+                      { label: "Lunch", price: "₹120", tag: "Daily" },
+                      { label: "Dinner", price: "₹130", tag: "Daily" },
+                      { label: "Both", price: "₹220", tag: "Save 15%" },
+                    ].map(item => (
+                      <div key={item.label} className="bg-muted/50 rounded-xl p-3">
+                        <p className="text-xs text-muted-foreground">{item.label}</p>
+                        <p className="font-bold text-base">{item.price}</p>
+                        <p className="text-[10px] text-primary font-medium">{item.tag}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <Button className="w-full" size="sm">Subscribe Now</Button>
                 </div>
-                <Button className="w-full" size="sm">Subscribe Now</Button>
+                <div className="flex gap-4 w-full">
+                  <div className="flex-1 bg-card rounded-xl border shadow-sm p-4 text-center">
+                    <p className="text-2xl font-bold font-serif text-primary">500+</p>
+                    <p className="text-xs text-muted-foreground mt-1">Home Kitchens</p>
+                  </div>
+                  <div className="flex-1 bg-card rounded-xl border shadow-sm p-4 text-center">
+                    <p className="text-2xl font-bold font-serif text-primary">10k+</p>
+                    <p className="text-xs text-muted-foreground mt-1">Happy Customers</p>
+                  </div>
+                </div>
               </div>
-              */}
             </div>
 
           </div>

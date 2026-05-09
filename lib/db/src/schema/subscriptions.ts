@@ -34,6 +34,7 @@ export const customerSubscriptionsTable = dabbaSchema.table("customer_subscripti
   deliveryAddress: text("delivery_address").notNull(),
   deliverySlot: text("delivery_slot"),
   walletBalance: numeric("wallet_balance", { precision: 10, scale: 2 }).notNull().default("0"),
+  pausedUntil: date("paused_until"),
   skippedDays: text("skipped_days").array().notNull().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

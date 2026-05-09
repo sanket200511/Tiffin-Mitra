@@ -15,6 +15,7 @@ export const ordersTable = dabbaSchema.table("orders", {
   mealType: text("meal_type"),
   totalAmount: numeric("total_amount", { precision: 10, scale: 2 }).notNull(),
   deliveryAddress: text("delivery_address"),
+  deliveryProofUrl: text("delivery_proof_url"),
   specialInstructions: text("special_instructions"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

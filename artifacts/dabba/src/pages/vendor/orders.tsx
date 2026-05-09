@@ -16,6 +16,8 @@ import {
   Shield,
   ArrowLeft,
   Zap,
+  Camera,
+  Upload,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -32,6 +34,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
 const STATUS_CONFIG: Record<string, { color: string; icon: any; label: string }> = {
@@ -97,6 +107,8 @@ export default function VendorOrders() {
   const [dateFilter, setDateFilter] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [search, setSearch] = useState("");
   const [isAcceptingAll, setIsAcceptingAll] = useState(false);
+  const [proofOrder, setProofOrder] = useState<any | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const { data: ordersData, isLoading } = useListOrders(
     {
@@ -158,13 +170,13 @@ export default function VendorOrders() {
   };
 
   // ─── Single order status update ───────────────────────────────────────────
-  const handleStatusChange = async (orderId: string, newStatus: string) => {
+  const handleStatusChange = async (orderId: string, newStatus: string, deliveryProofUrl?: string) => {
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ status: newStatus, deliveryProofUrl }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -172,8 +184,32 @@ export default function VendorOrders() {
       }
       toast({ title: "Order status updated" });
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      setProofOrder(null);
     } catch (err: any) {
       toast({ variant: "destructive", title: "Error", description: err.message });
+    }
+  };
+
+  const onFileUpload = async (file: File) => {
+    if (!proofOrder) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("image", file);
+    formData.append("folder", "delivery_proofs");
+
+    try {
+      const res = await fetch("/api/media/upload", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      const { url } = await res.json();
+      await handleStatusChange(proofOrder.id, "delivered", url);
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Upload Error", description: err.message });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -343,7 +379,13 @@ export default function VendorOrders() {
                             {nextOptions.map(opt => (
                               <DropdownMenuItem
                                 key={opt.value}
-                                onClick={() => handleStatusChange(order.id, opt.value)}
+                                onClick={() => {
+                                  if (opt.value === "delivered") {
+                                    setProofOrder(order);
+                                  } else {
+                                    handleStatusChange(order.id, opt.value);
+                                  }
+                                }}
                                 className={opt.value === "cancelled" ? "text-destructive focus:bg-destructive/10 focus:text-destructive" : ""}
                               >
                                 {opt.label}
@@ -360,6 +402,63 @@ export default function VendorOrders() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Delivery Proof Dialog */}
+      <Dialog open={!!proofOrder} onOpenChange={(open) => !open && setProofOrder(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Camera className="w-5 h-5 text-primary" />
+              Proof of Delivery
+            </DialogTitle>
+            <DialogDescription>
+              Please upload a photo of the tiffin at the delivery location to complete this order.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl bg-muted/30 space-y-4">
+            {uploading ? (
+              <div className="flex flex-col items-center gap-2">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <p className="text-sm text-muted-foreground">Uploading proof...</p>
+              </div>
+            ) : (
+              <>
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                  <Upload className="w-8 h-8" />
+                </div>
+                <div className="text-center">
+                  <Button variant="outline" className="relative cursor-pointer" asChild>
+                    <span>
+                      Take Photo / Select Image
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        capture="environment"
+                        className="absolute inset-0 opacity-0 cursor-pointer" 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) onFileUpload(file);
+                        }}
+                      />
+                    </span>
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-2">Maximum file size: 5MB</p>
+                </div>
+              </>
+            )}
+          </div>
+
+          <DialogFooter className="sm:justify-between">
+            <Button variant="ghost" onClick={() => setProofOrder(null)} disabled={uploading}>
+              Cancel
+            </Button>
+            <Button variant="secondary" onClick={() => proofOrder && handleStatusChange(proofOrder.id, "delivered")} disabled={uploading}>
+              Skip & Mark Delivered
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

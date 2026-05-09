@@ -185,6 +185,7 @@ router.patch("/orders/:orderId", async (req, res) => {
     }
 
     const newStatus = req.body.status as string | undefined;
+    const deliveryProofUrl = req.body.deliveryProofUrl as string | undefined;
 
     if (newStatus) {
       const allowed = VALID_TRANSITIONS[order.status] ?? [];
@@ -247,6 +248,7 @@ router.patch("/orders/:orderId", async (req, res) => {
     const [updated] = await db.update(ordersTable)
       .set({
         status: newStatus as "pending" | "paid" | "confirmed" | "accepted" | "preparing" | "packed" | "picked_up" | "out_for_delivery" | "delivered" | "cancelled" | undefined,
+        deliveryProofUrl: deliveryProofUrl !== undefined ? deliveryProofUrl : order.deliveryProofUrl,
         updatedAt: new Date()
       })
       .where(eq(ordersTable.id, req.params.orderId))

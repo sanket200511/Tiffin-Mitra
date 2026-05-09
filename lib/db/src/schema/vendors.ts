@@ -24,6 +24,7 @@ export const vendorsTable = dabbaSchema.table("vendors", {
   deliveryZones: text("delivery_zones").array().notNull().default([]),
   featured: boolean("featured").notNull().default(false),
   commissionRate: numeric("commission_rate", { precision: 5, scale: 2 }).notNull().default("10.00"),
+  pauseCutoffHour: integer("pause_cutoff_hour").notNull().default(20), // Default 8:00 PM
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

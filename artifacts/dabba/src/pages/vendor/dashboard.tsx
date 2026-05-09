@@ -13,6 +13,13 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import {
+  useGetVendorRevenueTrend,
+} from "@workspace/api-client-react";
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from "recharts";
+import { parseISO } from "date-fns";
 
 const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
   pending:   { color: "bg-yellow-100 text-yellow-800 border-yellow-200", label: "Pending" },
@@ -149,6 +156,15 @@ export default function VendorDashboard() {
   );
   const recentOrders = (recentOrdersData?.orders || []).slice(0, 5);
 
+  const { data: trendData, isLoading: trendLoading } = useGetVendorRevenueTrend(vendorId ?? '', { period: "7d" }, {
+    query: { enabled: !!vendorId, queryKey: ["/api/analytics/vendor/revenue", vendorId, "7d"] }
+  });
+  const trend = trendData?.trend || [];
+  const formattedTrend = trend.map(point => ({
+    ...point,
+    displayDate: format(parseISO(point.date), "MMM d")
+  }));
+
   const handleQuickAccept = async (orderId: string) => {
     setAcceptingId(orderId);
     try {
@@ -257,6 +273,54 @@ export default function VendorDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Quick Insights Chart */}
+      {!isPending && (
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Weekly Performance</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {trendLoading ? (
+              <Skeleton className="h-[200px] w-full" />
+            ) : trend.length === 0 ? (
+              <div className="h-[200px] flex items-center justify-center text-muted-foreground bg-muted/5 rounded-lg border border-dashed text-sm">
+                Complete your first delivery to see revenue trends!
+              </div>
+            ) : (
+              <div className="h-[200px] w-full mt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={formattedTrend}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                    <XAxis 
+                      dataKey="displayDate" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} 
+                      dy={10}
+                    />
+                    <YAxis 
+                      hide
+                    />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }}
+                      formatter={(value: number) => [`₹${value}`, 'Revenue']}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      stroke="hsl(var(--primary))" 
+                      strokeWidth={3}
+                      dot={{ r: 4, fill: 'hsl(var(--primary))' }}
+                      activeDot={{ r: 6, fill: 'hsl(var(--primary))' }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Today's Production */}

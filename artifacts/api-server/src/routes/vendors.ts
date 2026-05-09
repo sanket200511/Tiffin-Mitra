@@ -134,6 +134,7 @@ router.patch("/vendors/:vendorId", async (req, res) => {
       logoUrl, coverImageUrl, fssaiLicense,
       deliveryRadius, minimumOrderAmount,
       featured, commissionRate, subscriptionTier,
+      pauseCutoffHour,
     } = req.body;
 
     const updates: Record<string, unknown> = {};
@@ -147,6 +148,12 @@ router.patch("/vendors/:vendorId", async (req, res) => {
     if (fssaiLicense !== undefined) updates.fssaiLicense = fssaiLicense;
     if (deliveryRadius !== undefined) updates.deliveryRadius = deliveryRadius;
     if (minimumOrderAmount !== undefined) updates.minimumOrderAmount = minimumOrderAmount;
+    if (pauseCutoffHour !== undefined) {
+      const hour = parseInt(String(pauseCutoffHour));
+      if (!isNaN(hour) && hour >= 0 && hour <= 23) {
+        updates.pauseCutoffHour = hour;
+      }
+    }
 
     if (isAdmin) {
       if (featured !== undefined) updates.featured = Boolean(featured);

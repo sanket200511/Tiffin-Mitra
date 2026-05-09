@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, subscriptionPlansTable, customerSubscriptionsTable, vendorsTable, ordersTable, walletTransactionsTable, customersTable, vendorHolidaysTable, usersTable } from "@workspace/db";
-import { eq, and, inArray, desc, lt } from "drizzle-orm";
+import { eq, and, inArray, desc, lt, gte, lte } from "drizzle-orm";
 import { notifyUser } from "../lib/notify";
 
 const router = Router();
@@ -181,6 +181,7 @@ router.get("/subscriptions", async (req, res) => {
       .select({
         sub:      customerSubscriptionsTable,
         vendorName: vendorsTable.name,
+        pauseCutoffHour: vendorsTable.pauseCutoffHour,
         planName:   subscriptionPlansTable.name,
         planType:   subscriptionPlansTable.planType,
       })
@@ -194,6 +195,7 @@ router.get("/subscriptions", async (req, res) => {
       ...r.sub,
       totalAmount: r.sub.walletBalance ?? undefined,
       vendorName: r.vendorName ?? undefined,
+      pauseCutoffHour: r.pauseCutoffHour ?? 20,
       planName:   r.planName   ?? undefined,
       planType:   r.planType   ?? undefined,
     }));
@@ -404,33 +406,101 @@ router.patch("/subscriptions/:subscriptionId", async (req, res) => {
       return;
     }
 
-    const [existing] = await db.select().from(customerSubscriptionsTable)
+    const [existing] = await db.select({ sub: customerSubscriptionsTable, vendor: vendorsTable })
+      .from(customerSubscriptionsTable)
+      .leftJoin(vendorsTable, eq(customerSubscriptionsTable.vendorId, vendorsTable.id))
       .where(and(
         eq(customerSubscriptionsTable.id, req.params.subscriptionId),
         eq(customerSubscriptionsTable.customerId, customer.id)
       ));
-    if (!existing) {
+    if (!existing || !existing.sub) {
       res.status(404).json({ error: "Subscription not found" });
       return;
     }
 
-    const { status } = req.body as { status?: string };
+    const { status, pausedUntil } = req.body as { status?: string; pausedUntil?: string };
+    const sub = existing.sub;
+    const vendor = existing.vendor;
     const validTransitions: Record<string, string[]> = {
       active: ["paused", "cancelled"],
       paused: ["active", "cancelled"],
       cancelled: [],
       expired: [],
     };
-    if (status && !validTransitions[existing.status]?.includes(status)) {
-      res.status(400).json({ error: `Cannot transition subscription from '${existing.status}' to '${status}'.` });
+    if (status && !validTransitions[sub.status]?.includes(status)) {
+      res.status(400).json({ error: `Cannot transition subscription from '${sub.status}' to '${status}'.` });
       return;
+    }
+
+    // ── Handle Vacation Pause Logic ────────────────────────────────────────
+    let finalPausedUntil = pausedUntil;
+    let actualPauseStartDate: string | null = null;
+
+    if (status === "paused") {
+      const now = new Date();
+      const cutoffHour = vendor?.pauseCutoffHour ?? 20; // Default 8 PM
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+
+      // If pausing today after the cutoff, the first "pausable" day is day after tomorrow
+      const isAfterCutoff = now.getHours() >= cutoffHour;
+      
+      if (isAfterCutoff) {
+        const dayAfterTomorrow = new Date(tomorrow);
+        dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+        actualPauseStartDate = dayAfterTomorrow.toISOString().split("T")[0];
+      } else {
+        actualPauseStartDate = tomorrowStr;
+      }
+
+      // If user requested a specific resume date, keep it.
+      // If they didn't, it's an indefinite pause (status="paused").
+    }
+
+    if (status === "paused" && actualPauseStartDate) {
+      const refundableStatuses = ["pending", "accepted"] as const;
+      
+      const ordersToCancelQuery = and(
+        eq(ordersTable.subscriptionId, sub.id),
+        gte(ordersTable.scheduledDate, actualPauseStartDate),
+        inArray(ordersTable.status, [...refundableStatuses] as any)
+      );
+
+      const pendingOrders = await db.select().from(ordersTable).where(ordersToCancelQuery);
+
+      if (pendingOrders.length > 0) {
+        // NOTE: For "pause", we don't necessarily refund the wallet immediately 
+        // if the money stays in the "subscription escrow", but the current system 
+        // seems to credit the wallet for cancelled orders. 
+        // Let's stick to the current pattern: cancel = refund.
+        const refundTotal = pendingOrders.reduce(
+          (sum, o) => sum + parseFloat(o.totalAmount as string), 0
+        );
+
+        await db.update(ordersTable)
+          .set({ status: "cancelled", updatedAt: new Date() })
+          .where(ordersToCancelQuery);
+
+        const currentBalance = parseFloat(customer.walletBalance as string ?? "0");
+        await db.update(customersTable)
+          .set({ walletBalance: (currentBalance + refundTotal).toFixed(2), updatedAt: new Date() })
+          .where(eq(customersTable.id, customer.id));
+
+        await db.insert(walletTransactionsTable).values({
+          customerId: customer.id,
+          type: "credit",
+          amount: refundTotal.toFixed(2),
+          description: `Escrow Refund: subscription paused starting ${actualPauseStartDate} (${pendingOrders.length} meal(s))`,
+        });
+      }
     }
 
     if (status === "cancelled") {
       const refundableStatuses = ["pending", "accepted", "preparing", "packed", "paid", "confirmed"] as const;
       const pendingOrders = await db.select().from(ordersTable)
         .where(and(
-          eq(ordersTable.subscriptionId, existing.id),
+          eq(ordersTable.subscriptionId, sub.id),
           inArray(ordersTable.status, [...refundableStatuses] as any)
         ));
 
@@ -442,7 +512,7 @@ router.patch("/subscriptions/:subscriptionId", async (req, res) => {
         await db.update(ordersTable)
           .set({ status: "cancelled", updatedAt: new Date() })
           .where(and(
-            eq(ordersTable.subscriptionId, existing.id),
+            eq(ordersTable.subscriptionId, sub.id),
             inArray(ordersTable.status, [...refundableStatuses] as any)
           ));
 
@@ -462,6 +532,7 @@ router.patch("/subscriptions/:subscriptionId", async (req, res) => {
 
     const updates: Record<string, unknown> = {};
     if (status !== undefined) updates.status = status;
+    if (finalPausedUntil !== undefined) updates.pausedUntil = finalPausedUntil;
 
     const [subscription] = await db.update(customerSubscriptionsTable)
       .set({ ...updates, updatedAt: new Date() })

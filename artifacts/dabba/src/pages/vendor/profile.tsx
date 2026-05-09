@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Store, MapPin, ChefHat, Image as ImageIcon } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Store, MapPin, ChefHat, Image as ImageIcon, Clock } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(2, "Kitchen name is required"),
@@ -23,6 +24,7 @@ const formSchema = z.object({
   logoUrl: z.string().url().optional().or(z.literal("")),
   coverImageUrl: z.string().url().optional().or(z.literal("")),
   deliveryZones: z.string().optional(),
+  pauseCutoffHour: z.coerce.number().min(0).max(23).default(20),
 });
 
 export default function VendorProfile() {
@@ -61,6 +63,7 @@ export default function VendorProfile() {
       logoUrl: "",
       coverImageUrl: "",
       deliveryZones: "",
+      pauseCutoffHour: 20,
     },
   });
 
@@ -76,6 +79,7 @@ export default function VendorProfile() {
         logoUrl: vendor.logoUrl || "",
         coverImageUrl: vendor.coverImageUrl || "",
         deliveryZones: vendor.deliveryZones ? vendor.deliveryZones.join(", ") : "",
+        pauseCutoffHour: vendor.pauseCutoffHour ?? 20,
       });
     }
   }, [vendor, form]);
@@ -249,6 +253,38 @@ export default function VendorProfile() {
                     <FormDescription>Enter localities you deliver to, separated by commas.</FormDescription>
                     <FormControl>
                       <Input placeholder="e.g. Andheri West, Juhu, Vile Parle" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="pauseCutoffHour"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pause Cut-off Time</FormLabel>
+                    <FormDescription>The latest time (daily) that a customer can pause their subscription for the next day.</FormDescription>
+                    <FormControl>
+                      <Select 
+                        onValueChange={(val) => field.onChange(parseInt(val))} 
+                        value={field.value?.toString()}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select hour" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 24 }).map((_, i) => {
+                            const label = i === 0 ? "12 AM (Midnight)" : i < 12 ? `${i} AM` : i === 12 ? "12 PM (Noon)" : `${i-12} PM`;
+                            return (
+                              <SelectItem key={i} value={i.toString()}>
+                                {label} ({i.toString().padStart(2, '0')}:00)
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

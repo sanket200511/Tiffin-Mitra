@@ -52,6 +52,7 @@ export default function MySubscriptions() {
   const wallet = walletData?.wallet;
 
   const [cancelingId, setCancelingId] = useState<string | null>(null);
+  const [pausingSub, setPausingSub] = useState<SubItem | null>(null);
 
   const updateSub = useUpdateCustomerSubscription({
     mutation: {
@@ -80,7 +81,10 @@ export default function MySubscriptions() {
     }
   });
 
-  const handlePause  = (id: string) => updateSub.mutate({ subscriptionId: id, data: { status: "paused" } });
+  const handlePause  = (id: string) => {
+    updateSub.mutate({ subscriptionId: id, data: { status: "paused" } });
+    setPausingSub(null);
+  };
   const handleResume = (id: string) => updateSub.mutate({ subscriptionId: id, data: { status: "active" } });
   const handleCancel = (id: string) => {
     updateSub.mutate({ subscriptionId: id, data: { status: "cancelled" } });
@@ -371,9 +375,62 @@ export default function MySubscriptions() {
                         </Button>
                       )}
                       {isActive && (
-                        <Button variant="secondary" size="sm" onClick={() => handlePause(sub.id)} disabled={updateSub.isPending}>
-                          <PauseCircle className="w-4 h-4 mr-2" /> Pause
-                        </Button>
+                        <Dialog open={pausingSub?.id === sub.id} onOpenChange={(open) => setPausingSub(open ? sub : null)}>
+                          <DialogTrigger asChild>
+                            <Button variant="secondary" size="sm" disabled={updateSub.isPending}>
+                              <PauseCircle className="w-4 h-4 mr-2" /> Pause
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Pause Subscription?</DialogTitle>
+                              <DialogDescription>
+                                Are you sure you want to pause your <strong>{sub.planName}</strong> subscription?
+                              </DialogDescription>
+                            </DialogHeader>
+                            
+                            <div className="py-4 space-y-4">
+                              <Alert className="bg-amber-50 border-amber-200">
+                                <Clock className="h-4 w-4 text-amber-600" />
+                                <AlertDescription className="text-amber-900 text-sm">
+                                  {(() => {
+                                    const now = new Date();
+                                    const cutoff = (sub as any).pauseCutoffHour ?? 20;
+                                    const isAfterCutoff = now.getHours() >= cutoff;
+                                    const cutoffLabel = cutoff === 0 ? "12 AM" : cutoff < 12 ? `${cutoff} AM` : cutoff === 12 ? "12 PM" : `${cutoff-12} PM`;
+                                    
+                                    if (isAfterCutoff) {
+                                      return (
+                                        <span>
+                                          <strong>Note:</strong> It's past the {cutoffLabel} cutoff for this kitchen. 
+                                          Your pause will begin from <strong>{format(addDays(new Date(), 2), "EEEE, MMM do")}</strong>. 
+                                          Tomorrow's delivery is already being prepared!
+                                        </span>
+                                      );
+                                    } else {
+                                      return (
+                                        <span>
+                                          Your pause will begin from <strong>tomorrow, {format(addDays(new Date(), 1), "MMM do")}</strong>.
+                                        </span>
+                                      );
+                                    }
+                                  })()}
+                                </AlertDescription>
+                              </Alert>
+                              <p className="text-sm text-muted-foreground leading-relaxed">
+                                While paused, you won't receive deliveries. Any already-deducted amounts for 
+                                future paused days will be refunded to your wallet balance.
+                              </p>
+                            </div>
+
+                            <DialogFooter>
+                              <Button variant="outline" onClick={() => setPausingSub(null)}>Keep Active</Button>
+                              <Button variant="default" onClick={() => handlePause(sub.id)} disabled={updateSub.isPending}>
+                                {updateSub.isPending ? "Pausing..." : "Yes, Pause Now"}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
                       )}
                       {isPaused && (
                         <Button variant="default" size="sm" onClick={() => handleResume(sub.id)} disabled={updateSub.isPending}>

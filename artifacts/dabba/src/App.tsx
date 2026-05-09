@@ -12,7 +12,6 @@ import { VendorSidebar } from "@/components/layout/vendor-sidebar";
 import { AdminSidebar } from "@/components/layout/admin-sidebar";
 import { ErrorBoundary } from "@/components/error-boundary";
 import RoleSelect from "@/pages/role-select";
-import PWAUpdater from "@/components/PWAUpdater";
 
 // ─── Lazy-loaded pages ────────────────────────────────────────────────────────
 // Each page chunk is fetched only when that route is first visited.
@@ -277,7 +276,6 @@ function App() {
               <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
                 <Router />
               </WouterRouter>
-              <PWAUpdater />
               <Toaster />
             </TooltipProvider>
           </QueryClientProvider>

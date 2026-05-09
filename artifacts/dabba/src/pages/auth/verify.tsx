@@ -46,7 +46,7 @@ export default function Verify() {
   async function onVerify(values: VerifyForm) {
     setIsSubmitting(true);
     try {
-      const res = await fetch("http://localhost:8080/api/auth/verify", {
+      const res = await fetch("/api/auth/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -70,7 +70,7 @@ export default function Verify() {
   async function onResend() {
     setResending(true);
     try {
-      const res = await fetch("http://localhost:8080/api/auth/resend-verification", {
+      const res = await fetch("/api/auth/resend-verification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

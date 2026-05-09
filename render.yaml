@@ -40,13 +40,12 @@ services:
   # ----------------------------------------------------------------------------
   # Frontend: Dabba App
   # ----------------------------------------------------------------------------
-  - type: web
+  - type: static_site
     name: dabba-app
-    env: node
     plan: free
     rootDir: .
     buildCommand: pnpm install && pnpm --filter @workspace/dabba build
-    startCommand: pnpm --filter @workspace/dabba start
+    staticPublishPath: artifacts/dabba/dist
     envVars:
       - key: NODE_ENV
         value: production

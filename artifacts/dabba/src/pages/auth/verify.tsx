@@ -57,6 +57,11 @@ export default function Verify() {
         toast({ variant: "destructive", title: "Verification failed", description: data.error || "Invalid code" });
         return;
       }
+      
+      if (data.sid) {
+        localStorage.setItem("dabba_sid", data.sid);
+      }
+      
       toast({ title: "Email verified!", description: "Welcome to Dabba." });
       await refetch();
       setLocation("/role-select");

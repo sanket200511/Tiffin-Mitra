@@ -123,7 +123,10 @@ router.post("/auth/login", async (req: Request, res: Response) => {
     const sid = await createSession({ user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, profileImageUrl: user.profileImageUrl, role: user.role ?? null, emailVerified: user.emailVerified } });
     setSessionCookie(res, sid);
 
-    res.json({ user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, profileImageUrl: user.profileImageUrl, role: user.role ?? null } });
+    res.json({ 
+      sid,
+      user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, profileImageUrl: user.profileImageUrl, role: user.role ?? null } 
+    });
   } catch (err) {
     req.log.error({ err }, "Login error");
     res.status(500).json({ error: "Login failed" });
@@ -334,7 +337,9 @@ router.get("/auth/google/callback", async (req: Request, res: Response) => {
 
     // Redirect to frontend (e.g., home or dashboard)
     const frontendUrl = process.env.FRONTEND_URL || "/";
-    res.redirect(frontendUrl);
+    const redirectUrl = new URL(frontendUrl);
+    redirectUrl.searchParams.set("sid", sid);
+    res.redirect(redirectUrl.toString());
   } catch (err) {
     req.log.error({ err }, "Google OAuth error");
     res.status(500).json({ error: "Authentication failed" });
@@ -387,6 +392,7 @@ router.post("/auth/verify", async (req: Request, res: Response) => {
 
     res.json({ 
       success: true, 
+      sid,
       user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, profileImageUrl: user.profileImageUrl, role: user.role ?? null } 
     });
   } catch (err) {

@@ -72,7 +72,7 @@ export default function Login() {
         credentials: "include",
         body: JSON.stringify(values),
       });
-      const data = await res.json() as { user?: { role?: string | null }; error?: string, requiresVerification?: boolean, email?: string };
+      const data = await res.json() as { sid?: string; user?: { role?: string | null }; error?: string, requiresVerification?: boolean, email?: string };
       if (!res.ok) {
         if (res.status === 403 && data.requiresVerification) {
           setLocation(`/auth/verify?email=${encodeURIComponent(data.email || values.email)}`);
@@ -84,6 +84,10 @@ export default function Login() {
             : data.error || "Invalid credentials";
         toast({ variant: "destructive", title: "Login failed", description });
         return;
+      }
+      
+      if (data.sid) {
+        localStorage.setItem("dabba_sid", data.sid);
       }
       await refetch();
       const role = data.user?.role;

@@ -19,9 +19,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchUser = useCallback(async () => {
+    // Check if there's a sid in the URL (Google OAuth landing)
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlSid = urlParams.get("sid");
+    if (urlSid) {
+      localStorage.setItem("dabba_sid", urlSid);
+      // Clean up the URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    const sid = localStorage.getItem("dabba_sid");
+    if (!sid) {
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const res = await fetch("/api/auth/user", { credentials: "include" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const res = await fetch("/api/auth/user");
+      if (!res.ok) {
+        if (res.status === 401) {
+          localStorage.removeItem("dabba_sid");
+        }
+        throw new Error(`HTTP ${res.status}`);
+      }
       const data = (await res.json()) as { user?: AuthUser | null } | null;
       setUser(data?.user ?? null);
     } catch {
@@ -41,10 +62,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+      await fetch("/api/auth/logout", { method: "POST" });
     } catch {
       // ignore network errors on logout
     }
+    localStorage.removeItem("dabba_sid");
     setUser(null);
     window.location.assign("/");
   }, []);

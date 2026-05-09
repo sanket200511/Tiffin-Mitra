@@ -13,6 +13,14 @@ window.fetch = async (...args) => {
     // Ensure cross-origin cookies are sent for authentication
     config = config || {};
     config.credentials = "include";
+
+    // Attach Bearer token if available
+    const sid = localStorage.getItem("dabba_sid");
+    if (sid) {
+      const headers = new Headers(config.headers);
+      headers.set("Authorization", `Bearer ${sid}`);
+      config.headers = headers;
+    }
   }
   return originalFetch(resource, config);
 };

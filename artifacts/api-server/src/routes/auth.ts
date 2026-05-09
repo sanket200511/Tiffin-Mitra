@@ -337,7 +337,17 @@ router.get("/auth/google/callback", async (req: Request, res: Response) => {
 
     // Redirect to frontend (e.g., home or dashboard)
     const frontendUrl = process.env.FRONTEND_URL || "/";
-    const redirectUrl = new URL(frontendUrl);
+    let redirectUrl: URL;
+    try {
+      // Try to parse as absolute URL
+      redirectUrl = new URL(frontendUrl);
+    } catch {
+      // Fallback for relative paths (e.g. "/" or "/dashboard")
+      const protocol = req.headers["x-forwarded-proto"] || req.protocol || "http";
+      const host = req.get("host") || "localhost:8080";
+      redirectUrl = new URL(frontendUrl, `${protocol}://${host}`);
+    }
+
     redirectUrl.searchParams.set("sid", sid);
     res.redirect(redirectUrl.toString());
   } catch (err) {

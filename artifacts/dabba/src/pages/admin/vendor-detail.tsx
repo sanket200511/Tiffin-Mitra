@@ -6,6 +6,7 @@ import {
   ArrowLeft, Store, MapPin, ChefHat, Star, TrendingUp, ShoppingBag,
   Users, CheckCircle2, XCircle, Clock, Calendar, Receipt,
   MessageSquare, IndianRupee, Percent, Pencil, Crown,
+  Settings, Trash2, ShieldCheck,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

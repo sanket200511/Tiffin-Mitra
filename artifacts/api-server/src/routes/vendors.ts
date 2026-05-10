@@ -134,7 +134,7 @@ router.patch("/vendors/:vendorId", async (req, res) => {
       logoUrl, coverImageUrl, fssaiLicense,
       deliveryRadius, minimumOrderAmount,
       featured, commissionRate, subscriptionTier,
-      pauseCutoffHour,
+      pauseCutoffHour, rating, reviewCount,
     } = req.body;
 
     const updates: Record<string, unknown> = {};
@@ -172,6 +172,14 @@ router.patch("/vendors/:vendorId", async (req, res) => {
           return;
         }
         updates.subscriptionTier = subscriptionTier;
+      }
+      if (rating !== undefined) {
+        const r = parseFloat(String(rating));
+        if (!isNaN(r) && r >= 0 && r <= 5) updates.rating = r.toFixed(1);
+      }
+      if (reviewCount !== undefined) {
+        const c = parseInt(String(reviewCount));
+        if (!isNaN(c) && c >= 0) updates.reviewCount = c;
       }
     }
 

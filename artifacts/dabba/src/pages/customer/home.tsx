@@ -470,28 +470,35 @@ function MarketingHome() {
                           </p>
                         </div>
                         <div className="flex items-center gap-1 text-xs font-medium bg-yellow-50 text-yellow-700 px-2 py-1 rounded-full border border-yellow-200 shrink-0">
-                          <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                          <Star className={`w-3 h-3 ${displayVendor.rating ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground/30"}`} />
                           {(() => {
                             const r = displayVendor.rating;
                             if (typeof r === "number") return r.toFixed(1);
                             if (typeof r === "string") return parseFloat(r).toFixed(1);
-                            return "5.0";
+                            return "New";
                           })()}
                         </div>
                       </div>
 
                       <div className="grid grid-cols-3 gap-3 text-center relative z-10">
-                        {[
-                          { label: "Lunch", price: "₹120", tag: "Daily" },
-                          { label: "Dinner", price: "₹130", tag: "Daily" },
-                          { label: "Both", price: "₹220", tag: "Save 15%" },
-                        ].map(item => (
-                          <div key={item.label} className="bg-muted/50 rounded-xl p-3 border border-transparent hover:border-primary/20 transition-colors">
-                            <p className="text-xs text-muted-foreground">{item.label}</p>
-                            <p className="font-bold text-base">{item.price}</p>
-                            <p className="text-[10px] text-primary font-medium">{item.tag}</p>
+                        {displayVendor.id === "demo" ? (
+                          [
+                            { label: "Lunch", price: "₹120", tag: "Daily" },
+                            { label: "Dinner", price: "₹130", tag: "Daily" },
+                            { label: "Both", price: "₹220", tag: "Save 15%" },
+                          ].map(item => (
+                            <div key={item.label} className="bg-muted/50 rounded-xl p-3 border border-transparent">
+                              <p className="text-xs text-muted-foreground">{item.label}</p>
+                              <p className="font-bold text-base">{item.price}</p>
+                              <p className="text-[10px] text-primary font-medium">{item.tag}</p>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="col-span-3 bg-muted/30 rounded-xl py-4 px-3 border border-dashed text-center">
+                            <p className="text-sm font-semibold text-foreground">Menu & Pricing</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">Click "Subscribe" to view current tiffin plans</p>
                           </div>
-                        ))}
+                        )}
                       </div>
 
                       <Button className="w-full shadow-md shadow-primary/10" size="sm" asChild>
@@ -510,15 +517,15 @@ function MarketingHome() {
                     <div className="flex gap-4 w-full">
                       <div className="flex-1 bg-card rounded-xl border shadow-sm p-4 text-center group hover:border-primary/30 transition-colors">
                         <p className="text-2xl font-bold font-serif text-primary">
-                          {vendors.length > 0 ? `${vendors.length}+` : "50+"}
+                          {vendors.length > 0 ? vendors.length : "0"}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">Home Kitchens</p>
+                        <p className="text-xs text-muted-foreground mt-1">Kitchen Partners</p>
                       </div>
                       <div className="flex-1 bg-card rounded-xl border shadow-sm p-4 text-center group hover:border-primary/30 transition-colors">
                         <p className="text-2xl font-bold font-serif text-primary">
-                          {vendors.length > 0 ? `${vendors.length * 20}+` : "1000+"}
+                          {vendors.length > 0 ? (vendors.length * 12) + 5 : "0"}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">Happy Customers</p>
+                        <p className="text-xs text-muted-foreground mt-1">Active Users</p>
                       </div>
                     </div>
                   </div>

@@ -5,7 +5,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import {
   ArrowLeft, Store, MapPin, ChefHat, Star, TrendingUp, ShoppingBag,
   Users, CheckCircle2, XCircle, Clock, Calendar, Receipt,
-  MessageSquare, IndianRupee, Percent, Pencil, Crown,
+  MessageSquare, IndianRupee, Percent, Pencil, Crown, Trash2, Settings, ShieldCheck,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -94,8 +94,10 @@ export default function AdminVendorDetail() {
   const [orderStatusFilter, setOrderStatusFilter] = useState("all");
   const [commissionDialog, setCommissionDialog] = useState(false);
   const [commissionInput, setCommissionInput] = useState("");
-  const [tierDialog, setTierDialog] = useState(false);
   const [tierInput, setTierInput] = useState<string>("");
+  const [statsDialog, setStatsDialog] = useState(false);
+  const [ratingInput, setRatingInput] = useState("");
+  const [countInput, setCountInput] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -207,6 +209,46 @@ export default function AdminVendorDetail() {
       toast({ title: "Vendor tier updated", description: "Tier changed successfully." });
       setTierDialog(false);
       setTierInput("");
+    },
+    onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
+  const updateStatsOverride = useMutation({
+    mutationFn: async ({ rating, count }: { rating?: string; count?: string }) => {
+      const res = await fetch(`/api/vendors/${vendorId}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          ...(rating !== undefined && { rating }),
+          ...(count !== undefined && { reviewCount: parseInt(count) })
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to override stats");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors", vendorId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors", vendorId, "stats"] });
+      toast({ title: "Stats overridden", description: "Kitchen statistics updated manually." });
+      setStatsDialog(false);
+    },
+    onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
+  const deleteReview = useMutation({
+    mutationFn: async (reviewId: string) => {
+      const res = await fetch(`/api/reviews/${reviewId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to delete review");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/reviews", { vendorId }] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors", vendorId, "stats"] });
+      toast({ title: "Review deleted", description: "The review has been removed permanently." });
     },
     onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
@@ -663,6 +705,57 @@ export default function AdminVendorDetail() {
               onClick={() => updateTier.mutate(tierInput)}
             >
               {updateTier.isPending ? "Saving..." : "Update Tier"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Stats Manipulation dialog */}
+      <Dialog open={statsDialog} onOpenChange={setStatsDialog}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-700">
+              <ShieldCheck className="w-4 h-4" />
+              Admin Manipulation
+            </DialogTitle>
+            <DialogDescription>
+              Directly override the public rating and review count for <strong>{vendor?.name}</strong>. Use with caution.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-3 space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="rating-override">Manual Rating (0-5)</Label>
+              <Input
+                id="rating-override"
+                type="number"
+                min="0"
+                max="5"
+                step="0.1"
+                value={ratingInput}
+                onChange={e => setRatingInput(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="count-override">Manual Review Count</Label>
+              <Input
+                id="count-override"
+                type="number"
+                min="0"
+                value={countInput}
+                onChange={e => setCountInput(e.target.value)}
+              />
+            </div>
+            <div className="p-3 bg-amber-50 rounded-lg border border-amber-100 text-[11px] text-amber-800 leading-relaxed">
+              <strong>Note:</strong> These values will be displayed on the platform. Future reviews will continue to update these numbers based on the new manual baseline.
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStatsDialog(false)}>Cancel</Button>
+            <Button 
+              className="bg-amber-600 hover:bg-amber-700"
+              disabled={updateStatsOverride.isPending}
+              onClick={() => updateStatsOverride.mutate({ rating: ratingInput, count: countInput })}
+            >
+              {updateStatsOverride.isPending ? "Overriding..." : "Apply Override"}
             </Button>
           </DialogFooter>
         </DialogContent>

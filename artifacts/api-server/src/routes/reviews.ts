@@ -169,4 +169,30 @@ router.patch("/reviews/:reviewId/response", async (req, res) => {
   }
 });
 
+// ─── Admin: delete a review ───────────────────────────────────────────────────
+router.delete("/reviews/:reviewId", async (req, res) => {
+  if (!req.isAuthenticated() || req.user.role !== "super_admin") {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  try {
+    const [review] = await db.select({ vendorId: reviewsTable.vendorId }).from(reviewsTable)
+      .where(eq(reviewsTable.id, req.params.reviewId));
+    if (!review) {
+      res.status(404).json({ error: "Review not found" });
+      return;
+    }
+
+    await db.delete(reviewsTable).where(eq(reviewsTable.id, req.params.reviewId));
+    
+    // Recalculate and persist vendor rating
+    await refreshVendorRating(review.vendorId);
+
+    res.json({ message: "Review deleted successfully" });
+  } catch (err) {
+    req.log.error({ err }, "Failed to delete review");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

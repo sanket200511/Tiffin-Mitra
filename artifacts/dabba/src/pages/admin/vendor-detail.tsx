@@ -5,7 +5,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import {
   ArrowLeft, Store, MapPin, ChefHat, Star, TrendingUp, ShoppingBag,
   Users, CheckCircle2, XCircle, Clock, Calendar, Receipt,
-  MessageSquare, IndianRupee, Percent, Pencil, Crown, Trash2, Settings, ShieldCheck,
+  MessageSquare, IndianRupee, Percent, Pencil, Crown,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -94,6 +94,7 @@ export default function AdminVendorDetail() {
   const [orderStatusFilter, setOrderStatusFilter] = useState("all");
   const [commissionDialog, setCommissionDialog] = useState(false);
   const [commissionInput, setCommissionInput] = useState("");
+  const [tierDialog, setTierDialog] = useState(false);
   const [tierInput, setTierInput] = useState<string>("");
   const [statsDialog, setStatsDialog] = useState(false);
   const [ratingInput, setRatingInput] = useState("");
@@ -334,6 +335,19 @@ export default function AdminVendorDetail() {
                 Change tier
                 <Pencil className="w-3 h-3 opacity-0 group-hover/tier:opacity-60 transition-opacity" />
               </button>
+              <button
+                className="flex items-center gap-1 hover:text-primary transition-colors group/stats"
+                onClick={() => { 
+                  setRatingInput(vendor.rating || "5.0"); 
+                  setCountInput(String(vendor.reviewCount || 0)); 
+                  setStatsDialog(true); 
+                }}
+                title="Manipulate vendor stats"
+              >
+                <Settings className="w-3 h-3 text-amber-600" />
+                <span className="text-amber-700 font-semibold">Manipulate Stats</span>
+                <Pencil className="w-3 h-3 opacity-0 group-hover/stats:opacity-60 transition-opacity" />
+              </button>
               <span className="text-xs">Joined {format(new Date(vendor.createdAt), "dd MMM yyyy")}</span>
             </div>
           </div>
@@ -539,7 +553,21 @@ export default function AdminVendorDetail() {
                         </p>
                       </div>
                     </div>
-                    <StarRating rating={review.rating} />
+                    <div className="flex items-center gap-2">
+                      <StarRating rating={review.rating} />
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => {
+                          if (confirm("Are you sure you want to delete this review? This will also update the kitchen's average rating.")) {
+                            deleteReview.mutate(review.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </div>
                   {review.comment && (
                     <p className="text-sm text-muted-foreground leading-relaxed">{review.comment}</p>
@@ -709,6 +737,7 @@ export default function AdminVendorDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       {/* Stats Manipulation dialog */}
       <Dialog open={statsDialog} onOpenChange={setStatsDialog}>
         <DialogContent className="sm:max-w-xs">

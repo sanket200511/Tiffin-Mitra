@@ -281,7 +281,12 @@ export default function Explore() {
                   {vendor.rating && (
                     <div className="absolute top-3 right-3 bg-background/90 backdrop-blur px-2 py-1 rounded-md text-sm font-medium flex items-center gap-1 shadow-sm">
                       <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                      {parseFloat(String(vendor.rating)).toFixed(1)}
+                      {(() => {
+                        const r = vendor.rating;
+                        if (typeof r === "number") return r.toFixed(1);
+                        if (typeof r === "string") return parseFloat(r).toFixed(1);
+                        return "0.0";
+                      })()}
                       <span className="text-muted-foreground text-xs ml-0.5">({vendor.reviewCount || 0})</span>
                     </div>
                   )}

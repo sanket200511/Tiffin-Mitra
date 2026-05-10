@@ -97,7 +97,12 @@ export default function VendorDetail() {
                 {vendor.rating && (
                   <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white backdrop-blur border-none flex items-center gap-1 text-sm py-1">
                     <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-                    {vendor.rating} ({vendor.reviewCount} reviews)
+                    {(() => {
+                      const r = vendor.rating;
+                      if (typeof r === "number") return r.toFixed(1);
+                      if (typeof r === "string") return parseFloat(r).toFixed(1);
+                      return "0.0";
+                    })()} ({vendor.reviewCount} reviews)
                   </Badge>
                 )}
               </div>

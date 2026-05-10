@@ -444,7 +444,7 @@ function MarketingHome() {
                   name: "Chanda's Home Kitchen",
                   cuisineType: "Maharastrian Thali",
                   city: "Nagpur",
-                  rating: 4.9,
+                  rating: "4.9",
                   logoUrl: null,
                   coverImageUrl: null,
                   id: "demo"
@@ -453,7 +453,6 @@ function MarketingHome() {
                 return (
                   <div className="w-[420px] max-w-full space-y-5">
                     <div className="w-full bg-card rounded-2xl border shadow-xl p-6 space-y-5 relative overflow-hidden">
-                      {/* Decorative background for the featured card */}
                       <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16" />
 
                       <div className="flex items-center gap-3 relative z-10">
@@ -472,7 +471,12 @@ function MarketingHome() {
                         </div>
                         <div className="flex items-center gap-1 text-xs font-medium bg-yellow-50 text-yellow-700 px-2 py-1 rounded-full border border-yellow-200 shrink-0">
                           <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                          {displayVendor.rating ? parseFloat(String(displayVendor.rating)).toFixed(1) : "5.0"}
+                          {(() => {
+                            const r = displayVendor.rating;
+                            if (typeof r === "number") return r.toFixed(1);
+                            if (typeof r === "string") return parseFloat(r).toFixed(1);
+                            return "5.0";
+                          })()}
                         </div>
                       </div>
 
@@ -627,7 +631,9 @@ function MarketingHome() {
                   const aFeat = (a as any).featured ? 1 : 0;
                   const bFeat = (b as any).featured ? 1 : 0;
                   if (bFeat !== aFeat) return bFeat - aFeat;
-                  return parseFloat(String(b.rating ?? 0)) - parseFloat(String(a.rating ?? 0));
+                  const aRating = typeof a.rating === "object" ? 0 : Number(a.rating || 0);
+                  const bRating = typeof b.rating === "object" ? 0 : Number(b.rating || 0);
+                  return bRating - aRating;
                 })
                 .slice(0, 3)
                 .map(vendor => (
@@ -650,7 +656,12 @@ function MarketingHome() {
                         {vendor.rating && (
                           <div className="absolute top-3 right-3 bg-background/90 backdrop-blur px-2 py-1 rounded-md text-sm font-medium flex items-center gap-1 shadow-sm">
                             <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            {parseFloat(String(vendor.rating)).toFixed(1)}
+                            {(() => {
+                              const r = vendor.rating;
+                              if (typeof r === "number") return r.toFixed(1);
+                              if (typeof r === "string") return parseFloat(r).toFixed(1);
+                              return "0.0";
+                            })()}
                           </div>
                         )}
                       </div>

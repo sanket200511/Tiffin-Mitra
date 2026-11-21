@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { db, customerSubscriptionsTable } from "@workspace/db";
 import { and, eq, lte, isNotNull } from "drizzle-orm";
 import { resumeSubscription } from "./subscription-helpers";
+import { performRedisKeepAlive } from "./redis";
 
 export function initTasks() {
   // Run every hour to check for auto-resumptions
@@ -39,6 +40,22 @@ export function initTasks() {
       }
     } catch (err) {
       console.error("[CRON] Error in auto-resume task:", err);
+    }
+  });
+
+  // Keep Redis active by pinging and recording heartbeat every 30 minutes
+  // to prevent cloud Redis providers (e.g. RedisLabs / Redis Cloud, Upstash) from hibernating
+  cron.schedule("*/30 * * * *", async () => {
+    console.log("[CRON] Running scheduled Redis keep-alive heartbeat...");
+    try {
+      const result = await performRedisKeepAlive();
+      if (result.success) {
+        console.log(`[CRON] Redis keep-alive succeeded (${result.latencyMs}ms)`);
+      } else {
+        console.warn(`[CRON] Redis keep-alive failed: ${result.error}`);
+      }
+    } catch (err) {
+      console.error("[CRON] Unexpected error in Redis keep-alive task:", err);
     }
   });
 

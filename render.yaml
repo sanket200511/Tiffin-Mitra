@@ -40,6 +40,8 @@ services:
         sync: false # Set this in Render Dashboard
       - key: ALLOWED_ORIGINS
         value: https://dabba-app.onrender.com
+      - key: RENDER_KEEP_ALIVE
+        value: "true" # Set to "false" in Render Dashboard to allow service to sleep and save hours
 
   # ----------------------------------------------------------------------------
   # Frontend: Dabba App

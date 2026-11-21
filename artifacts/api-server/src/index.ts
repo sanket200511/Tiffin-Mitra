@@ -2,8 +2,10 @@ import "./env";
 import app from "./app";
 import { logger } from "./lib/logger";
 import { initTasks } from "./lib/tasks";
+import { initRenderKeepAlive } from "./lib/render-keep-alive";
 
 initTasks();
+initRenderKeepAlive();
 
 const rawPort = process.env["PORT"];
 

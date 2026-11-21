@@ -77,6 +77,16 @@ const generalLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later." },
   skip: (req) => {
+    // Exempt keep-alive and health check endpoints so external monitors/cron won't get blocked
+    if (
+      req.path === "/redis/keep-alive" ||
+      req.path === "/keep-alive" ||
+      req.path === "/redis/ping" ||
+      req.path === "/healthz" ||
+      req.path === "/health/render-keep-alive"
+    ) {
+      return true;
+    }
     // Skip rate limiting in development
     return process.env.NODE_ENV !== "production" && (
       req.ip === "127.0.0.1" || req.ip === "::1" || req.ip === "::ffff:127.0.0.1"
@@ -100,7 +110,13 @@ const mutationLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, slow down." },
-  skip: (req) => req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS",
+  skip: (req) =>
+    req.method === "GET" ||
+    req.method === "HEAD" ||
+    req.method === "OPTIONS" ||
+    req.path === "/redis/keep-alive" ||
+    req.path === "/keep-alive" ||
+    req.path === "/health/render-keep-alive",
 });
 
 // ─── Body parsing & auth ──────────────────────────────────────────────────────
